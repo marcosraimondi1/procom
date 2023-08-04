@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from prbs9 import generar_bpsk
+from prbs9 import generar_bpsk, generar_prbs9, deco_bpsk
 from rcosine import rcosine, resp_freq, eyeDiagram
 
 """
@@ -28,11 +28,17 @@ Nfreqs = 256  # Cantidad de frecuencias a evaluar (para la respuesta en frecuenc
 Tclk = 1 / Fclk  # Periodo de Reloj [s]
 Ts = Tclk / os  # Frecuencia de muestreo
 
+showPlots = True
+
 # TRANSMISOR ---------------------------------------------------------------
 
-# Generar la secuencia de simbolos QPSK
-simbolosI = np.array(generar_bpsk(seedI, Nsym))
-simbolosQ = np.array(generar_bpsk(seedQ, Nsym))
+# Generar bits a transmitir
+bitsI = generar_prbs9(seedI, Nsym)
+bitsQ = generar_prbs9(seedQ, Nsym)
+
+# Generar la secuencia de simbolos QPSK (Codificacion)
+simbolosI = np.array(generar_bpsk(bitsI))
+simbolosQ = np.array(generar_bpsk(bitsQ))
 
 # UpSampling
 simbolos_upI = np.zeros(Nsym * os)
@@ -55,22 +61,41 @@ offset = 1
 simbolos_downI = filteredI[offset::os]
 simbolos_downQ = filteredQ[offset::os]
 
-# Ber
-ber = sum(abs((simbolos_downI != simbolosI) ^ (simbolos_downQ != simbolosQ))) / Nsym
+# Decodificacion
+bitsI_rec = deco_bpsk(simbolos_downI)
+bitsQ_rec = deco_bpsk(simbolos_downQ)
 
 # correlacion
-correlacion = np.correlate(simbolos_downI, simbolosI, "same")
+correlacionI = np.correlate(simbolos_downI, simbolosI, "same")
+correlacionQ = np.correlate(simbolos_downQ, simbolosQ, "same")
 
-print("BER: {}".format(ber))
+# ser
+erroresI_sym = (Nsym - max(correlacionI)) // 2
+erroresQ_sym = (Nsym - max(correlacionQ)) // 2
+
+serI = erroresI_sym / Nsym # symbol error rate
+serQ = erroresQ_sym / Nsym # symbol error rate
+
+print("SER I: {}".format(serI))
+print("SER Q: {}".format(serQ))
+
+# ber
+erroresI_bit = sum(abs(np.array(bitsI_rec) - np.array(bitsI)))
+erroresQ_bit = sum(abs(np.array(bitsQ_rec) - np.array(bitsQ)))
+
+berI = erroresI_bit / len(bitsI)
+berQ = erroresQ_bit / len(bitsQ)
+
+print("BER I: {}".format(berI))
+print("BER Q: {}".format(berQ))
 
 
 # GRAFICOS -----------------------------------------------------------------
-noPlots = False
-if noPlots:
+if not showPlots:
     exit()
 
 
-# RESPUESTA AL IMPULSO
+# RESPUESTA AL IMPULSO y FRECUENCIA
 plt.figure()
 plt.suptitle("Filtro Tx")
 plt.subplot(2, 1, 1)
@@ -85,12 +110,21 @@ plt.grid()
 
 # BITS TRANSMITIDOS
 plt.figure()
-plt.title("TX SIGNAL")
+plt.suptitle("TX SIGNAL")
+plt.subplot(2, 1, 1)
 plt.plot(filteredI[offset:])
 plt.stem(simbolos_upI, "r")
 plt.xlim([100, 150])
-plt.legend(["Filtered", "Upsampled"])
+plt.legend(["FilteredI", "UpsampledI"])
 plt.grid()
+
+plt.subplot(2, 1, 2)
+plt.plot(filteredQ[offset:])
+plt.stem(simbolos_upQ, "r")
+plt.xlim([100, 150])
+plt.legend(["FilteredQ", "UpsampledQ"])
+plt.grid()
+
 
 # CONSTELACION + OFFSETs
 plt.figure()
@@ -103,12 +137,19 @@ for i in range(os):
 
 # EYE DIAGRAM
 eyeDiagram(filteredI[offset:], 2, 100, os)
+eyeDiagram(filteredQ[offset:], 2, 100, os)
 
 # CORRELACION
 plt.figure()
-plt.title("Correlacion")
-plt.plot(correlacion)
+plt.suptitle("Correlacion")
+plt.subplot(2, 1, 1)
+plt.plot(correlacionI)
+plt.legend("In Phase")
 plt.grid()
-plt.show()
+
+plt.subplot(2, 1, 2)
+plt.plot(correlacionQ)
+plt.legend("Quadrature")
+plt.grid()
 
 plt.show()

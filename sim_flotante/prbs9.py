@@ -44,18 +44,28 @@ def generar_prbs9(seed, N):
     return prbs_sequence
 
 
-def generar_bpsk(seed, N):
+def generar_bpsk(bits):
     """
     Genera una secuencia de simbolos BPSK
     Arguments:
-        - seed: semilla para el generador de numeros aleatorios
-        - N: cantidad de simbolos a generar
+        - bits: bits a codificar
     Returns:
         - secuencia de simbolos BPSK
     """
-    prbs_sequence = generar_prbs9(seed, N)
-
-    # Convert the bits to BPSK symbols
-    bpsk_sequence = [1 if bit == 1 else -1 for bit in prbs_sequence]
+    # Generar la secuencia de simbolos BPSK
+    bpsk_sequence = [1 if bit == 1 else -1 for bit in bits]
 
     return bpsk_sequence
+
+def deco_bpsk(symbols):
+    """
+    Decodifica una secuencia de simbolos BPSK
+    Arguments:
+        - symbols: simbolos a decodificar
+    Returns:
+        - secuencia de bits
+    """
+    # Generar la secuencia de bits
+    bits = [1 if symbol > 0 else 0 for symbol in symbols]
+
+    return bits
