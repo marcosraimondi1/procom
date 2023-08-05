@@ -31,7 +31,8 @@ def rcosine(beta, Tbaud, oversampling, Nbauds, Norm):
     y_vect = np.array(y_vect)
 
     if Norm:
-        return (t_vect, y_vect / np.sqrt(np.sum(y_vect**2)))
+        return (t_vect, y_vect / max(abs(y_vect)))
+        # return (t_vect, y_vect / np.sqrt(np.sum(y_vect**2)))
     else:
         return (t_vect, y_vect)
     

@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from prbs9 import generar_bpsk, generar_prbs9, deco_bpsk, slicer
 from rcosine import rcosine, resp_freq, eyeDiagram
-from utils import fixArray, floatArray
+from utils import fixArray
 """
 1. Disenar en Python un simulador en punto flotante que contemple todo el diseño 
 en donde la representacion de la PRBS9 es una secuencia aleatoria y la estimacion de
@@ -42,7 +42,7 @@ roundMode       = "round"       # trunc o round
 saturateMode    = "saturate"    # saturate o wrap (overflow)
 
 # Graficos
-showPlots   = False
+showPlots   = True
 
 # TRANSMISOR ---------------------------------------------------------------
 
@@ -60,14 +60,16 @@ simbolos_upI[::os] = simbolosI
 simbolos_upQ = np.zeros(Nsym * os)
 simbolos_upQ[::os] = simbolosQ
 
-
 # FILTRO POLIFASICO
 t, h_filter = rcosine(beta, Tclk, os, Nbauds, True) 
+t = t[0:os*Nbauds]
 h_filter = h_filter[0:os*Nbauds] # para que los filtros de cada fase tengan la misma longitud
+
+h_fixed = fixArray(NB, NBF, h_filter, signedMode, roundMode, saturateMode)
 
 h_i = []  # filtro polifasico, OS filtros
 for i in range(os):
-    h_i.append(h_filter[i::os])
+    h_i.append(h_fixed[i::os])
 
 H0, _, F0 = resp_freq(h_filter, Ts, Nfreqs)
 
@@ -80,8 +82,10 @@ filteredQ = np.convolve(h_filter, simbolos_upQ, "same")
 muestrasI = filteredI[offset::os]
 muestrasQ = filteredQ[offset::os]
 
-simbolos_estimadosI = slicer(muestrasI)
-simbolos_estimadosQ = slicer(muestrasQ)
+# simbolos_estimadosI = slicer(muestrasI)
+# simbolos_estimadosQ = slicer(muestrasQ)
+simbolos_estimadosI = muestrasI
+simbolos_estimadosQ = muestrasQ
 
 # Decodificacion
 bitsI_rec = deco_bpsk(simbolos_estimadosI)

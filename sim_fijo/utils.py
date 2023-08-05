@@ -3,18 +3,8 @@ import numpy as np
 
 def fixArray(NB, NBF, array, signedMode='S', roundMode='trunc', saturateMode='saturate'):
     """
-    Transforma el arreglo a un arreglo de fixedInt
+    Cuantiza un arreglo flotante con la librearia fixedInt y retorna el arreglo cuantizado en flotante.
     """
-    return arrayFixedInt(NB, NBF, array, signedMode, roundMode, saturateMode)
-
-def floatArray(array):
-    """
-    Transforma el arreglo de fixedInt a un arreglo de float
-    Arguments:
-        - array: Arreglo de fixedInt
-    Returns:
-        - arreglo de float
-    """
-    return np.array([ e.fValue for e in array ])
-
+    fixedIntArray = arrayFixedInt(NB, NBF, array, signedMode, roundMode, saturateMode)
+    return np.array([ e.fValue for e in fixedIntArray ])
 
