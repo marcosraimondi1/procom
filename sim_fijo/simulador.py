@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from prbs9 import generar_bpsk, generar_prbs9, deco_bpsk
+from prbs9 import generar_bpsk, generar_prbs9, deco_bpsk, slicer
 from rcosine import rcosine, resp_freq, eyeDiagram
-
+from utils import fixArray, floatArray
 """
 1. Disenar en Python un simulador en punto flotante que contemple todo el diseño 
 en donde la representacion de la PRBS9 es una secuencia aleatoria y la estimacion de
@@ -16,19 +16,33 @@ a) Realizar los siguientes graficos:
 """
 
 # PARAMETROS ---------------------------------------------------------------
+# Generales
+Nsym    = 1000      # Cantidad de simbolos a transmitir
+os      = 4         # Oversampling Factor
+Nfreqs  = 256       # Cantidad de frecuencias a evaluar (para la respuesta en frecuencia)
+seedI   = 0x1AA     # Semilla para el generador de PRBS9 parte real
+seedQ   = 0x1FE     # Semilla para el generador de PRBS9 parte imaginaria
 
-Fclk = 100e6  # Frecuencia de Reloj [Hz]
-os = 4  # Oversampling Factor
-beta = 0.5  # Factor de roll-off
-Nbauds = 6  # Cantidad de simbolos que entran en el filtro
-Nsym = 1000  # Cantidad de simbolos a transmitir
-seedI = 0x1AA  # Semilla para el generador de PRBS9 parte real
-seedQ = 0x1FE  # Semilla para el generador de PRBS9 parte imaginaria
-Nfreqs = 256  # Cantidad de frecuencias a evaluar (para la respuesta en frecuencia)
-Tclk = 1 / Fclk  # Periodo de Reloj [s]
-Ts = Tclk / os  # Frecuencia de muestreo
+Fclk    = 100e6     # Frecuencia de Reloj [Hz]
+Tclk    = 1 / Fclk  # Periodo de Reloj [s]
+Ts      = Tclk / os # Frecuencia de muestreo
 
-showPlots = True
+# Filtro
+beta    = 0.5       # Factor de roll-off
+Nbauds  = 6         # Cantidad de simbolos que entran en el filtro
+
+# Receptor
+offset = 0
+
+# Punto Fijo
+NB              = 8             # bits totales
+NBF             = 7             # bits fraccionarios
+signedMode      = "S"           # S o U
+roundMode       = "round"       # trunc o round
+saturateMode    = "saturate"    # saturate o wrap (overflow)
+
+# Graficos
+showPlots   = False
 
 # TRANSMISOR ---------------------------------------------------------------
 
@@ -46,8 +60,14 @@ simbolos_upI[::os] = simbolosI
 simbolos_upQ = np.zeros(Nsym * os)
 simbolos_upQ[::os] = simbolosQ
 
-# Filtro de Coseno Alzado
-t, h_filter = rcosine(beta, Tclk, os, Nbauds, False)
+
+# FILTRO POLIFASICO
+t, h_filter = rcosine(beta, Tclk, os, Nbauds, True) 
+h_filter = h_filter[0:os*Nbauds] # para que los filtros de cada fase tengan la misma longitud
+
+h_i = []  # filtro polifasico, OS filtros
+for i in range(os):
+    h_i.append(h_filter[i::os])
 
 H0, _, F0 = resp_freq(h_filter, Ts, Nfreqs)
 
@@ -57,24 +77,26 @@ filteredQ = np.convolve(h_filter, simbolos_upQ, "same")
 # RECEPTOR ---------------------------------------------------------------
 
 # DownSampling
-offset = 1
-simbolos_downI = filteredI[offset::os]
-simbolos_downQ = filteredQ[offset::os]
+muestrasI = filteredI[offset::os]
+muestrasQ = filteredQ[offset::os]
+
+simbolos_estimadosI = slicer(muestrasI)
+simbolos_estimadosQ = slicer(muestrasQ)
 
 # Decodificacion
-bitsI_rec = deco_bpsk(simbolos_downI)
-bitsQ_rec = deco_bpsk(simbolos_downQ)
+bitsI_rec = deco_bpsk(simbolos_estimadosI)
+bitsQ_rec = deco_bpsk(simbolos_estimadosQ)
 
 # correlacion
-correlacionI = np.correlate(simbolos_downI, simbolosI, "same")
-correlacionQ = np.correlate(simbolos_downQ, simbolosQ, "same")
+correlacionI = np.correlate(simbolos_estimadosI, simbolosI, "same")
+correlacionQ = np.correlate(simbolos_estimadosQ, simbolosQ, "same")
 
 # ser
 erroresI_sym = (Nsym - max(correlacionI)) // 2
 erroresQ_sym = (Nsym - max(correlacionQ)) // 2
 
-serI = erroresI_sym / Nsym # symbol error rate
-serQ = erroresQ_sym / Nsym # symbol error rate
+serI = erroresI_sym / Nsym  # symbol error rate
+serQ = erroresQ_sym / Nsym  # symbol error rate
 
 print("SER I: {}".format(serI))
 print("SER Q: {}".format(serQ))
