@@ -33,6 +33,7 @@ Nbauds  = 6         # Cantidad de simbolos que entran en el filtro
 
 # Receptor
 offset = 0
+delay  = Nbauds*os//2 + offset # teniendo en cuenta el transitorio del filtro
 
 # Punto Fijo
 NB              = 8             # bits totales
@@ -145,11 +146,14 @@ for i in range(Nsym*os):
     bitI_rec = 1 if simbolo_estimadoI > 0 else 0
     bitQ_rec = 1 if simbolo_estimadoQ > 0 else 0
 
-    
-    # ber
     bitsRxI.append(bitI_rec)
     bitsRxQ.append(bitQ_rec)
 
+    # ber
+    # para contar errores tengo en cuenta el delay del filtro
+    if (i < delay):
+        continue
+    
     bitI = next(prbs_genI_receptor)
     bitQ = next(prbs_genQ_receptor)
 
@@ -181,11 +185,13 @@ plt.subplot(2, 1, 2)
 plt.semilogx(F0, 20 * np.log10(H0))
 plt.legend("Frecuencia")
 plt.grid()
+plt.subplots_adjust(hspace=0.5)
 
 # FILTER OUT
 plt.figure()
 plt.suptitle("FILTER OUT")
 plt.subplot(2, 1, 1)
+plt.title("Con Retardo")
 plt.plot(filteredIArray)
 plt.stem(simbolos_upI, "r")
 plt.xlim([0, 50])
@@ -193,28 +199,31 @@ plt.legend(["FilteredI", "UpsampledI"])
 plt.grid()
 
 plt.subplot(2, 1, 2)
-plt.plot(filteredIArray[offset:])
+plt.title("Sin Retardo")
+plt.plot(filteredIArray[delay:])
 plt.stem(simbolos_upI, "r")
 plt.xlim([0, 50])
 plt.legend(["FilteredI", "UpsampledI"])
 plt.grid()
+plt.subplots_adjust(hspace=0.5)
 
 # CONSTELACION + OFFSETs
 plt.figure()
 plt.suptitle("Constelacion")
 for i in range(os):
-    plt.subplot(2, 2, i + 1)
+    plt.subplot(2, os//2, i + 1)
     plt.grid()
     plt.plot(filteredIArray[i :: os], filteredQArray[i :: os], ".")
     plt.legend(["Offset: {}".format(i)])
 
 # EYE DIAGRAM
-eyeDiagram(filteredIArray[offset:], 2, 100, os)
+eyeDiagram(filteredIArray[delay:], 2, 100, os)
 
 # BITS TX vs BITS RX
 plt.figure()
 plt.suptitle("BITS TX vs RX")
 plt.subplot(2, 1, 1)
+plt.title("Con Retardo")
 plt.stem(bitsTxI, 'g')
 plt.stem(bitsRxI, markerfmt='D', linefmt='r')
 plt.legend(["TxI", "RxI"])
@@ -222,11 +231,14 @@ plt.xlim([0, 50])
 plt.grid()
 
 plt.subplot(2, 1, 2)
+plt.title("Sin Retardo")
 plt.stem(bitsTxI, 'g')
-plt.stem(bitsRxI, markerfmt='D', linefmt='r')
-plt.legend(["TxQ", "RxQ"])
+plt.stem(bitsRxI[Nbauds//2:], markerfmt='D', linefmt='r')
+plt.legend(["RxI", "RxI"])
 plt.xlim([0, 50])
 plt.grid()
+plt.subplots_adjust(hspace=0.5)
+
 
 plt.show()
 
