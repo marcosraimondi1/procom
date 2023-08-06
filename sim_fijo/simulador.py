@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from prbs9 import generar_bpsk, prbs9, deco_bpsk, slicer
+from prbs9 import prbs9
 from rcosine import rcosine, resp_freq, eyeDiagram
 from utils import fixArray
 """
