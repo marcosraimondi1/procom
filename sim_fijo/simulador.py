@@ -19,7 +19,7 @@ a) Realizar los siguientes graficos:
 # PARAMETROS ---------------------------------------------------------------
 # Simulacion
 OUTPUT_FILE = ".\\sim_fijo\\data.txt"
-saveData   = False
+saveData   = True
 showPlots  = False
 
 # Generales
