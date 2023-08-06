@@ -19,7 +19,7 @@ a) Realizar los siguientes graficos:
 # PARAMETROS ---------------------------------------------------------------
 # Simulacion
 OUTPUT_FILE = ".\\sim_fijo\\data.txt"
-saveData   = True
+saveData   = False
 showPlots  = False
 
 # Generales
@@ -189,6 +189,7 @@ if saveData:
     
         
     f.write("RESULTS\n")
+    f.write("BITS TX I: " + str(bitsTxI) + "\n")
     f.write("Filter Output I: " + str([int(f*(2**NBF)) for f in filteredIArray]) + "\n")
     
     f.write("BER I: " + str(berI) + "\n")
