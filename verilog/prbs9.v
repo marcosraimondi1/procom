@@ -10,16 +10,16 @@
 //!  - i_reset       : reset del sistema
 //!  - clock         : reloj del sistema
 
-
+`define SEED    'h1AA
 module prbs9 #(
-    parameter SEED
+    parameter SEED = `SEED
 )
 (
     output o_bit   , //! bit de salida
     input  i_enable, //! habilitacion
     input  i_reset , //! reset
     input  clock     //! clock
-)
+);
 
     // variables
     reg [8:0] shiftregister ;
@@ -33,7 +33,7 @@ module prbs9 #(
         else if (i_enable)
         begin
             // shifteo y cargo el nuevo bit XOR de los bits 8 y 4
-            shiftregister   <=  {shiftregister[7:0], shiftregister[8]^shiftregister[4]}          ;
+            shiftregister   <=  {shiftregister[7:0], shiftregister[8]^shiftregister[4]} ;
         end
         else
         begin
@@ -42,7 +42,7 @@ module prbs9 #(
         end
     end
 
-    assign      o_bit       =   shiftregister[8]       ; // la salida es el ultimo bit del shift register
+    assign      o_bit       =   shiftregister[8]    ; // la salida es el ultimo bit del shift register
 
 
 endmodule

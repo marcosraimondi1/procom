@@ -23,9 +23,9 @@
 `define SEED    'h1AA
 
 module top #(
-    parameter NBAUDS    = `NBAUDS   ,
-    parameter SEED      = `SEED,
-    parameter OS        = `OS
+    parameter NBAUDS    = `NBAUDS   , //! cantidad de baudios del filtro
+    parameter SEED      = `SEED     , //! semilla del prbs9
+    parameter OS        = `OS         //! oversampling factor
 )
 (
     // declaracion de puertos input-output
@@ -56,25 +56,25 @@ module top #(
             .clock      (clock)                   
         );
 
-    // filtro rc
-    filterRC # ()
-        u_filterRC (
-            .o_filtered         (connect_filter_to_rx)  ,
-            .i_filterShiftReg   (filterShiftReg)        ,
-            .i_enable           (i_sw[0])               ,
-            .i_reset            (reset)                 ,
-            .clock              (clock)
-        );
+    // // filtro rc
+    // filterRC # ()
+    //     u_filterRC (
+    //         .o_filtered         (connect_filter_to_rx)  ,
+    //         .i_filterShiftReg   (filterShiftReg)        ,
+    //         .i_enable           (i_sw[0])               ,
+    //         .i_reset            (reset)                 ,
+    //         .clock              (clock)
+    //     );
     
-    // ber counter
-    ber # ()
-        u_ber (
-            .o_is_zero  (o_led[3])    ,
-            .i_rxBuffer (rxBuffer)    ,
-            .i_enable   (i_sw[1])     ,
-            .i_reset    (reset)       ,
-            .clock      (clock)
-        );
+    // // ber counter
+    // ber # ()
+    //     u_ber (
+    //         .o_is_zero  (o_led[3])    ,
+    //         .i_rxBuffer (rxBuffer)    ,
+    //         .i_enable   (i_sw[1])     ,
+    //         .i_reset    (reset)       ,
+    //         .clock      (clock)
+    //     );
 
     
     always@(posedge clock or posedge reset) 
@@ -84,12 +84,13 @@ module top #(
         begin
             // reseteo el sistema
             filterShiftReg <= {NBAUDS{1'b0}} ;   // entrada al filtro en 0
+            // rxBuffer       <= {OS{1'b0}}     ;   // rxbuffer en 0
         end
         else
         begin
             // shifteo 
             filterShiftReg  <= {connect_prbs9_to_filterShiftReg, filterShiftReg[NBAUDS-1:1]} ;
-            rxBuffer        <= {connect_filter_to_rx, rxBuffer[NBAUDS-1:1]} ;
+            // rxBuffer        <= {connect_filter_to_rx, rxBuffer[NBAUDS-1:1]} ;
         end
     end
 
