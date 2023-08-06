@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from prbs9 import prbs9
 from rcosine import rcosine, resp_freq, eyeDiagram
-from utils import fixArray
+from utils import fixArray, fixNumber
 """
 1. Disenar en Python un simulador en punto flotante que contemple todo el diseño 
 en donde la representacion de la PRBS9 es una secuencia aleatoria y la estimacion de
@@ -36,8 +36,9 @@ offset = 0
 delay  = Nbauds*os//2 + offset # teniendo en cuenta el transitorio del filtro
 
 # Punto Fijo
-NB              = 8             # bits totales
+NBI             = 2             # bits parte entera + signo 
 NBF             = 7             # bits fraccionarios
+NB              = NBI + NBF     # bits totales
 signedMode      = "S"           # S o U
 roundMode       = "round"       # trunc o round
 saturateMode    = "saturate"    # saturate o wrap (overflow)
@@ -57,9 +58,7 @@ t, h_filter = rcosine(beta, Tclk, os, Nbauds, True)
 t = t[0:os*Nbauds]
 h_filter = h_filter[0:os*Nbauds] # para que los filtros de cada fase tengan la misma longitud
 
-h_fixed = fixArray(NB, NBF, h_filter, signedMode, roundMode, saturateMode)
-
-H0, _, F0 = resp_freq(h_fixed, Ts, Nfreqs)
+h_filter = fixArray(NB, NBF, h_filter, signedMode, roundMode, saturateMode)
 
 h_i = []  # filtro polifasico, OS filtros
 for i in range(os):
@@ -117,12 +116,14 @@ for i in range(Nsym*os):
 
     filtro_i = h_i[i%os] # filtro para este tiempo de clock
 
+    # filtro full resolution
     filteredI = sum(filtro_i*filterShiftRegI) # salida del filtro
     filteredQ = sum(filtro_i*filterShiftRegQ) # salida del filtro
-
     
-    # TODO : cuantizar salida del filtro
-
+    # cuantizo la salida del filtro
+    filteredI = fixNumber(NB, NBF, filteredI, signedMode, roundMode, saturateMode)
+    filteredQ = fixNumber(NB, NBF, filteredQ, signedMode, roundMode, saturateMode)
+    
     filteredIArray.append(filteredI)
     filteredQArray.append(filteredQ)
 
@@ -174,6 +175,8 @@ if not showPlots:
 
 
 # RESPUESTA AL IMPULSO y FRECUENCIA
+H0, _, F0 = resp_freq(h_filter, Ts, Nfreqs)
+
 plt.figure()
 plt.suptitle("Filtro Tx")
 plt.subplot(2, 1, 1)
