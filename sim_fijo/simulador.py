@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from prbs9 import prbs9
 from rcosine import rcosine, resp_freq, eyeDiagram
 from utils import fixArray, fixNumber
+
 """
 1. Disenar en Python un simulador en punto flotante que contemple todo el diseño 
 en donde la representacion de la PRBS9 es una secuencia aleatoria y la estimacion de
@@ -16,6 +17,11 @@ a) Realizar los siguientes graficos:
 """
 
 # PARAMETROS ---------------------------------------------------------------
+# Simulacion
+OUTPUT_FILE = ".\\sim_fijo\\data.txt"
+saveData   = True
+showPlots  = False
+
 # Generales
 Nsym    = 1000      # Cantidad de simbolos a transmitir
 os      = 4         # Oversampling Factor
@@ -42,9 +48,6 @@ NB              = NBI + NBF     # bits totales
 signedMode      = "S"           # S o U
 roundMode       = "round"       # trunc o round
 saturateMode    = "saturate"    # saturate o wrap (overflow)
-
-# Graficos
-showPlots    = True
 
 # Generadores de Bits PRBS9
 prbs_genI = prbs9(seedI)
@@ -167,12 +170,36 @@ for i in range(Nsym*os):
 berI = erroresI / Nsym
 berQ = erroresQ / Nsym
 
-# TODO : save data
 
-# GRAFICOS -----------------------------------------------------------------
+if saveData:
+    f = open(OUTPUT_FILE, "w+")
+    f.write("PARAMETERS\n")
+    f.write("Nsym: " + str(Nsym) + "\n")
+    f.write("os: " + str(os) + "\n")
+    f.write("offset: " + str(offset) + "\n")
+    
+    f.write("filter\tNbauds: " + str(Nbauds) + "\n")
+    f.write("filter\ttaps: " + str([int(c*(2**NBF)) for c in h_filter]) + "\n")
+
+    f.write("fixed\tNB: " + str(NB) + "\n")
+    f.write("fixed\tNBF: " + str(NBF) + "\n")
+    f.write("fixed\tsignedMode: " + str(signedMode) + "\n")
+    f.write("fixed\troundMode: " + str(roundMode) + "\n")
+    f.write("fixed\tsaturateMode: " + str(saturateMode) + "\n")
+    
+        
+    f.write("RESULTS\n")
+    f.write("Filter Output I: " + str([int(f*(2**NBF)) for f in filteredIArray]) + "\n")
+    
+    f.write("BER I: " + str(berI) + "\n")
+
+    f.close()
+
+
 if not showPlots:
     exit()
 
+# GRAFICOS -----------------------------------------------------------------
 
 # RESPUESTA AL IMPULSO y FRECUENCIA
 H0, _, F0 = resp_freq(h_filter, Ts, Nfreqs)
