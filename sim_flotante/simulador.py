@@ -57,7 +57,7 @@ filteredQ = np.convolve(h_filter, simbolos_upQ, "same")
 # RECEPTOR ---------------------------------------------------------------
 
 # DownSampling
-offset = 1
+offset = 0
 simbolos_downI = filteredI[offset::os]
 simbolos_downQ = filteredQ[offset::os]
 
@@ -114,14 +114,14 @@ plt.suptitle("TX SIGNAL")
 plt.subplot(2, 1, 1)
 plt.plot(filteredI[offset:])
 plt.stem(simbolos_upI, "r")
-plt.xlim([100, 150])
+plt.xlim([0, 50])
 plt.legend(["FilteredI", "UpsampledI"])
 plt.grid()
 
 plt.subplot(2, 1, 2)
 plt.plot(filteredQ[offset:])
 plt.stem(simbolos_upQ, "r")
-plt.xlim([100, 150])
+plt.xlim([0, 50])
 plt.legend(["FilteredQ", "UpsampledQ"])
 plt.grid()
 
