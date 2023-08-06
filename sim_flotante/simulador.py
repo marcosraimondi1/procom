@@ -130,9 +130,9 @@ plt.grid()
 plt.figure()
 plt.suptitle("Constelacion")
 for i in range(os):
-    plt.subplot(2, 2, i + 1)
+    plt.subplot(2, os//2, i + 1)
     plt.grid()
-    plt.plot(filteredI[100 + i :: os], filteredQ[100 + i :: os], ".")
+    plt.plot(filteredI[i :: os], filteredQ[i :: os], ".")
     plt.legend(["Offset: {}".format(i)])
 
 # EYE DIAGRAM

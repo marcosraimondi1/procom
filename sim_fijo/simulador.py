@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from prbs9 import generar_bpsk, generar_prbs9, deco_bpsk, slicer
+from prbs9 import generar_bpsk, prbs9, deco_bpsk, slicer
 from rcosine import rcosine, resp_freq, eyeDiagram
 from utils import fixArray
 """
@@ -42,23 +42,14 @@ roundMode       = "round"       # trunc o round
 saturateMode    = "saturate"    # saturate o wrap (overflow)
 
 # Graficos
-showPlots   = True
+showPlots    = True
 
-# TRANSMISOR ---------------------------------------------------------------
+# Generadores de Bits PRBS9
+prbs_genI = prbs9(seedI)
+prbs_genQ = prbs9(seedQ)
 
-# Generar bits a transmitir
-bitsI = generar_prbs9(seedI, Nsym)
-bitsQ = generar_prbs9(seedQ, Nsym)
-
-# Generar la secuencia de simbolos QPSK (Codificacion)
-simbolosI = np.array(generar_bpsk(bitsI))
-simbolosQ = np.array(generar_bpsk(bitsQ))
-
-# UpSampling
-simbolos_upI = np.zeros(Nsym * os)
-simbolos_upI[::os] = simbolosI
-simbolos_upQ = np.zeros(Nsym * os)
-simbolos_upQ[::os] = simbolosQ
+prbs_genI_receptor = prbs9(seedI)
+prbs_genQ_receptor = prbs9(seedQ)
 
 # FILTRO POLIFASICO
 t, h_filter = rcosine(beta, Tclk, os, Nbauds, True) 
@@ -67,54 +58,111 @@ h_filter = h_filter[0:os*Nbauds] # para que los filtros de cada fase tengan la m
 
 h_fixed = fixArray(NB, NBF, h_filter, signedMode, roundMode, saturateMode)
 
+H0, _, F0 = resp_freq(h_fixed, Ts, Nfreqs)
+
 h_i = []  # filtro polifasico, OS filtros
 for i in range(os):
-    h_i.append(h_fixed[i::os])
+    h_i.append(h_filter[i::os])
 
-H0, _, F0 = resp_freq(h_filter, Ts, Nfreqs)
+filterShiftRegI = np.zeros(Nbauds)
+filterShiftRegQ = np.zeros(Nbauds)
+rxBufferI       = np.zeros(Nbauds*os)
+rxBufferQ       = np.zeros(Nbauds*os)
+erroresI        = 0
+erroresQ        = 0
 
-filteredI = np.convolve(h_filter, simbolos_upI, "same")
-filteredQ = np.convolve(h_filter, simbolos_upQ, "same")
+simbolos_upI    = []
+simbolos_upQ    = []
+filteredIArray  = []
+filteredQArray  = []
+bitsTxI         = []
+bitsTxQ         = []
+bitsRxI         = []
+bitsRxQ         = []
 
-# RECEPTOR ---------------------------------------------------------------
+for i in range(Nsym*os):
 
-# DownSampling
-muestrasI = filteredI[offset::os]
-muestrasQ = filteredQ[offset::os]
+    # 📡📡📡 TRANSMISOR 📡📡📡
 
-# simbolos_estimadosI = slicer(muestrasI)
-# simbolos_estimadosQ = slicer(muestrasQ)
-simbolos_estimadosI = muestrasI
-simbolos_estimadosQ = muestrasQ
+    # ⌚⌚⌚⌚⌚⌚ T = Tclk ⌚⌚⌚⌚⌚⌚
+    if (i%os == 0):
+        
+        # Generar bits prbs9
+        bitI = next(prbs_genI)
+        bitQ = next(prbs_genQ)
 
-# Decodificacion
-bitsI_rec = deco_bpsk(simbolos_estimadosI)
-bitsQ_rec = deco_bpsk(simbolos_estimadosQ)
+        bitsTxI.append(bitI)
+        bitsTxQ.append(bitQ)
 
-# correlacion
-correlacionI = np.correlate(simbolos_estimadosI, simbolosI, "same")
-correlacionQ = np.correlate(simbolos_estimadosQ, simbolosQ, "same")
+        # Codificar
+        simboloI = 1 if bitI == 1 else -1
+        simboloQ = 1 if bitQ == 1 else -1
+    
+        # introduzco una muestra en el registro de entrada del filtro
+        filterShiftRegI = np.roll(filterShiftRegI, 1)
+        filterShiftRegI[0] = simboloI
 
-# ser
-erroresI_sym = (Nsym - max(correlacionI)) // 2
-erroresQ_sym = (Nsym - max(correlacionQ)) // 2
+        filterShiftRegQ = np.roll(filterShiftRegQ, 1)
+        filterShiftRegQ[0] = simboloQ
 
-serI = erroresI_sym / Nsym  # symbol error rate
-serQ = erroresQ_sym / Nsym  # symbol error rate
+    else:
+        simboloI = 0
+        simboloQ = 0
+    
+    simbolos_upI.append(simboloI)
+    simbolos_upQ.append(simboloQ)
 
-print("SER I: {}".format(serI))
-print("SER Q: {}".format(serQ))
+    # ⌚⌚⌚⌚⌚⌚ T = Tclk / os ⌚⌚⌚⌚⌚⌚
 
-# ber
-erroresI_bit = sum(abs(np.array(bitsI_rec) - np.array(bitsI)))
-erroresQ_bit = sum(abs(np.array(bitsQ_rec) - np.array(bitsQ)))
+    filtro_i = h_i[i%os] # filtro para este tiempo de clock
 
-berI = erroresI_bit / len(bitsI)
-berQ = erroresQ_bit / len(bitsQ)
+    filteredI = sum(filtro_i*filterShiftRegI) # salida del filtro
+    filteredQ = sum(filtro_i*filterShiftRegQ) # salida del filtro
 
-print("BER I: {}".format(berI))
-print("BER Q: {}".format(berQ))
+    
+    # TODO : cuantizar salida del filtro
 
+    filteredIArray.append(filteredI)
+    filteredQArray.append(filteredQ)
+
+    # 📡📡📡 RECEPTOR 📡📡📡
+    rxBufferI[i%os] = filteredI 
+    rxBufferQ[i%os] = filteredQ
+    
+    if (i%os != 0):
+        continue
+
+    # ⌚⌚⌚⌚⌚⌚ T = Tclk ⌚⌚⌚⌚⌚⌚
+
+    # DownSampling
+    muestraI = rxBufferI[offset]
+    muestraQ = rxBufferQ[offset]
+
+    simbolo_estimadoI = muestraI
+    simbolo_estimadoQ = muestraQ
+
+    # Decodificacion
+    bitI_rec = 1 if simbolo_estimadoI > 0 else 0
+    bitQ_rec = 1 if simbolo_estimadoQ > 0 else 0
+
+    
+    # ber
+    bitsRxI.append(bitI_rec)
+    bitsRxQ.append(bitQ_rec)
+
+    bitI = next(prbs_genI_receptor)
+    bitQ = next(prbs_genQ_receptor)
+
+    errorI = abs(bitI_rec - bitI)
+    errorQ = abs(bitQ_rec - bitQ)
+
+    erroresI += errorI
+    erroresQ += errorQ
+
+berI = erroresI / Nsym
+berQ = erroresQ / Nsym
+
+# TODO : save data
 
 # GRAFICOS -----------------------------------------------------------------
 if not showPlots:
@@ -134,23 +182,22 @@ plt.semilogx(F0, 20 * np.log10(H0))
 plt.legend("Frecuencia")
 plt.grid()
 
-# BITS TRANSMITIDOS
+# FILTER OUT
 plt.figure()
-plt.suptitle("TX SIGNAL")
+plt.suptitle("FILTER OUT")
 plt.subplot(2, 1, 1)
-plt.plot(filteredI[offset:])
+plt.plot(filteredIArray)
 plt.stem(simbolos_upI, "r")
-plt.xlim([100, 150])
+plt.xlim([0, 50])
 plt.legend(["FilteredI", "UpsampledI"])
 plt.grid()
 
 plt.subplot(2, 1, 2)
-plt.plot(filteredQ[offset:])
-plt.stem(simbolos_upQ, "r")
-plt.xlim([100, 150])
-plt.legend(["FilteredQ", "UpsampledQ"])
+plt.plot(filteredIArray[offset:])
+plt.stem(simbolos_upI, "r")
+plt.xlim([0, 50])
+plt.legend(["FilteredI", "UpsampledI"])
 plt.grid()
-
 
 # CONSTELACION + OFFSETs
 plt.figure()
@@ -158,24 +205,30 @@ plt.suptitle("Constelacion")
 for i in range(os):
     plt.subplot(2, 2, i + 1)
     plt.grid()
-    plt.plot(filteredI[100 + i :: os], filteredQ[100 + i :: os], ".")
+    plt.plot(filteredIArray[i :: os], filteredQArray[i :: os], ".")
     plt.legend(["Offset: {}".format(i)])
 
 # EYE DIAGRAM
-eyeDiagram(filteredI[offset:], 2, 100, os)
-eyeDiagram(filteredQ[offset:], 2, 100, os)
+eyeDiagram(filteredIArray[offset:], 2, 100, os)
 
-# CORRELACION
+# BITS TX vs BITS RX
 plt.figure()
-plt.suptitle("Correlacion")
+plt.suptitle("BITS TX vs RX")
 plt.subplot(2, 1, 1)
-plt.plot(correlacionI)
-plt.legend("In Phase")
+plt.stem(bitsTxI, 'g')
+plt.stem(bitsRxI, markerfmt='D', linefmt='r')
+plt.legend(["TxI", "RxI"])
+plt.xlim([0, 50])
 plt.grid()
 
 plt.subplot(2, 1, 2)
-plt.plot(correlacionQ)
-plt.legend("Quadrature")
+plt.stem(bitsTxI, 'g')
+plt.stem(bitsRxI, markerfmt='D', linefmt='r')
+plt.legend(["TxQ", "RxQ"])
+plt.xlim([0, 50])
 plt.grid()
 
 plt.show()
+
+print("BER I: {}".format(berI))
+print("BER Q: {}".format(berQ))
