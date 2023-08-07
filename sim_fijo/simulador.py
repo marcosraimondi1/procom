@@ -20,7 +20,7 @@ a) Realizar los siguientes graficos:
 # Simulacion
 OUTPUT_FILE = ".\\sim_fijo\\data.txt"
 saveData   = True
-showPlots  = False
+showPlots  = True
 
 # Generales
 Nsym    = 1000      # Cantidad de simbolos a transmitir
@@ -42,7 +42,7 @@ offset = 0
 delay  = Nbauds*os//2 + offset # teniendo en cuenta el transitorio del filtro
 
 # Punto Fijo
-NBI             = 2             # bits parte entera + signo 
+NBI             = 1             # bits parte entera + signo 
 NBF             = 7             # bits fraccionarios
 NB              = NBI + NBF     # bits totales
 signedMode      = "S"           # S o U
