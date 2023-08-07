@@ -38,11 +38,11 @@ module top #(
 
 
     // variables
-    reg [NBAUDS-1:0] filterShiftReg         ;
-    reg [OS-1:0]     rxBuffer               ;
-    wire reset                              ;
-    wire connect_prbs9_to_filterShiftReg    ;
-    wire connect_filter_to_rx               ;
+    reg [OS-1:0]     rxBuffer           ;
+    reg [1:0]        f_selector         ; //! selecciona el filtro polifasico
+    wire reset                          ;
+    wire connect_prbs9_to_filter        ;
+    wire connect_filter_to_rx           ;
     
     // instanciacion de modulos
     // prbs9
@@ -50,21 +50,23 @@ module top #(
         .SEED   (SEED)
     )
         u_prbs9 (
-            .o_bit      (connect_prbs9_to_filterShiftReg)   ,
+            .o_bit      (connect_prbs9_to_filter)           ,
             .i_enable   (i_sw[0])                           ,
             .i_reset    (reset)                             ,
             .clock      (clock)                   
         );
 
-    // // filtro rc
-    // filterRC # ()
-    //     u_filterRC (
-    //         .o_filtered         (connect_filter_to_rx)  ,
-    //         .i_filterShiftReg   (filterShiftReg)        ,
-    //         .i_enable           (i_sw[0])               ,
-    //         .i_reset            (reset)                 ,
-    //         .clock              (clock)
-    //     );
+    //! filtro RC
+    filtro_fir # (
+        .N_COEFF    (NBAUDS)
+    )
+        u_filtro_fir (
+            .o_data     (connect_filter_to_rx)              ,
+            .i_data     (connect_prbs9_to_filter ? 1 : -1)  ,
+            .i_enable   (i_sw[0])                           ,
+            .i_reset    (reset)                             ,
+            .clock      (clock)
+        );
     
     // // ber counter
     // ber # ()
@@ -83,14 +85,16 @@ module top #(
         if (reset) 
         begin
             // reseteo el sistema
-            filterShiftReg <= {NBAUDS{1'b0}} ;   // entrada al filtro en 0
+            f_selector     <= 2'b00          ;
             // rxBuffer       <= {OS{1'b0}}     ;   // rxbuffer en 0
         end
         else
         begin
             // shifteo 
-            filterShiftReg  <= {connect_prbs9_to_filterShiftReg, filterShiftReg[NBAUDS-1:1]} ;
             // rxBuffer        <= {connect_filter_to_rx, rxBuffer[NBAUDS-1:1]} ;
+            
+            f_selector <= i_sw[0] ? f_selector + 1'b1 : f_selector ; // cambio de filtro si esta habilitado el tx
+
         end
     end
 
@@ -100,5 +104,6 @@ module top #(
     assign o_led[1] = i_sw[0]       ;
     assign o_led[2] = i_sw[1]       ;
 
+    
 
     endmodule
