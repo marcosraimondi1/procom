@@ -85,15 +85,12 @@ module top #(
         if (reset) 
         begin
             // reseteo el sistema
-            f_selector     <= 2'b00          ;
             // rxBuffer       <= {OS{1'b0}}     ;   // rxbuffer en 0
         end
         else
         begin
             // shifteo 
             // rxBuffer        <= {connect_filter_to_rx, rxBuffer[NBAUDS-1:1]} ;
-            
-            f_selector <= i_sw[0] ? f_selector + 1'b1 : f_selector ; // cambio de filtro si esta habilitado el tx
 
         end
     end

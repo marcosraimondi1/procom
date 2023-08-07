@@ -49,6 +49,14 @@ module filtro_fir
   assign coeff[5]   = f_selector == 2'b00 ? -7 : f_selector == 2'b01 ?  114 : f_selector == 2'b10 ? -16 :  1  ;
 
 
+  //! Cambio filtro polifasico
+  always @(posedge clock) begin
+    if (i_reset)
+      f_selector     <= 2'b00          ;
+    else
+      f_selector     <= i_enable ? f_selector + 1 : f_selector;
+  end
+
   //! ShiftRegister model
   integer i;
   integer j;
