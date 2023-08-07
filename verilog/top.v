@@ -39,7 +39,6 @@ module top #(
 
     // variables
     reg [OS-1:0]     rxBuffer           ;
-    reg [1:0]        f_selector         ; //! selecciona el filtro polifasico
     wire reset                          ;
     wire connect_prbs9_to_filter        ;
     wire connect_filter_to_rx           ;
@@ -57,9 +56,7 @@ module top #(
         );
 
     //! filtro RC
-    filtro_fir # (
-        .N_COEFF    (NBAUDS)
-    )
+    filtro_fir # ()
         u_filtro_fir (
             .o_data     (connect_filter_to_rx)              ,
             .i_data     (connect_prbs9_to_filter ? 1 : -1)  ,

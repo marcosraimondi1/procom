@@ -26,7 +26,7 @@ module filtro_fir
     input                         clock                     //! Clock
   );
 
-  localparam N_COEFF    = 6  //! Number of Coefficients
+  localparam N_COEFF    = 6;  //! Number of Coefficients
   localparam NB_ADD     = NB_COEFF  + NB_INPUT + 3; // una multiplicacion y 3 sumas
   localparam NBF_ADD    = NBF_COEFF + NBF_INPUT;    // por la multiplicacion se suman los NBF
   localparam NBI_ADD    = NB_ADD    - NBF_ADD;
@@ -34,7 +34,8 @@ module filtro_fir
   localparam NB_SAT     = (NBI_ADD) - (NBI_OUTPUT);
 
   //! Internal Signals
-  reg  signed [NB_INPUT-1:0         ] register [N_COEFF-1:1]; //! Matrix for registers
+  reg  signed [NB_INPUT-1:0         ] register [N_COEFF-1:1]; //! Matrix for 
+  reg         [1:0                  ] f_selector            ; //! selecciona el filtro polifasico
   wire signed [NB_INPUT+NB_COEFF-1:0] prod     [N_COEFF-1:0]; //! Partial Products
   wire signed [NB_ADD-1:0           ] sum      [N_COEFF-1:1]; //! Add samples
   wire signed [NB_COEFF -1:0        ] coeff    [N_COEFF-1:0]; //! Coefficients
@@ -81,12 +82,12 @@ module filtro_fir
 
   //! Products
   generate
-    genvar i;
-    for(i=0; i<N_COEFF ;i=i+1) begin:mult
-      if (i==0) 
-        assign prod[i] = coeff[i] * i_data;
+    genvar ptr;
+    for(ptr=0; ptr<N_COEFF ;ptr=ptr+1) begin:mult
+      if (ptr==0) 
+        assign prod[ptr] = coeff[ptr] * i_data;
       else
-        assign prod[i] = coeff[i] * register[i];
+        assign prod[ptr] = coeff[ptr] * register[ptr];
     end
   endgenerate
 
@@ -105,12 +106,11 @@ module filtro_fir
  
   //! Adders
   generate
-    genvar i;
-    for(i=1; i<N_COEFF ;i=i+1) begin:mult
-      if (i==1) 
-        assign sum[i] = prod[i-1] * prod[i];
+    for(ptr=1; ptr<N_COEFF ;ptr=ptr+1) begin:adders
+      if (ptr==1) 
+        assign sum[ptr] = prod[ptr-1] + prod[ptr];
       else
-        assign sum[i] = sum[i-1]  * prod[i];
+        assign sum[ptr] = sum[ptr-1]  + prod[ptr];
     end
   endgenerate
   
