@@ -20,10 +20,10 @@ a) Realizar los siguientes graficos:
 # Simulacion
 OUTPUT_FILE = ".\\sim_fijo\\data.txt"
 saveData   = True
-showPlots  = True
+showPlots  = False
 
 # Generales
-Nsym    = 1000      # Cantidad de simbolos a transmitir
+Nsym    = 20        # Cantidad de simbolos a transmitir
 os      = 4         # Oversampling Factor
 Nfreqs  = 256       # Cantidad de frecuencias a evaluar (para la respuesta en frecuencia)
 seedI   = 0x1AA     # Semilla para el generador de PRBS9 parte real
