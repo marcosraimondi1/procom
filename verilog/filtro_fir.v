@@ -77,6 +77,10 @@ module filtro_fir
             register[j] <= register[j-1];
          end   
       end
+      else
+        for(i=1; i < N_COEFF; i=i+1) begin
+          register[i] <= register[i];
+        end
     end
   end
 
