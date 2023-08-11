@@ -22,7 +22,7 @@ module tb_top(); // testbench no tiene puertos
     reg  [3:0]  i_sw      ;
     reg         i_reset   ;
     reg         clock     ;
-
+    
     wire [8:0] tb_prbs9 ;
     wire tb_prbs9_o_bit ;
     wire [7:0] tb_filtro_fir_i_data;
@@ -33,6 +33,7 @@ module tb_top(); // testbench no tiene puertos
     assign tb_prbs9_o_bit       = tb_top.u_top.connect_prbs9_to_filter  ;
     assign tb_filtro_fir_i_data = tb_top.u_top.u_filtro_fir.i_data      ;
     assign tb_f_selector        = tb_top.u_top.u_filtro_fir.f_selector  ;
+    assign tb_filtro_fir_o_data = tb_top.u_top.u_filtro_fir.o_data      ;
 
     initial
     begin

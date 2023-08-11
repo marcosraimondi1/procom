@@ -22,6 +22,7 @@ module filtro_fir
     output signed [NB_OUTPUT-1:0] o_data                  , //! Output Sample
     input  signed [NB_INPUT -1:0] i_data                  , //! Input Sample
     input                         i_enable                , //! Enable
+    input                         i_valid                 , //! Valid Input -> shift register
     input                         i_reset                 , //! Reset
     input                         clock                     //! Clock
   );
@@ -34,15 +35,15 @@ module filtro_fir
   localparam NB_SAT     = (NBI_ADD) - (NBI_OUTPUT);
 
   //! Internal Signals
-  reg  signed [NB_INPUT-1:0         ] register [N_COEFF-1:1]; //! Matrix for 
+  reg  signed [NB_INPUT-1:0         ] register [N_COEFF-1:1]; //! Matrix for input samples
   reg         [1:0                  ] f_selector            ; //! selecciona el filtro polifasico
   wire signed [NB_INPUT+NB_COEFF-1:0] prod     [N_COEFF-1:0]; //! Partial Products
   wire signed [NB_ADD-1:0           ] sum      [N_COEFF-1:1]; //! Add samples
   wire signed [NB_COEFF -1:0        ] coeff    [N_COEFF-1:0]; //! Coefficients
 
   //! Coeficientes filtro polifasico RC
-  //! Coeff = [0, 1, 2, 3, 0, -7, -15, -16, 0, 34, 77, 114, 128, 114, 77, 34, 0, -16, -15, -7, 0, 3, 2, 1] 
-  assign coeff[0]   = f_selector == 2'b00 ?  0 : f_selector == 2'b01 ? -15  : f_selector == 2'b10 ? 128 : -15 ;
+  //          [0, 1, 2, 3, 0, -7, -15, -16, 0, 34, 77, 114, 127, 114, 77, 34, 0, -16, -15, -7, 0, 3, 2, 1]
+  assign coeff[0]   = f_selector == 2'b00 ?  0 : f_selector == 2'b01 ? -15  : f_selector == 2'b10 ? 127 : -15 ;
   assign coeff[1]   = f_selector == 2'b00 ?  1 : f_selector == 2'b01 ? -16  : f_selector == 2'b10 ? 114 : -7  ;
   assign coeff[2]   = f_selector == 2'b00 ?  2 : f_selector == 2'b01 ?  0   : f_selector == 2'b10 ?  77 :  0  ;
   assign coeff[3]   = f_selector == 2'b00 ?  3 : f_selector == 2'b01 ?  34  : f_selector == 2'b10 ?  34 :  3  ;
@@ -69,7 +70,7 @@ module filtro_fir
         register[i] <= {NB_INPUT{1'b0}};
       end
     end else begin
-      if (i_enable == 1'b1) begin
+      if (i_enable == 1'b1 && i_valid) begin
         for(j=1; j < N_COEFF; j=j+1) begin:srmove
           if(j==1)
             register[j] <= i_data;

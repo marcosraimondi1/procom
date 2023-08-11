@@ -38,10 +38,12 @@ module top #(
 
 
     // variables
-    reg [OS-1:0]     rxBuffer           ;
-    wire reset                          ;
-    wire connect_prbs9_to_filter        ;
-    wire connect_filter_to_rx           ;
+    reg             valid              ;   // senal de validacion
+    reg [1:0    ]   counter            ;
+    
+    wire            reset                          ;
+    wire            connect_prbs9_to_filter        ;
+    wire            connect_filter_to_rx           ;
     
     // instanciacion de modulos
     // prbs9
@@ -50,7 +52,7 @@ module top #(
     )
         u_prbs9 (
             .o_bit      (connect_prbs9_to_filter)           ,
-            .i_enable   (i_sw[0])                           ,
+            .i_enable   (valid)                             ,
             .i_reset    (reset)                             ,
             .clock      (clock)                   
         );
@@ -60,35 +62,34 @@ module top #(
         u_filtro_fir (
             .o_data     (connect_filter_to_rx)              ,
             .i_data     (connect_prbs9_to_filter ? 1 : -1)  ,
+            .i_valid    (valid)                             ,
             .i_enable   (i_sw[0])                           ,
             .i_reset    (reset)                             ,
             .clock      (clock)
         );
     
-    // // ber counter
-    // ber # ()
-    //     u_ber (
-    //         .o_is_zero  (o_led[3])    ,
-    //         .i_rxBuffer (rxBuffer)    ,
-    //         .i_enable   (i_sw[1])     ,
-    //         .i_reset    (reset)       ,
-    //         .clock      (clock)
-    //     );
-
+    // TODO : instancias modulo BER
     
     always@(posedge clock or posedge reset) 
     begin
-        // verifico si estoy en reset
         if (reset) 
         begin
-            // reseteo el sistema
-            // rxBuffer       <= {OS{1'b0}}     ;   // rxbuffer en 0
+            valid   <= 1'b0     ;
+            counter <= 2'b00    ;
         end
         else
         begin
-            // shifteo 
-            // rxBuffer        <= {connect_filter_to_rx, rxBuffer[NBAUDS-1:1]} ;
-
+            if (i_sw[0])
+            begin
+                valid   <= counter == 2'b00 ? 1'b1  : 1'b0              ;
+                counter <= counter == 2'b11 ? 2'b00 : counter + 1'b1    ;
+        
+            end
+            else
+            begin
+                valid   <= valid    ;
+                counter <= counter  ;
+            end
         end
     end
 
