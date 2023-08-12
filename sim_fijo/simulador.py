@@ -20,10 +20,10 @@ a) Realizar los siguientes graficos:
 # Simulacion
 OUTPUT_FILE = ".\\sim_fijo\\data.txt"
 saveData   = True
-showPlots  = False
+showPlots  = True
 
 # Generales
-Nsym    = 20        # Cantidad de simbolos a transmitir
+Nsym    = 511       # Cantidad de simbolos a transmitir
 os      = 4         # Oversampling Factor
 Nfreqs  = 256       # Cantidad de frecuencias a evaluar (para la respuesta en frecuencia)
 seedI   = 0x1AA     # Semilla para el generador de PRBS9 parte real
@@ -98,15 +98,15 @@ for i in range(Nsym*os):
         bitsTxQ.append(bitQ)
 
         # Codificar
-        simboloI = 1 if bitI == 1 else -1
-        simboloQ = 1 if bitQ == 1 else -1
+        simboloI = 1 if bitI == 0 else -1
+        simboloQ = 1 if bitQ == 0 else -1
     
         # introduzco una muestra en el registro de entrada del filtro
         filterShiftRegI = np.roll(filterShiftRegI, 1)
-        filterShiftRegI[0] = simboloI
+        filterShiftRegI[0] = bitI
 
         filterShiftRegQ = np.roll(filterShiftRegQ, 1)
-        filterShiftRegQ[0] = simboloQ
+        filterShiftRegQ[0] = bitQ
 
     else:
         simboloI = 0
@@ -117,11 +117,14 @@ for i in range(Nsym*os):
 
     # ⌚⌚⌚⌚⌚⌚ T = Tclk / os ⌚⌚⌚⌚⌚⌚
 
-    filtro_i = h_i[i%os] # filtro para este tiempo de clock
+    filtro_p = h_i[i%os] # filtro para este tiempo de clock
 
     # filtro full resolution
-    filteredI = sum(filtro_i*filterShiftRegI) # salida del filtro
-    filteredQ = sum(filtro_i*filterShiftRegQ) # salida del filtro
+    filtro_pI = [filtro_p[i] if filterShiftRegI[i] == 0 else -filtro_p[i] for i in range(Nbauds)] # mux que elige coef positivo o negativo para evitar productos
+    filtro_pQ = [filtro_p[i] if filterShiftRegQ[i] == 0 else -filtro_p[i] for i in range(Nbauds)] # mux que elige coef positivo o negativo para evitar productos
+
+    filteredI = sum(filtro_pI) # salida del filtro
+    filteredQ = sum(filtro_pQ) # salida del filtro
     
     # cuantizo la salida del filtro
     filteredI = fixNumber(NB, NBF, filteredI, signedMode, roundMode, saturateMode)
@@ -146,9 +149,9 @@ for i in range(Nsym*os):
     simbolo_estimadoI = muestraI
     simbolo_estimadoQ = muestraQ
 
-    # Decodificacion
-    bitI_rec = 1 if simbolo_estimadoI > 0 else 0
-    bitQ_rec = 1 if simbolo_estimadoQ > 0 else 0
+    # Decodificacion - Slicer, me fijo en el signo
+    bitI_rec = 0 if simbolo_estimadoI > 0 else 1
+    bitQ_rec = 0 if simbolo_estimadoQ > 0 else 1
 
     bitsRxI.append(bitI_rec)
     bitsRxQ.append(bitQ_rec)
