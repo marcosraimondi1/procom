@@ -66,22 +66,12 @@ bitsI_rec = deco_bpsk(simbolos_downI)
 bitsQ_rec = deco_bpsk(simbolos_downQ)
 
 # correlacion
-correlacionI = np.correlate(simbolos_downI, simbolosI, "same")
-correlacionQ = np.correlate(simbolos_downQ, simbolosQ, "same")
-
-# ser
-erroresI_sym = (Nsym - max(correlacionI)) // 2
-erroresQ_sym = (Nsym - max(correlacionQ)) // 2
-
-serI = erroresI_sym / Nsym # symbol error rate
-serQ = erroresQ_sym / Nsym # symbol error rate
-
-print("SER I: {}".format(serI))
-print("SER Q: {}".format(serQ))
+correlacionI = np.correlate(bitsI_rec, bitsI, "same")
+correlacionQ = np.correlate(bitsQ_rec, bitsQ, "same")
 
 # ber
-erroresI_bit = sum(abs(np.array(bitsI_rec) - np.array(bitsI)))
-erroresQ_bit = sum(abs(np.array(bitsQ_rec) - np.array(bitsQ)))
+erroresI_bit = sum(bitsI) - max(correlacionI)
+erroresQ_bit = sum(bitsQ) - max(correlacionQ)
 
 berI = erroresI_bit / len(bitsI)
 berQ = erroresQ_bit / len(bitsQ)
