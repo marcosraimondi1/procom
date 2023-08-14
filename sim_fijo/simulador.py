@@ -271,7 +271,7 @@ plt.grid()
 
 plt.subplot(2, 1, 2)
 plt.title("Sin Retardo")
-plt.plot(filteredIArray[latencia*os+offset:50+latencia+offset])
+plt.plot(filteredIArray[latencia*os+offset:50+latencia*os+offset])
 plt.stem(simbolos_upI[0:50], "r")
 plt.xlim([0, 50])
 plt.legend(["FilteredI", "UpsampledI"])
