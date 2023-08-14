@@ -48,31 +48,40 @@ signedMode      = "S"           # S o U
 roundMode       = "trunc"       # trunc o round
 saturateMode    = "saturate"    # saturate o wrap (overflow)
 
+# VARIABLES ---------------------------------------------------------------
+
 # Generadores de Bits PRBS9
 prbs_genI = prbs9(seedI)
 prbs_genQ = prbs9(seedQ)
 
-prbs_genI_receptor = prbs9(seedI)
-prbs_genQ_receptor = prbs9(seedQ)
-
 # FILTRO POLIFASICO
-t, h_filter = rcosine(beta, Tclk, os, Nbauds, True) 
-t = t[0:os*Nbauds]
-h_filter = h_filter[0:os*Nbauds] # para que los filtros de cada fase tengan la misma longitud
+t, h_filter         = rcosine(beta, Tclk, os, Nbauds, True) 
+t                   = t[0:os*Nbauds]
+h_filter            = h_filter[0:os*Nbauds] # para que los filtros de cada fase tengan la misma longitud
 
-h_filter = fixArray(NB, NBF, h_filter, signedMode, roundMode, saturateMode)
+h_filter = fixArray(NB, NBF, h_filter, signedMode, roundMode, saturateMode) # cuantizacion del filtro
 
 h_i = []  # filtro polifasico, OS filtros
 for i in range(os):
     h_i.append(h_filter[i::os])
 
-filterShiftRegI = np.zeros(Nbauds)
+# variables del sistema
+filterShiftRegI = np.zeros(Nbauds)      # registro de desplazamiento para el filtro
 filterShiftRegQ = np.zeros(Nbauds)
-rxBufferI       = np.zeros(Nbauds*os)
-rxBufferQ       = np.zeros(Nbauds*os)
-erroresI        = 0
+rxBufferI       = np.zeros(os)          # buffer de recepcion del cual se elige con el offset
+rxBufferQ       = np.zeros(os)
+bufferRefI      = np.zeros(512)         # buffer de referencia para la sincronizacion
+bufferRefQ      = np.zeros(512)
+erroresI        = 0                     # acumulador de errores after sync
 erroresQ        = 0
+synced          = False                 # flag para indicar que se sincronizo el receptor
+error_cum_sumI  = 0                     # acumulador de errores before sync
+error_cum_sumQ  = 0                     
+latencia        = 0                     # latencia del sistema
+min_latencia    = 0                     # latencia minima
+min_error       = -1                    # error minimo     
 
+# variables de analisis
 simbolos_upI    = []
 simbolos_upQ    = []
 filteredIArray  = []
@@ -82,15 +91,7 @@ bitsTxQ         = []
 bitsRxI         = []
 bitsRxQ         = []
 
-
-bufferRefI       = np.zeros(512)
-bufferRefQ       = np.zeros(512)
-synced           = False            # flag para indicar que se sincronizo el receptor
-error_cum_sumI   = 0                # acumulador de errores
-error_cum_sumQ   = 0                # acumulador de errores
-latencia         = 0                # latencia del sistema
-min_latencia     = 0                # latencia minima
-min_error        = -1               # error minimo     
+# SIMULACION ---------------------------------------------------------------
 
 for i in range(sim_len):
 
@@ -207,6 +208,7 @@ for i in range(sim_len):
 berI = erroresI / sim_len
 berQ = erroresQ / sim_len
 
+# FIN SIMULACION -----------------------------------------------------------
 
 if saveData:
     f = open(OUTPUT_FILE, "w+")
