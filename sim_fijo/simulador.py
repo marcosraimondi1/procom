@@ -19,11 +19,11 @@ a) Realizar los siguientes graficos:
 # PARAMETROS ---------------------------------------------------------------
 # Simulacion
 OUTPUT_FILE = ".\\sim_fijo\\data.txt"
-saveData   = True
+saveData   = False
 showPlots  = True
 
 # Generales
-Nsym    = 511       # Cantidad de simbolos a transmitir
+sim_len = 1000 #263000    # Cantidad de simbolos a transmitir
 os      = 4         # Oversampling Factor
 Nfreqs  = 256       # Cantidad de frecuencias a evaluar (para la respuesta en frecuencia)
 seedI   = 0x1AA     # Semilla para el generador de PRBS9 parte real
@@ -46,7 +46,7 @@ NBI             = 1             # bits parte entera + signo
 NBF             = 7             # bits fraccionarios
 NB              = NBI + NBF     # bits totales
 signedMode      = "S"           # S o U
-roundMode       = "round"       # trunc o round
+roundMode       = "trunc"       # trunc o round
 saturateMode    = "saturate"    # saturate o wrap (overflow)
 
 # Generadores de Bits PRBS9
@@ -83,62 +83,64 @@ bitsTxQ         = []
 bitsRxI         = []
 bitsRxQ         = []
 
-for i in range(Nsym*os):
+
+bufferRefI       = np.zeros(512)
+bufferRefQ       = np.zeros(512)
+synced           = False            # flag para indicar que se sincronizo el receptor
+error_cum_sumI   = 0                # acumulador de errores
+error_cum_sumQ   = 0                # acumulador de errores
+latencia         = 0                # latencia del sistema
+min_latencia     = 0                # latencia minima
+min_error        = -1               # error minimo     
+
+for i in range(sim_len):
 
     # 📡📡📡 TRANSMISOR 📡📡📡
 
     # ⌚⌚⌚⌚⌚⌚ T = Tclk ⌚⌚⌚⌚⌚⌚
-    if (i%os == 0):
         
-        # Generar bits prbs9
-        bitI = next(prbs_genI)
-        bitQ = next(prbs_genQ)
+    # Generar bits prbs9
+    bitI = next(prbs_genI)
+    bitQ = next(prbs_genQ)
 
-        bitsTxI.append(bitI)
-        bitsTxQ.append(bitQ)
+    bitsTxI.append(bitI)
+    bitsTxQ.append(bitQ)
 
-        # Codificar
-        simboloI = 1 if bitI == 0 else -1
-        simboloQ = 1 if bitQ == 0 else -1
-    
-        # introduzco una muestra en el registro de entrada del filtro
-        filterShiftRegI = np.roll(filterShiftRegI, 1)
-        filterShiftRegI[0] = bitI
+    # introduzco una muestra en el registro de entrada del filtro
+    filterShiftRegI = np.roll(filterShiftRegI, 1)
+    filterShiftRegI[0] = bitI
 
-        filterShiftRegQ = np.roll(filterShiftRegQ, 1)
-        filterShiftRegQ[0] = bitQ
+    filterShiftRegQ = np.roll(filterShiftRegQ, 1)
+    filterShiftRegQ[0] = bitQ
 
-    else:
-        simboloI = 0
-        simboloQ = 0
-    
-    simbolos_upI.append(simboloI)
-    simbolos_upQ.append(simboloQ)
+    simbolos_upI.append(1 if bitI == 0 else -1)
+    simbolos_upQ.append(1 if bitQ == 0 else -1)
 
     # ⌚⌚⌚⌚⌚⌚ T = Tclk / os ⌚⌚⌚⌚⌚⌚
+    for j in range(os):
+        filtro_p = h_i[j] # filtro para este tiempo de clock
 
-    filtro_p = h_i[i%os] # filtro para este tiempo de clock
+        # filtro full resolution
+        filtro_pI = [filtro_p[x] if filterShiftRegI[x] == 0 else -filtro_p[x] for x in range(Nbauds)] # mux que elige coef positivo o negativo para evitar productos
+        filtro_pQ = [filtro_p[x] if filterShiftRegQ[x] == 0 else -filtro_p[x] for x in range(Nbauds)] # mux que elige coef positivo o negativo para evitar productos
 
-    # filtro full resolution
-    filtro_pI = [filtro_p[i] if filterShiftRegI[i] == 0 else -filtro_p[i] for i in range(Nbauds)] # mux que elige coef positivo o negativo para evitar productos
-    filtro_pQ = [filtro_p[i] if filterShiftRegQ[i] == 0 else -filtro_p[i] for i in range(Nbauds)] # mux que elige coef positivo o negativo para evitar productos
+        filteredI = sum(filtro_pI) # salida del filtro
+        filteredQ = sum(filtro_pQ) # salida del filtro
+        
+        # cuantizo la salida del filtro
+        filteredI = fixNumber(NB, NBF, filteredI, signedMode, roundMode, saturateMode)
+        filteredQ = fixNumber(NB, NBF, filteredQ, signedMode, roundMode, saturateMode)
+        
+        filteredIArray.append(filteredI)
+        filteredQArray.append(filteredQ)
 
-    filteredI = sum(filtro_pI) # salida del filtro
-    filteredQ = sum(filtro_pQ) # salida del filtro
-    
-    # cuantizo la salida del filtro
-    filteredI = fixNumber(NB, NBF, filteredI, signedMode, roundMode, saturateMode)
-    filteredQ = fixNumber(NB, NBF, filteredQ, signedMode, roundMode, saturateMode)
-    
-    filteredIArray.append(filteredI)
-    filteredQArray.append(filteredQ)
+        # 📡📡📡 RECEPTOR 📡📡📡
+        rxBufferI[j] = filteredI 
+        rxBufferQ[j] = filteredQ
 
-    # 📡📡📡 RECEPTOR 📡📡📡
-    rxBufferI[i%os] = filteredI 
-    rxBufferQ[i%os] = filteredQ
-    
-    if (i%os != 0):
-        continue
+        if (j != 0):
+            simbolos_upI.append(0)
+            simbolos_upQ.append(0)
 
     # ⌚⌚⌚⌚⌚⌚ T = Tclk ⌚⌚⌚⌚⌚⌚
 
@@ -156,28 +158,66 @@ for i in range(Nsym*os):
     bitsRxI.append(bitI_rec)
     bitsRxQ.append(bitQ_rec)
 
-    # ber
-    # para contar errores tengo en cuenta el delay del filtro
-    if (i < delay):
-        continue
+    # sync, enganche del sistema
+    bufferRefI       = np.roll(bufferRefI, 1)
+    bufferRefI[0]    = bitI 
     
-    bitI = next(prbs_genI_receptor)
-    bitQ = next(prbs_genQ_receptor)
+    bufferRefQ       = np.roll(bufferRefQ, 1)
+    bufferRefQ[0]    = bitQ
 
-    errorI = abs(bitI_rec - bitI)
-    errorQ = abs(bitQ_rec - bitQ)
+    print("latencia     : "  + str(latencia))
+    print("min_latencia : "  + str(min_latencia))
+    print("min_error    : "  + str(min_error))
+
+    if (not synced):
+        error_cum_sumI   += bool(bufferRefI[latencia]) != bool(bitI_rec) # xor para ver si hay error
+        error_cum_sumQ   += bool(bufferRefQ[latencia]) != bool(bitQ_rec) # xor para ver si hay error
+
+        if (i%511 == 0 and i != 0):
+            # verifico si es el error minimo
+            if (min_error > error_cum_sumI or min_error == -1):
+                min_error       = error_cum_sumI
+                min_latencia    = latencia
+                print(min_latencia)
+
+            # reseteo los contadores 
+            error_cum_sumI = 0
+            error_cum_sumQ = 0
+
+            # verifico si llegue al final del buffer de referencia
+            if (latencia == 511):
+                synced = True
+                latencia = min_latencia
+                continue
+
+            # avanzo un lugar de retardo el buffer de referencia
+            latencia       += 1
+        
+        # no estoy sincronizado, continuo
+        continue
+
+    
+    print("delay teorico: " + str(delay))
+
+    # ber
+    # para contar errores tengo en cuenta la latenica del filtro y del sistema
+    # if (i < delay):
+    #     continue
+    
+    errorI = abs(bitI_rec - bufferRefI[latencia])
+    errorQ = abs(bitQ_rec - bufferRefQ[latencia])
 
     erroresI += errorI
     erroresQ += errorQ
 
-berI = erroresI / Nsym
-berQ = erroresQ / Nsym
+berI = erroresI / sim_len
+berQ = erroresQ / sim_len
 
 
 if saveData:
     f = open(OUTPUT_FILE, "w+")
     f.write("PARAMETERS\n")
-    f.write("Nsym: " + str(Nsym) + "\n")
+    f.write("Nsym: " + str(sim_len) + "\n")
     f.write("os: " + str(os) + "\n")
     f.write("offset: " + str(offset) + "\n")
     
