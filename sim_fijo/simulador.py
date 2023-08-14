@@ -19,11 +19,11 @@ a) Realizar los siguientes graficos:
 # PARAMETROS ---------------------------------------------------------------
 # Simulacion
 OUTPUT_FILE = ".\\sim_fijo\\data.txt"
-saveData   = False
+saveData   = True
 showPlots  = True
 
 # Generales
-sim_len = 1000 #263000    # Cantidad de simbolos a transmitir
+sim_len = 263000    # Cantidad de simbolos a transmitir
 os      = 4         # Oversampling Factor
 Nfreqs  = 256       # Cantidad de frecuencias a evaluar (para la respuesta en frecuencia)
 seedI   = 0x1AA     # Semilla para el generador de PRBS9 parte real
@@ -39,7 +39,6 @@ Nbauds  = 6         # Cantidad de simbolos que entran en el filtro
 
 # Receptor
 offset = 0
-delay  = Nbauds*os//2 + offset # teniendo en cuenta el transitorio del filtro
 
 # Punto Fijo
 NBI             = 1             # bits parte entera + signo 
@@ -165,10 +164,6 @@ for i in range(sim_len):
     bufferRefQ       = np.roll(bufferRefQ, 1)
     bufferRefQ[0]    = bitQ
 
-    print("latencia     : "  + str(latencia))
-    print("min_latencia : "  + str(min_latencia))
-    print("min_error    : "  + str(min_error))
-
     if (not synced):
         error_cum_sumI   += bool(bufferRefI[latencia]) != bool(bitI_rec) # xor para ver si hay error
         error_cum_sumQ   += bool(bufferRefQ[latencia]) != bool(bitQ_rec) # xor para ver si hay error
@@ -178,7 +173,6 @@ for i in range(sim_len):
             if (min_error > error_cum_sumI or min_error == -1):
                 min_error       = error_cum_sumI
                 min_latencia    = latencia
-                print(min_latencia)
 
             # reseteo los contadores 
             error_cum_sumI = 0
@@ -196,13 +190,8 @@ for i in range(sim_len):
         # no estoy sincronizado, continuo
         continue
 
-    
-    print("delay teorico: " + str(delay))
-
     # ber
-    # para contar errores tengo en cuenta la latenica del filtro y del sistema
-    # if (i < delay):
-    #     continue
+    # cuento errores despues de sincronizar el sistema
     
     errorI = abs(bitI_rec - bufferRefI[latencia])
     errorQ = abs(bitQ_rec - bufferRefQ[latencia])
@@ -217,9 +206,10 @@ berQ = erroresQ / sim_len
 if saveData:
     f = open(OUTPUT_FILE, "w+")
     f.write("PARAMETERS\n")
-    f.write("Nsym: " + str(sim_len) + "\n")
+    f.write("Sim Len: " + str(sim_len) + "\n")
     f.write("os: " + str(os) + "\n")
     f.write("offset: " + str(offset) + "\n")
+    f.write("latency: " + str(latencia) + "\n")
     
     f.write("filter\tNbauds: " + str(Nbauds) + "\n")
     f.write("filter\ttaps: " + str([int(c*(2**NBF)) for c in h_filter]) + "\n")
@@ -230,12 +220,12 @@ if saveData:
     f.write("fixed\troundMode: " + str(roundMode) + "\n")
     f.write("fixed\tsaturateMode: " + str(saturateMode) + "\n")
     
-        
     f.write("RESULTS\n")
-    f.write("BITS TX I: " + str(bitsTxI) + "\n")
-    f.write("Filter Output I: " + str([int(f*(2**NBF)) for f in filteredIArray]) + "\n")
+    f.write("BITS TX I: " + str(bitsTxI[0:100]) + "\n")
+    f.write("Filter Output I: " + str([int(f*(2**NBF)) for f in filteredIArray[0:100]]) + "\n")
     
-    f.write("BER I: " + str(berI) + "\n")
+    f.write("ber\tBER I: " + str(berI) + "\n")
+    f.write("ber\terrores: " + str(erroresI) + "\n")
 
     f.close()
 
@@ -266,16 +256,16 @@ plt.figure()
 plt.suptitle("FILTER OUT")
 plt.subplot(2, 1, 1)
 plt.title("Con Retardo")
-plt.plot(filteredIArray)
-plt.stem(simbolos_upI, "r")
+plt.plot(filteredIArray[0:50])
+plt.stem(simbolos_upI[0:50], "r")
 plt.xlim([0, 50])
 plt.legend(["FilteredI", "UpsampledI"])
 plt.grid()
 
 plt.subplot(2, 1, 2)
 plt.title("Sin Retardo")
-plt.plot(filteredIArray[delay:])
-plt.stem(simbolos_upI, "r")
+plt.plot(filteredIArray[latencia*os+offset:50+latencia+offset])
+plt.stem(simbolos_upI[0:50], "r")
 plt.xlim([0, 50])
 plt.legend(["FilteredI", "UpsampledI"])
 plt.grid()
@@ -287,27 +277,27 @@ plt.suptitle("Constelacion")
 for i in range(os):
     plt.subplot(2, os//2, i + 1)
     plt.grid()
-    plt.plot(filteredIArray[i :: os], filteredQArray[i :: os], ".")
+    plt.plot(filteredIArray[i :100*os: os], filteredQArray[i :100*os: os], ".")
     plt.legend(["Offset: {}".format(i)])
 
 # EYE DIAGRAM
-eyeDiagram(filteredIArray[delay:], 2, 100, os)
+eyeDiagram(filteredIArray[latencia*os+offset:], 2, 100, os)
 
 # BITS TX vs BITS RX
 plt.figure()
 plt.suptitle("BITS TX vs RX")
 plt.subplot(2, 1, 1)
 plt.title("Con Retardo")
-plt.stem(bitsTxI, 'g')
-plt.stem(bitsRxI, markerfmt='D', linefmt='r')
+plt.stem(bitsTxI[0:50], 'g')
+plt.stem(bitsRxI[0:50], markerfmt='D', linefmt='r')
 plt.legend(["TxI", "RxI"])
 plt.xlim([0, 50])
 plt.grid()
 
 plt.subplot(2, 1, 2)
 plt.title("Sin Retardo")
-plt.stem(bitsTxI, 'g')
-plt.stem(bitsRxI[Nbauds//2:], markerfmt='D', linefmt='r')
+plt.stem(bitsTxI[0:50], 'g')
+plt.stem(bitsRxI[latencia:50+latencia], markerfmt='D', linefmt='r')
 plt.legend(["RxI", "RxI"])
 plt.xlim([0, 50])
 plt.grid()
@@ -318,3 +308,4 @@ plt.show()
 
 print("BER I: {}".format(berI))
 print("BER Q: {}".format(berQ))
+print("Latencia: {}".format(latencia))
