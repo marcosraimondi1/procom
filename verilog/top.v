@@ -25,7 +25,8 @@
 module top #(
     parameter NBAUDS    = `NBAUDS   , //! cantidad de baudios del filtro
     parameter SEED      = `SEED     , //! semilla del prbs9
-    parameter OS        = `OS         //! oversampling factor
+    parameter OS        = `OS       ,  //! oversampling factor
+    parameter NB_OUTPUT = 8         , //! NB of output
 )
 (
     // declaracion de puertos input-output
@@ -41,30 +42,33 @@ module top #(
     reg             valid              ;   // senal de validacion
     reg [1:0    ]   counter            ;
     
-    wire            reset                          ;
-    wire            connect_prbs9_to_filter        ;
-    wire            connect_filter_to_rx           ;
+    wire            reset              ;
+    wire            prbs9_out          ;
+
+
+    wire signed [NB_OUTPUT-1:0] filter_out ;
     
     // instanciacion de modulos
     // prbs9
     prbs9 # (
         .SEED   (SEED)
+        .NB
     )
         u_prbs9 (
-            .o_bit      (connect_prbs9_to_filter)           ,
-            .i_enable   (valid)                             ,
-            .i_reset    (reset)                             ,
-            .clock      (clock)                   
+            .o_bit      (prbs9_out)     ,
+            .i_enable   (valid)         ,
+            .i_reset    (reset)         ,
+            .clock      (clock)     
         );
 
     //! filtro RC
     filtro_fir # ()
         u_filtro_fir (
-            .o_data     (connect_filter_to_rx)              ,
-            .i_data     (connect_prbs9_to_filter ? 1 : -1)  ,
-            .i_valid    (valid)                             ,
-            .i_enable   (i_sw[0])                           ,
-            .i_reset    (reset)                             ,
+            .o_data     (filter_out)    ,
+            .i_data     (prbs9_out ? 8'b01111111 : 8'b00000000) ,
+            .i_valid    (valid)         ,
+            .i_enable   (i_sw[0])       ,
+            .i_reset    (reset)         ,
             .clock      (clock)
         );
     
@@ -81,9 +85,20 @@ module top #(
         begin
             if (i_sw[0])
             begin
-                valid   <= counter == 2'b00 ? 1'b1  : 1'b0              ;
-                counter <= counter == 2'b11 ? 2'b00 : counter + 1'b1    ;
-        
+                // oversampling
+                if (counter == OS-1)
+                begin
+                    // doy senal de activacion
+                    valid   <= 1'b1     ;
+                    counter <= 2'b00    ;
+                end
+                else
+                begin 
+                    valid   <= 1'b0             ;
+                    counter <= counter + 1'd1   ;
+                end
+                
+                
             end
             else
             begin
