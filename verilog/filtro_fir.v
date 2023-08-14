@@ -93,9 +93,9 @@ module filtro_fir
     for(ptr=0; ptr<N_COEFF ;ptr=ptr+1) begin:mult
       if (ptr==0) 
         // optimizacion para data +-1, complemento a 2 reemplza si se multiplica por -1
-        assign prod[ptr] = i_data[NB_INPUT -1] ? ~coeff[ptr] + 1 : coeff[ptr]; // coeff[ptr] * i_data;
+        assign prod[ptr] = i_data[NB_INPUT -1] ? coeff[ptr] : ~coeff[ptr] + 1; // coeff[ptr] * i_data;
       else
-        assign prod[ptr] = register[ptr][NB_INPUT -1] ? ~coeff[ptr] + 1 : coeff[ptr];// coeff[ptr] * register[ptr];
+        assign prod[ptr] = register[ptr][NB_INPUT -1] ? coeff[ptr] : ~coeff[ptr] + 1;// coeff[ptr] * register[ptr];
     end
   endgenerate
 
