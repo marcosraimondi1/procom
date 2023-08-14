@@ -23,7 +23,7 @@ saveData   = True
 showPlots  = True
 
 # Generales
-sim_len = 263000    # Cantidad de simbolos a transmitir
+sim_len = 511*5 # 263000    # Cantidad de simbolos a transmitir
 os      = 4         # Oversampling Factor
 Nfreqs  = 256       # Cantidad de frecuencias a evaluar (para la respuesta en frecuencia)
 seedI   = 0x1AA     # Semilla para el generador de PRBS9 parte real
@@ -173,6 +173,11 @@ for i in range(sim_len):
             if (min_error > error_cum_sumI or min_error == -1):
                 min_error       = error_cum_sumI
                 min_latencia    = latencia
+                
+                # si no hay ruido en el canal
+                if (min_error == 0):
+                    synced = True
+                    continue
 
             # reseteo los contadores 
             error_cum_sumI = 0
