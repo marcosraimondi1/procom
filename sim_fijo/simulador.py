@@ -148,12 +148,9 @@ for i in range(sim_len):
     muestraI = rxBufferI[offset]
     muestraQ = rxBufferQ[offset]
 
-    simbolo_estimadoI = muestraI
-    simbolo_estimadoQ = muestraQ
-
     # Decodificacion - Slicer, me fijo en el signo
-    bitI_rec = 0 if simbolo_estimadoI > 0 else 1
-    bitQ_rec = 0 if simbolo_estimadoQ > 0 else 1
+    bitI_rec = 0 if muestraI > 0 else 1
+    bitQ_rec = 0 if muestraQ > 0 else 1
 
     bitsRxI.append(bitI_rec)
     bitsRxQ.append(bitQ_rec)
