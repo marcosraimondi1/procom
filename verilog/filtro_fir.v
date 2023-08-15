@@ -20,7 +20,7 @@ module filtro_fir
   ) 
   (
     output signed [NB_OUTPUT-1:0] o_data                  , //! Output Sample
-    input  signed [NB_INPUT -1:0] i_data                  , //! Input Sample
+    input                         i_data                  , //! Input Sample (bit)
     input                         i_enable                , //! Enable
     input                         i_valid                 , //! Valid Input -> shift register
     input                         i_reset                 , //! Reset
@@ -35,7 +35,7 @@ module filtro_fir
   localparam NB_SAT     = (NBI_ADD) - (NBI_OUTPUT)  ;
 
   //! Internal Signals
-  reg  signed [NB_INPUT-1:0         ] register [N_COEFF-1:1]; //! Matrix for input samples
+  reg         [N_COEFF-1:1          ] register              ; //! input samples
   reg         [1:0                  ] f_selector            ; //! selecciona el filtro polifasico
   wire signed [NB_INPUT+NB_COEFF-1:0] prod     [N_COEFF-1:0]; //! Partial Products
   wire signed [NB_ADD-1:0           ] sum      [N_COEFF-1:1]; //! Add samples
@@ -44,7 +44,7 @@ module filtro_fir
   wire signed [NB_COEFF -1:0        ] coeff    [N_COEFF-1:0]; //! Coefficients
 
   //! Coeficientes filtro polifasico RC
-  //  filter	taps: [-1, 0, 2, 2, 0, -8, -16, -16, -1, 33, 76, 113, 127, 113, 76, 33, 0, -16, -16, -8, -1, 2, 2, 0]
+  //  filter	taps: {-1, 0, 2, 2, 0, -8, -16, -16, -1, 33, 76, 113, 127, 113, 76, 33, 0, -16, -16, -8, -1, 2, 2, 0}
   assign coeff[0]   = f_selector == 2'b00 ? -1 : f_selector == 2'b01 ? -16  : f_selector == 2'b10 ? 127 : -16 ;
   assign coeff[1]   = f_selector == 2'b00 ?  0 : f_selector == 2'b01 ? -16  : f_selector == 2'b10 ? 113 : -8  ;
   assign coeff[2]   = f_selector == 2'b00 ?  2 : f_selector == 2'b01 ? -1   : f_selector == 2'b10 ?  76 : -1  ;
@@ -62,28 +62,22 @@ module filtro_fir
   end
 
   //! ShiftRegister model
-  integer i;
 
   always @(posedge clock) begin:shiftRegister
     if (i_reset) 
     begin
-      for(i=1; i < N_COEFF; i=i+1) begin:init
-        register[i] <= {NB_INPUT{1'b0}};
-      end
-    end else begin
-      if (i_enable && i_valid) begin
+      register <= {N_COEFF{1'b0}} ;
+    end 
+    else 
+    begin
+      if (i_enable && i_valid)
+      begin
         // si esta habilitado y entra una muestra
-        for(i=1; i < N_COEFF; i=i+1) begin:srmove
-          if(i==1)
-            register[i] <= i_data;
-          else
-            register[i] <= register[i-1];
-         end   
+        register[N_COEFF-1:2] <= register[N_COEFF-2:1]  ;
+        register[1]           <= i_data                 ;
       end
       else
-        for(i=1; i < N_COEFF; i=i+1) begin
-          register[i] <= register[i];
-        end
+        register <= register;
     end
   end
 
@@ -92,10 +86,10 @@ module filtro_fir
     genvar ptr;
     for(ptr=0; ptr<N_COEFF ;ptr=ptr+1) begin:mult
       if (ptr==0) 
-        // optimizacion para data +-1, complemento a 2 reemplza si se multiplica por -1
-        assign prod[ptr] = i_data[NB_INPUT -1] ? coeff[ptr] : ~coeff[ptr] + 1; // coeff[ptr] * i_data;
+        // optimizacion para data +-1, 0 -> coef , 1 -> -coef
+        assign prod[ptr] = i_data         ? ~coeff[ptr] + 1 : coeff[ptr]  ; // coeff[ptr] * i_data        ;
       else
-        assign prod[ptr] = register[ptr][NB_INPUT -1] ? coeff[ptr] : ~coeff[ptr] + 1;// coeff[ptr] * register[ptr];
+        assign prod[ptr] = register[ptr]  ? ~coeff[ptr] + 1 : coeff[ptr]  ; // coeff[ptr] * register[ptr] ;
     end
   endgenerate
 

@@ -23,18 +23,6 @@ module tb_top(); // testbench no tiene puertos
     reg         i_reset   ;
     reg         clock     ;
     
-    wire [8:0] tb_prbs9 ;
-    wire tb_prbs9_o_bit ;
-    wire [7:0] tb_filtro_fir_i_data;
-    wire [7:0] tb_filtro_fir_o_data;
-    wire [1:0] tb_f_selector;
-        
-    assign tb_prbs9             = tb_top.u_top.u_prbs9.shiftregister    ;
-    assign tb_prbs9_o_bit       = tb_top.u_top.connect_prbs9_to_filter  ;
-    assign tb_filtro_fir_i_data = tb_top.u_top.u_filtro_fir.i_data      ;
-    assign tb_f_selector        = tb_top.u_top.u_filtro_fir.f_selector  ;
-    assign tb_filtro_fir_o_data = tb_top.u_top.u_filtro_fir.o_data      ;
-
     initial
     begin
         // asignaciones bloqueantes que se ejecutan una sola vez
@@ -46,8 +34,11 @@ module tb_top(); // testbench no tiene puertos
         #100 i_reset        = 1'b1       ;  // desactivo el reset
         // en t = 200 ns
         #100 i_sw[0]        = 1'b1       ;  // habilito tx
-
-        #10000 $finish                 ;  // finaliza la simulacion
+        #100 i_sw[1]        = 1'b1       ;  // habilito rx
+        #100 i_sw[3:2]      = 2'b00      ;  // offset = 0
+        
+        #205000 $finish                  ;  // finaliza la simulacion
+//        #10506160 $finish                 ;  // finaliza la simulacion
     end
 
     always #5 clock = ~clock; // 5ns en bajo y 5ns en alto, periodo de 10ns

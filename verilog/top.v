@@ -25,8 +25,8 @@
 module top #(
     parameter NBAUDS    = `NBAUDS   , //! cantidad de baudios del filtro
     parameter SEED      = `SEED     , //! semilla del prbs9
-    parameter OS        = `OS       ,  //! oversampling factor
-    parameter NB_OUTPUT = 8         , //! NB of output
+    parameter OS        = `OS       , //! oversampling factor
+    parameter NB_OUTPUT = 8           //! NB of output
 )
 (
     // declaracion de puertos input-output
@@ -41,18 +41,22 @@ module top #(
     // variables
     reg             valid              ;   // senal de validacion
     reg [1:0    ]   counter            ;
-    
+
     wire            reset              ;
     wire            prbs9_out          ;
 
 
-    wire signed [NB_OUTPUT-1:0] filter_out ;
-    
+    wire signed [NB_OUTPUT-1:0] filter_out              ;
+    reg  signed [NB_OUTPUT-1:0] rx_buffer   [OS-1:0]    ;
+    reg                         rx_bit                  ; 
+    reg         [64-1:0       ] error_count             ; //! error count
+    reg         [64-1:0       ] bit_count               ; //! bit count
+
+
     // instanciacion de modulos
     // prbs9
     prbs9 # (
         .SEED   (SEED)
-        .NB
     )
         u_prbs9 (
             .o_bit      (prbs9_out)     ,
@@ -65,46 +69,20 @@ module top #(
     filtro_fir # ()
         u_filtro_fir (
             .o_data     (filter_out)    ,
-            .i_data     (prbs9_out ? 8'b01111111 : 8'b00000000) ,
+            .i_data     (prbs9_out)     ,
             .i_valid    (valid)         ,
             .i_enable   (i_sw[0])       ,
             .i_reset    (reset)         ,
             .clock      (clock)
         );
     
-    // TODO : instancias modulo BER
-    
     always@(posedge clock or posedge reset) 
     begin
         if (reset) 
         begin
-            valid   <= 1'b0     ;
-            counter <= 2'b00    ;
         end
         else
         begin
-            if (i_sw[0])
-            begin
-                // oversampling
-                if (counter == OS-1)
-                begin
-                    // doy senal de activacion
-                    valid   <= 1'b1     ;
-                    counter <= 2'b00    ;
-                end
-                else
-                begin 
-                    valid   <= 1'b0             ;
-                    counter <= counter + 1'd1   ;
-                end
-                
-                
-            end
-            else
-            begin
-                valid   <= valid    ;
-                counter <= counter  ;
-            end
         end
     end
 
@@ -113,7 +91,6 @@ module top #(
     assign o_led[0] = reset         ;
     assign o_led[1] = i_sw[0]       ;
     assign o_led[2] = i_sw[1]       ;
-
-    
+    assign o_led[3] = error_count == 64'd0 ;
 
     endmodule
