@@ -44,5 +44,6 @@ def binary_to_list(binary_number, length=9):
 # seed = 0x1AA
 # prbs9_gen = prbs9(seed)
 
-# for i in range(1022):
-#     print("1'b" + str(next(prbs9_gen)), end=",")
+# for i in range(1021):
+#     bit = next(prbs9_gen)
+#     print("1'b{},".format(bit), end="")
