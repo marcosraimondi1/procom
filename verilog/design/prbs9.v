@@ -23,7 +23,6 @@ module prbs9 #(
 
     // variables
     reg [0:8] shiftregister ;
-    reg       feedback      ;
 
     always@(posedge clock) 
     begin
@@ -33,9 +32,8 @@ module prbs9 #(
         end    
         else if (i_enable)
         begin
-            feedback = shiftregister[8] ^ shiftregister[4] ;  // XOR de los bits 8 y 4
             // shifteo y cargo el nuevo bit XOR de los bits 8 y 4
-            shiftregister   <=  {feedback, shiftregister[0:7]} ;
+            shiftregister   <=  {shiftregister[8] ^ shiftregister[4], shiftregister[0:7]} ;
         end
         else
         begin
