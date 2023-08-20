@@ -70,9 +70,9 @@ module top #(
         .SEED   (SEED)
     )
         u_prbs9 (
-            .o_bit      (prbs9_out)     ,
-            .i_enable   (valid)         ,
-            .i_reset    (reset)         ,
+            .o_bit      (prbs9_out)         ,
+            .i_enable   (valid && i_sw[0])  ,
+            .i_reset    (reset)             ,
             .clock      (clock)     
         );
 
@@ -94,7 +94,7 @@ module top #(
             .o_bits     (bit_count)     ,
             .i_rx       (rx_bit)        ,
             .i_ref      (prbs9_out)     ,
-            .i_valid    (valid)         ,
+            .i_valid    (valid && i_sw[1]),
             .clock      (clock)         ,
             .i_reset    (reset)
         );
