@@ -14,4 +14,4 @@ def floatArrayToFixedIntArray(NB, NBF, array, signedMode='S', roundMode='trunc',
     Convierte un array de numeros flotante a su representacion entera segun la cuantizacion especificada
     """
     fixedIntArray = arrayFixedInt(NB, NBF, array, signedMode, roundMode, saturateMode)
-    return np.array([ e.intvalue for e in fixedIntArray ])
+    return [ e.intvalue for e in fixedIntArray ]
