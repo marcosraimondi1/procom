@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from prbs9 import prbs9
 from rcosine import rcosine, resp_freq, eyeDiagram, PolyFilter
-from utils import fixArray
+from utils import fixArray, floatArrayToFixedIntArray
 
 """
 1. Disenar en Python un simulador en punto flotante que contemple todo el diseño 
@@ -197,7 +197,7 @@ if saveData:
     f.write("latency: " + str(latencia) + "\n")
     
     f.write("filter\tNbauds: " + str(Nbauds) + "\n")
-    f.write("filter\ttaps: " + str([int(c*(2**NBF)) for c in h_filter]) + "\n")
+    f.write("filter\ttaps: " + str(floatArrayToFixedIntArray(NB, NBF, h_filter, signedMode, roundMode, saturateMode)) + "\n")
 
     f.write("fixed\tNB: " + str(NB) + "\n")
     f.write("fixed\tNBF: " + str(NBF) + "\n")
@@ -207,7 +207,7 @@ if saveData:
     
     f.write("RESULTS\n")
     f.write("BITS TX I: " + str(bitsTxI[0:100]) + "\n")
-    f.write("Filter Output I: " + str([int(f*(2**NBF)) for f in filteredIArray[0:100]]) + "\n")
+    f.write("Filter Output I: " + str(floatArrayToFixedIntArray(NB, NBF, filteredIArray[0:100], signedMode, roundMode, saturateMode)) + "\n")
     
     f.write("ber\tBER I: " + str(berI) + "\n")
     f.write("ber\terrores: " + str(erroresI) + "\n")
