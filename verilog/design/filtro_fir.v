@@ -44,13 +44,13 @@ module filtro_fir
   wire signed [NB_COEFF -1:0        ] coeff    [N_COEFF-1:0]; //! Coefficients
 
   //! Coeficientes filtro polifasico RC
-  //  filter	taps: {-1, 0, 2, 2, 0, -8, -16, -16, -1, 33, 76, 113, 127, 113, 76, 33, 0, -16, -16, -8, -1, 2, 2, 0}
-  assign coeff[0]   = f_selector == 2'b00 ? -1 : f_selector == 2'b01 ? -16  : f_selector == 2'b10 ? 127 : -16 ;
-  assign coeff[1]   = f_selector == 2'b00 ?  0 : f_selector == 2'b01 ? -16  : f_selector == 2'b10 ? 113 : -8  ;
-  assign coeff[2]   = f_selector == 2'b00 ?  2 : f_selector == 2'b01 ? -1   : f_selector == 2'b10 ?  76 : -1  ;
-  assign coeff[3]   = f_selector == 2'b00 ?  2 : f_selector == 2'b01 ?  33  : f_selector == 2'b10 ?  33 :  2  ;
-  assign coeff[4]   = f_selector == 2'b00 ?  0 : f_selector == 2'b01 ?  76  : f_selector == 2'b10 ?  0  :  2  ;
-  assign coeff[5]   = f_selector == 2'b00 ? -8 : f_selector == 2'b01 ?  113 : f_selector == 2'b10 ? -16 :  0  ;
+  //  filter	taps: [255, 0, 2, 2, 0, 248, 240, 240, 255, 33, 76, 113, 127, 113, 76, 33, 0, 240, 240, 248, 255, 2, 2, 0]
+  assign coeff[0]   = f_selector == 2'b00 ? 8'd255  : f_selector == 2'b01 ? 8'd240  : f_selector == 2'b10 ? 8'd127 : 8'd240 ;
+  assign coeff[1]   = f_selector == 2'b00 ? 8'd0    : f_selector == 2'b01 ? 8'd240  : f_selector == 2'b10 ? 8'd113 : 8'd248 ;
+  assign coeff[2]   = f_selector == 2'b00 ? 8'd2    : f_selector == 2'b01 ? 8'd255  : f_selector == 2'b10 ? 8'd76  : 8'd255 ;
+  assign coeff[3]   = f_selector == 2'b00 ? 8'd2    : f_selector == 2'b01 ? 8'd33   : f_selector == 2'b10 ? 8'd33  : 8'd2   ;
+  assign coeff[4]   = f_selector == 2'b00 ? 8'd0    : f_selector == 2'b01 ? 8'd76   : f_selector == 2'b10 ? 8'd0   : 8'd2   ;
+  assign coeff[5]   = f_selector == 2'b00 ? 8'd248  : f_selector == 2'b01 ? 8'd113  : f_selector == 2'b10 ? 8'd240 : 8'd0   ;
 
 
   //! Cambio filtro polifasico
