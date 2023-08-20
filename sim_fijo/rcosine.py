@@ -99,3 +99,29 @@ def eyeDiagram(data,nT,nSegments,sps):
         stop  = start + sps*nT+1
         
         plt.plot(t,data[start:stop],'-r')
+
+class PolyFilter:
+    def __init__(self,h,os,Nbauds):
+        self.os         = os                    # factor de sobremuestreo
+        self.Nbauds     = Nbauds                # cantidad de simbolos que abarca el filtro
+        self.shiftReg   = np.zeros(Nbauds)      # registro de desplazamiento para el filtro
+        self.out        = np.zeros(os)          # salida del filtro (os muestras por filtrado)
+
+        h_i = []  
+        for i in range(os):
+            h_i.append(h[i::os])
+
+        self.filters    = h_i                   # filtros para cada fase, OS filtros
+
+
+    def filter(self, i_bit):
+        # ingresa una muestra al registro
+        self.shiftReg       = np.roll(self.shiftReg, 1)
+        self.shiftReg[0]    = i_bit
+
+        for i in range(self.os):
+            h_i         = self.filters[i]               # filtro para este tiempo de clock
+            prod        = [h_i[x] if self.shiftReg[x] == 0 else -h_i[x] for x in range(self.Nbauds) ]  # producto (optimizado para hardware)
+            self.out[i] = sum(prod)                     # salida del filtro
+        
+        return self.out

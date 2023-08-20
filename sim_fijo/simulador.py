@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from prbs9 import prbs9
-from rcosine import rcosine, resp_freq, eyeDiagram
-from utils import fixArray, fixNumber
+from rcosine import rcosine, resp_freq, eyeDiagram, PolyFilter
+from utils import fixArray
 
 """
 1. Disenar en Python un simulador en punto flotante que contemple todo el diseño 
@@ -55,21 +55,16 @@ prbs_genI = prbs9(seedI)
 prbs_genQ = prbs9(seedQ)
 
 # FILTRO POLIFASICO
-t, h_filter         = rcosine(beta, Tclk, os, Nbauds, True) 
-t                   = t[0:os*Nbauds]
-h_filter            = h_filter[0:os*Nbauds] # para que los filtros de cada fase tengan la misma longitud
+t, h_filter = rcosine(beta, Tclk, os, Nbauds, True) 
+t           = t[0:os*Nbauds]
+h_filter    = h_filter[0:os*Nbauds] # para que los filtros de cada fase tengan la misma longitud
 
-h_filter = fixArray(NB, NBF, h_filter, signedMode, roundMode, saturateMode) # cuantizacion del filtro
+h_filter    = fixArray(NB, NBF, h_filter, signedMode, roundMode, saturateMode) # cuantizacion del filtro
 
-h_i = []  # filtro polifasico, OS filtros
-for i in range(os):
-    h_i.append(h_filter[i::os])
+polyFilterI = PolyFilter(h_filter,os,Nbauds)
+polyFilterQ = PolyFilter(h_filter,os,Nbauds)
 
 # variables del sistema
-filterShiftRegI = np.zeros(Nbauds)      # registro de desplazamiento para el filtro
-filterShiftRegQ = np.zeros(Nbauds)
-rxBufferI       = np.zeros(os)          # buffer de recepcion del cual se elige con el offset
-rxBufferQ       = np.zeros(os)
 bufferRefI      = np.zeros(512)         # buffer de referencia para la sincronizacion
 bufferRefQ      = np.zeros(512)
 erroresI        = 0                     # acumulador de errores after sync
@@ -106,47 +101,33 @@ for i in range(sim_len):
     bitsTxI.append(bitI)
     bitsTxQ.append(bitQ)
 
-    # introduzco una muestra en el registro de entrada del filtro
-    filterShiftRegI = np.roll(filterShiftRegI, 1)
-    filterShiftRegI[0] = bitI
-
-    filterShiftRegQ = np.roll(filterShiftRegQ, 1)
-    filterShiftRegQ[0] = bitQ
-
     simbolos_upI.append(1 if bitI == 0 else -1)
     simbolos_upQ.append(1 if bitQ == 0 else -1)
 
+    for _ in range(os-1):
+        simbolos_upI.append(0)
+        simbolos_upQ.append(0)
+    
     # ⌚⌚⌚⌚⌚⌚ T = Tclk / os ⌚⌚⌚⌚⌚⌚
-    for j in range(os):
-        filtro_p = h_i[j] # filtro para este tiempo de clock
 
-        # filtro full resolution
-        filtro_pI = [filtro_p[x] if filterShiftRegI[x] == 0 else -filtro_p[x] for x in range(Nbauds)] # mux que elige coef positivo o negativo para evitar productos
-        filtro_pQ = [filtro_p[x] if filterShiftRegQ[x] == 0 else -filtro_p[x] for x in range(Nbauds)] # mux que elige coef positivo o negativo para evitar productos
+    filter_outI     = polyFilterI.filter(bitI) # filtrado
+    
+    # cuantizo la salida del filtro
+    filter_outI     = fixArray(NB, NBF, filter_outI, signedMode, roundMode, saturateMode)
+    filteredIArray += list(filter_outI)
 
-        filteredI = sum(filtro_pI) # salida del filtro
-        filteredQ = sum(filtro_pQ) # salida del filtro
-        
-        # cuantizo la salida del filtro
-        filteredI = fixNumber(NB, NBF, filteredI, signedMode, roundMode, saturateMode)
-        filteredQ = fixNumber(NB, NBF, filteredQ, signedMode, roundMode, saturateMode)
-        
-        filteredIArray.append(filteredI)
-        filteredQArray.append(filteredQ)
+    filter_outQ     = polyFilterQ.filter(bitQ) # filtrado
 
-        # 📡📡📡 RECEPTOR 📡📡📡
-        rxBufferI[j] = filteredI 
-        rxBufferQ[j] = filteredQ
-
-        if (j != 0):
-            simbolos_upI.append(0)
-            simbolos_upQ.append(0)
+    # cuantizo la salida del filtro
+    filter_outQ     = fixArray(NB, NBF, filter_outQ, signedMode, roundMode, saturateMode)
+    filteredQArray += list(filter_outQ)
 
     # ⌚⌚⌚⌚⌚⌚ T = Tclk ⌚⌚⌚⌚⌚⌚
 
+    # 📡📡📡 RECEPTOR 📡📡📡
     # DownSampling
-    muestraI = rxBufferI[offset]
-    muestraQ = rxBufferQ[offset]
+    muestraI = filter_outI[offset]
+    muestraQ = filter_outQ[offset]
 
     # Decodificacion - Slicer, me fijo en el signo
     bitI_rec = 0 if muestraI > 0 else 1
