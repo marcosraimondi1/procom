@@ -39,21 +39,31 @@ module top #(
 
 
     // variables
-    reg             valid              ;   // senal de validacion
+    wire            valid              ;   // senal de validacion
     reg [1:0    ]   counter            ;
 
     wire            reset              ;
     wire            prbs9_out          ;
+    wire [1:0]      offset             ;
 
 
     wire signed [NB_OUTPUT-1:0] filter_out              ;
     reg  signed [NB_OUTPUT-1:0] rx_buffer   [OS-1:0]    ;
-    reg                         rx_bit                  ; 
+    wire                        rx_bit                  ; 
     reg         [64-1:0       ] error_count             ; //! error count
     reg         [64-1:0       ] bit_count               ; //! bit count
 
-
     // instanciacion de modulos
+    // control
+    control #(
+            .NB_COUNT (2)
+        )
+        u_control (
+            .o_valid  (valid)   ,
+            .i_reset  (reset)   ,
+            .clock    (clock)
+    );
+
     // prbs9
     prbs9 # (
         .SEED   (SEED)
@@ -76,21 +86,28 @@ module top #(
             .clock      (clock)
         );
     
+    integer ptr;
     always@(posedge clock or posedge reset) 
     begin
         if (reset) 
-        begin
-        end
+            begin
+                for (ptr = 0; ptr < OS; ptr = ptr + 1)
+                    rx_buffer[ptr] <= 0;
+            end
         else
-        begin
-        end
+            begin
+                rx_buffer[0] <= filter_out;
+                for (ptr = 1; ptr < OS; ptr = ptr + 1)
+                    rx_buffer[ptr] <= rx_buffer[ptr-1];
+            end
     end
 
-    
-    assign reset    = ~i_reset      ;
-    assign o_led[0] = reset         ;
-    assign o_led[1] = i_sw[0]       ;
-    assign o_led[2] = i_sw[1]       ;
-    assign o_led[3] = error_count == 64'd0 ;
+    assign offset   = i_sw[3:2]             ;
+    assign rx_bit   = rx_buffer[offset]     ;
+    assign reset    = ~i_reset              ;
+    assign o_led[0] = reset                 ;
+    assign o_led[1] = i_sw[0]               ;
+    assign o_led[2] = i_sw[1]               ;
+    assign o_led[3] = error_count == 64'd0  ;
 
     endmodule
