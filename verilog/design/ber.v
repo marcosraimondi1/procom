@@ -45,7 +45,7 @@ begin
                     counter     <= counter + 1 ;
 
                     // ingreso muestra al buffer de referencia
-                    ref_buffer <= {ref_buffer[510:1], i_ref} ;
+                    ref_buffer <= {ref_buffer[509:0], i_ref} ;
 
                     if (~synced)
                     begin
@@ -63,11 +63,6 @@ begin
                                             min_error   <= sync_errors ;
                                             min_latency <= latency     ;
                                         end
-                                    else
-                                        begin
-                                            min_error   <= min_error   ;
-                                            min_latency <= min_latency ;
-                                        end
 
                                     // reseteo contador de errores
                                     sync_errors <= 0 ;
@@ -75,31 +70,13 @@ begin
                                     // incremento la latencia
                                     latency <= latency + 1 ;
                                 end
-                            else
-                                begin
-                                    latency     <= latency     ;
-                                    sync_errors <= sync_errors ;
-                                    min_latency <= min_latency ;
-                                    min_error   <= min_error   ;
-                                    counter     <= counter     ;
-                                end
-                            
-                            // contador de ber
-                            error_count <= error_count ;
-                            bit_count   <= bit_count   ;
+                                                        
                         end
                     else
                         begin
                             // contador de ber ---------------------------
                             bit_count   <= bit_count   + 1 ;
-                            error_count <= error_count + (ref_buffer[min_latency] ^ i_ref) ;
-                            
-                            // sincronizacion
-                            latency     <= latency     ;
-                            sync_errors <= sync_errors ;
-                            min_latency <= min_latency ;
-                            min_error   <= min_error   ;
-                            counter     <= counter     ;
+                            error_count <= error_count + (ref_buffer[min_latency] ^ i_rx) ;
                         end
                 end
             else
@@ -121,7 +98,7 @@ end
 
 
 
-assign synced   = latency == 510    ;
+assign synced   = latency == 511    ;
 assign o_errors = error_count       ;
 assign o_bits   = bit_count         ;
 

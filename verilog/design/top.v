@@ -51,8 +51,8 @@ module top #(
     reg  signed [NB_OUTPUT-1:0] rx_buffer   [OS-1:0]    ;
     wire signed [NB_OUTPUT-1:0] rx_sample               ;
     wire                        rx_bit                  ; 
-    reg         [63:0         ] error_count             ; //! error count
-    reg         [63:0         ] bit_count               ; //! bit count
+    wire        [63:0         ] error_count             ; //! error count
+    wire        [63:0         ] bit_count               ; //! bit count
 
     // instanciacion de modulos
     // control
