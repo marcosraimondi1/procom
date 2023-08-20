@@ -49,6 +49,7 @@ module top #(
 
     wire signed [NB_OUTPUT-1:0] filter_out              ;
     reg  signed [NB_OUTPUT-1:0] rx_buffer   [OS-1:0]    ;
+    wire signed [NB_OUTPUT-1:0] rx_sample               ;
     wire                        rx_bit                  ; 
     reg         [64-1:0       ] error_count             ; //! error count
     reg         [64-1:0       ] bit_count               ; //! bit count
@@ -102,12 +103,16 @@ module top #(
             end
     end
 
-    assign offset   = i_sw[3:2]             ;
-    assign rx_bit   = rx_buffer[offset]     ;
+    
+    
+    assign rx_sample= rx_buffer[offset]     ;
+    assign rx_bit   = rx_sample[NB_OUTPUT-1]; // tomo el signo de la muestra como el bit (neg = 1, pos = 0)
     assign reset    = ~i_reset              ;
+    
     assign o_led[0] = reset                 ;
     assign o_led[1] = i_sw[0]               ;
     assign o_led[2] = i_sw[1]               ;
+    assign offset   = i_sw[3:2]             ;
     assign o_led[3] = error_count == 64'd0  ;
 
     endmodule
