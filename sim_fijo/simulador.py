@@ -20,7 +20,7 @@ a) Realizar los siguientes graficos:
 # Simulacion
 OUTPUT_FILE = ".\\sim_fijo\\data.txt"
 saveData   = True
-showPlots  = True
+showPlots  = False
 
 # Generales
 sim_len = 511*5 # 263000    # Cantidad de simbolos a transmitir
@@ -197,7 +197,8 @@ if saveData:
     f.write("latency: " + str(latencia) + "\n")
     
     f.write("filter\tNbauds: " + str(Nbauds) + "\n")
-    f.write("filter\ttaps: " + str(floatArrayToFixedIntArray(NB, NBF, h_filter, signedMode, roundMode, saturateMode)) + "\n")
+    for i in range(len(polyFilterI.filters)):
+        f.write(f"filter\t{i}: " + str(floatArrayToFixedIntArray(NB, NBF, polyFilterI.filters[i], signedMode, roundMode, saturateMode)) + "\n")
 
     f.write("fixed\tNB: " + str(NB) + "\n")
     f.write("fixed\tNBF: " + str(NBF) + "\n")

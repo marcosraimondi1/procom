@@ -4,7 +4,10 @@ os: 4
 offset: 0
 latency: 3
 filter	Nbauds: 6
-filter	taps: [255, 0, 2, 2, 0, 248, 240, 240, 255, 33, 76, 113, 127, 113, 76, 33, 0, 240, 240, 248, 255, 2, 2, 0]
+filter	0: [255, 0, 255, 127, 0, 255]
+filter	1: [0, 248, 33, 113, 240, 2]
+filter	2: [2, 240, 76, 76, 240, 2]
+filter	3: [2, 240, 113, 33, 248, 0]
 fixed	NB: 8
 fixed	NBF: 7
 fixed	signedMode: S
