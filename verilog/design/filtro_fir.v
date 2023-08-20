@@ -44,13 +44,17 @@ module filtro_fir
   wire signed [NB_COEFF -1:0        ] coeff    [N_COEFF-1:0]; //! Coefficients
 
   //! Coeficientes filtro polifasico RC
-  //  filter	taps: [255, 0, 2, 2, 0, 248, 240, 240, 255, 33, 76, 113, 127, 113, 76, 33, 0, 240, 240, 248, 255, 2, 2, 0]
-  assign coeff[0]   = f_selector == 2'b00 ? 8'd255  : f_selector == 2'b01 ? 8'd240  : f_selector == 2'b10 ? 8'd127 : 8'd240 ;
-  assign coeff[1]   = f_selector == 2'b00 ? 8'd0    : f_selector == 2'b01 ? 8'd240  : f_selector == 2'b10 ? 8'd113 : 8'd248 ;
-  assign coeff[2]   = f_selector == 2'b00 ? 8'd2    : f_selector == 2'b01 ? 8'd255  : f_selector == 2'b10 ? 8'd76  : 8'd255 ;
-  assign coeff[3]   = f_selector == 2'b00 ? 8'd2    : f_selector == 2'b01 ? 8'd33   : f_selector == 2'b10 ? 8'd33  : 8'd2   ;
-  assign coeff[4]   = f_selector == 2'b00 ? 8'd0    : f_selector == 2'b01 ? 8'd76   : f_selector == 2'b10 ? 8'd0   : 8'd2   ;
-  assign coeff[5]   = f_selector == 2'b00 ? 8'd248  : f_selector == 2'b01 ? 8'd113  : f_selector == 2'b10 ? 8'd240 : 8'd0   ;
+  // filter	0: [255, 0, 255, 127, 0, 255]
+  // filter	1: [0, 248, 33, 113, 240, 2]
+  // filter	2: [2, 240, 76, 76, 240, 2]
+  // filter	3: [2, 240, 113, 33, 248, 0]
+  //                                        filter 0 ,                       filter 1 ,                       filter 2 , filter 3
+  assign coeff[0]   = f_selector == 2'b00 ? 8'd255   : f_selector == 2'b01 ? 8'd0     : f_selector == 2'b10 ? 8'd2     : 8'd2     ;
+  assign coeff[1]   = f_selector == 2'b00 ? 8'd0     : f_selector == 2'b01 ? 8'd248   : f_selector == 2'b10 ? 8'd240   : 8'd240   ;
+  assign coeff[2]   = f_selector == 2'b00 ? 8'd255   : f_selector == 2'b01 ? 8'd33    : f_selector == 2'b10 ? 8'd76    : 8'd113   ;
+  assign coeff[3]   = f_selector == 2'b00 ? 8'd127   : f_selector == 2'b01 ? 8'd113   : f_selector == 2'b10 ? 8'd76    : 8'd33    ;
+  assign coeff[4]   = f_selector == 2'b00 ? 8'd0     : f_selector == 2'b01 ? 8'd240   : f_selector == 2'b10 ? 8'd240   : 8'd248   ;
+  assign coeff[5]   = f_selector == 2'b00 ? 8'd255   : f_selector == 2'b01 ? 8'd2     : f_selector == 2'b10 ? 8'd2     : 8'd0     ;
 
 
   //! Cambio filtro polifasico
