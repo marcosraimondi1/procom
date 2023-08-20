@@ -129,7 +129,7 @@ class PolyFilter:
 
 # SIMULACION DEL FILTRO
 
-# from utils import fixArray
+# from utils import fixArray, floatArrayToFixedIntArray
 
 # filter_input    = [1,0,1,0,1,0,1,1,0,0,0,0,1,1,0,1,1,1,1,0,1,0,0,1,1,0,1,1,1,0,0,1,0,0,0,1,0,1,0,0,0,0,1,0,1,0,1,1,0,1,0,0,1,1,1,1,1,1,0,1,1,0,0,1,0,0,1,0,0,1,0,1,1,0,1,1,1,1,1,1,0,0,1,0,0,1,1,0,1,0,1,0,0,1,1,0,0,1,1,0,0,0,0,0,0,0,1,1,0,0,0,1,1,0,0,1,0,1,0,0,0,1,1,0,1,0,0,1,0,1,1,1,1,1,1,1,0,1,0,0,0,1,0,1,1,0,0,0,1,1,1,0,1,0,1,1,0,0,1,0,1,1,0,0,1,1,1,1,0,0,0,1,1,1,1,1,0,1,1,1,0,1,0,0,0,0,0,1,1,0,1,0,1,1,0,1,1,0,1,1]
 # NBI             = 1             # bits parte entera + signo 
@@ -157,7 +157,7 @@ class PolyFilter:
 #     filter_out      = fixArray(NB, NBF, filter_out, signedMode, roundMode, saturateMode)
 #     filteredArray  += list(filter_out)
 
-# print(["8'd"+str(int(x*(2**NBF))) for x in filteredArray])
+# print(["8'd"+str(x) for x in floatArrayToFixedIntArray(NB, NBF, filteredArray, signedMode, roundMode, saturateMode)])
 
 # plt.figure()
 # plt.plot(filteredArray[0:50])
