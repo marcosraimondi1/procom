@@ -51,8 +51,8 @@ module top #(
     reg  signed [NB_OUTPUT-1:0] rx_buffer   [OS-1:0]    ;
     wire signed [NB_OUTPUT-1:0] rx_sample               ;
     wire                        rx_bit                  ; 
-    reg         [64-1:0       ] error_count             ; //! error count
-    reg         [64-1:0       ] bit_count               ; //! bit count
+    reg         [63:0         ] error_count             ; //! error count
+    reg         [63:0         ] bit_count               ; //! bit count
 
     // instanciacion de modulos
     // control
@@ -85,6 +85,18 @@ module top #(
             .i_enable   (i_sw[0])       ,
             .i_reset    (reset)         ,
             .clock      (clock)
+        );
+
+    //! ber
+    ber # ()
+        u_ber (
+            .o_errors   (error_count)   ,
+            .o_bits     (bit_count)     ,
+            .i_rx       (rx_bit)        ,
+            .i_ref      (prbs9_out)     ,
+            .i_valid    (valid)         ,
+            .clock      (clock)         ,
+            .i_reset    (reset)
         );
     
     integer ptr;

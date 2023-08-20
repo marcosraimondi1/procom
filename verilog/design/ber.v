@@ -1,7 +1,6 @@
 module ber (
-    output          o_synced    ,
-    output  [32:0]  o_errors    ,
-    output  [32:0]  o_bits      ,
+    output  [63:0]  o_errors    ,
+    output  [63:0]  o_bits      ,
     input           i_rx        , //! bit recibido
     input           i_ref       , //! bit de referencia
     input           i_valid     , //! senal de validacion
@@ -19,8 +18,8 @@ reg [8:0]   min_error           ; //! valor minimo de errores
 wire        synced              ; //! si esta sincronizado
 
 // para contador de ber
-reg [32:0]  error_count         ; //! error count
-reg [32:0]  bit_count           ; //! bit count
+reg [63:0]  error_count         ; //! error count
+reg [63:0]  bit_count           ; //! bit count
 
 
 always @(posedge clock)
@@ -123,7 +122,6 @@ end
 
 
 assign synced   = latency == 510    ;
-assign o_synced = synced            ;
 assign o_errors = error_count       ;
 assign o_bits   = bit_count         ;
 
