@@ -39,7 +39,7 @@ module filter#(
             f_selector <= 0;
         else 
             begin
-                if (i_enable && i_valid)
+                if (i_enable)
                     f_selector <= f_selector + 1;
                 else
                     f_selector <= f_selector;
