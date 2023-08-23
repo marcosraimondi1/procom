@@ -102,7 +102,7 @@ module top #(
     
     integer ptr;
     always@(posedge clock or posedge reset) 
-    begin:rx_buffer
+    begin
         if (reset) 
             begin
                 for (ptr = 0; ptr < OS; ptr = ptr + 1)
