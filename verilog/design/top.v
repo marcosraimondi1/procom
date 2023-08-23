@@ -41,11 +41,11 @@ module top #(
 
     // variables
     wire            valid              ;   //! senal de validacion
-    wire            tx_enable          ;
-    wire            rx_enable          ;
+    reg             tx_enable          ;
+    reg             rx_enable          ;
+    reg  [1:0]      offset             ;   //! offset de muestreo del buffer
     wire            reset              ;   //! reset por alto
     wire            prbs9_out          ;   //! salida del prbs9
-    wire [1:0]      offset             ;   //! offset de muestreo del buffer
 
     // para usar los puertos input del vio
     wire [3:0]      sw                 ;   //! switches a usar
@@ -132,12 +132,20 @@ module top #(
             begin
                 for (ptr = 0; ptr < OS; ptr = ptr + 1)
                     rx_buffer[ptr] <= 0;
+                
+                rx_enable <= 0;
+                tx_enable <= 0;
+                offset    <= 0;
             end
         else
             begin
                 rx_buffer[0] <= filter_out;
                 for (ptr = 1; ptr < OS; ptr = ptr + 1)
                     rx_buffer[ptr] <= rx_buffer[ptr-1];
+                
+                tx_enable <= sw[0]      ;
+                rx_enable <= sw[1]      ;
+                offset    <= sw[3:2]    ;
             end
     end
 
@@ -146,16 +154,12 @@ module top #(
     assign rx_sample    = rx_buffer[offset]     ;
     assign rx_bit       = rx_sample[NB-1]       ; // tomo el signo de la muestra como el bit (neg = 1, pos = 0)
     
-    assign tx_enable    = sw[0]                 ;
-    assign rx_enable    = sw[1]                 ;
-
-    assign reset        = (sel_mux_vio) ? ~i_reset_vio : ~i_reset              ;
-    assign sw           = (sel_mux_vio) ? i_sw_vio : i_sw;
+    assign reset        = (sel_mux_vio) ? ~i_reset_vio : ~i_reset    ;
+    assign sw           = (sel_mux_vio) ? i_sw_vio : i_sw            ;
     
     assign o_led[0] = reset                 ;
     assign o_led[1] = tx_enable             ;
     assign o_led[2] = rx_enable             ;
-    assign offset   = sw[3:2]               ;
     assign o_led[3] = error_count == 64'd0  ;
 
     endmodule
