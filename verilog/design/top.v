@@ -41,10 +41,17 @@ module top #(
 
     // variables
     wire            valid              ;   //! senal de validacion
-
+    wire            tx_enable          ;
+    wire            rx_enable          ;
     wire            reset              ;   //! reset por alto
     wire            prbs9_out          ;   //! salida del prbs9
     wire [1:0]      offset             ;   //! offset de muestreo del buffer
+
+    // para usar los puertos input del vio
+    wire [3:0]      sw                 ;   //! switches a usar
+    wire [3:0]      i_sw_vio           ;   //! switches from vio
+    wire            i_reset_vio        ;   //! reset from vio
+    wire            sel_mux_vio        ;   //! select mux from vio
 
 
     reg  signed [NB-1:0       ] rx_buffer   [OS-1:0]    ; //! buffer de muestras de rx
@@ -71,7 +78,7 @@ module top #(
     )
         u_prbs9 (
             .o_bit      (prbs9_out)         ,
-            .i_enable   (valid && i_sw[0])  ,
+            .i_enable   (valid && tx_enable),
             .i_reset    (reset)             ,
             .clock      (clock)     
         );
@@ -79,7 +86,7 @@ module top #(
     //! filtro RC
     filter #()
         u_filter (
-            .i_enable  (i_sw[0])    ,
+            .i_enable  (tx_enable)  ,
             .i_valid   (valid)      ,
             .i_bit     (prbs9_out)  ,
             .o_data    (filter_out) ,
@@ -94,11 +101,29 @@ module top #(
             .o_bits     (bit_count)         ,
             .i_rx       (rx_bit)            ,
             .i_ref      (prbs9_out)         ,
-            .i_valid    (valid && i_sw[1])  ,
+            .i_valid    (valid && rx_enable),
             .clock      (clock)             ,
             .i_reset    (reset)
         );
+
+    //! ila
+    ila #()
+        u_ila (
+            .bit_count      (bit_count  )   ,
+            .clock          (clock      )   ,
+            .error_count    (error_count)   ,
+            .o_led          (o_led      )
+        );
     
+    //! vio
+    vio #()
+        u_vio (
+            .clock      (clock      ),
+            .sel_mux    (sel_mux_vio),
+            .i_reset    (i_reset_vio),
+            .i_sw       (i_sw_vio   ),
+            .o_led      (o_led      )
+        );
     
     integer ptr;
     always@(posedge clock or posedge reset) 
@@ -120,12 +145,17 @@ module top #(
     
     assign rx_sample    = rx_buffer[offset]     ;
     assign rx_bit       = rx_sample[NB-1]       ; // tomo el signo de la muestra como el bit (neg = 1, pos = 0)
-    assign reset        = ~i_reset              ;
+    
+    assign tx_enable    = sw[0]                 ;
+    assign rx_enable    = sw[1]                 ;
+
+    assign reset        = (sel_mux_vio) ? ~i_reset_vio : ~i_reset              ;
+    assign sw           = (sel_mux_vio) ? i_sw_vio : i_sw;
     
     assign o_led[0] = reset                 ;
-    assign o_led[1] = i_sw[0]               ;
-    assign o_led[2] = i_sw[1]               ;
-    assign offset   = i_sw[3:2]             ;
+    assign o_led[1] = tx_enable             ;
+    assign o_led[2] = rx_enable             ;
+    assign offset   = sw[3:2]               ;
     assign o_led[3] = error_count == 64'd0  ;
 
     endmodule
