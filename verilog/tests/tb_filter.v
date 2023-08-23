@@ -1,9 +1,10 @@
 `timescale 1ns / 100ps
 `define SEED    'h1AA
 
-module tb_filter #(
-    SEED = `SEED
-)();
+module tb_filter();
+
+    parameter SEED = `SEED;
+
     reg clock;
     reg i_reset;
     wire reset;
