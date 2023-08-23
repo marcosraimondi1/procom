@@ -23,10 +23,11 @@
 `define SEED    'h1AA
 
 module top #(
+    // parametros
     parameter NBAUDS    = `NBAUDS   , //! cantidad de baudios del filtro
     parameter SEED      = `SEED     , //! semilla del prbs9
     parameter OS        = `OS       , //! oversampling factor
-    parameter NB_OUTPUT = 8           //! NB of output
+    parameter NB = 8           //! NB of output
 )
 (
     // declaracion de puertos input-output
@@ -39,23 +40,22 @@ module top #(
 
 
     // variables
-    wire            valid              ;   // senal de validacion
-    reg [1:0    ]   counter            ;
+    wire            valid              ;   //! senal de validacion
 
-    wire            reset              ;
-    wire            prbs9_out          ;
-    wire [1:0]      offset             ;
+    wire            reset              ;   //! reset por alto
+    wire            prbs9_out          ;   //! salida del prbs9
+    wire [1:0]      offset             ;   //! offset de muestreo del buffer
 
 
-    wire signed [NB_OUTPUT-1:0] filter_out              ;
-    reg  signed [NB_OUTPUT-1:0] rx_buffer   [OS-1:0]    ;
-    wire signed [NB_OUTPUT-1:0] rx_sample               ;
-    wire                        rx_bit                  ; 
+    reg  signed [NB-1:0       ] rx_buffer   [OS-1:0]    ; //! buffer de muestras de rx
+    wire signed [NB-1:0       ] filter_out              ; //! salida del filtro
+    wire signed [NB-1:0       ] rx_sample               ; //! muestra seleccionada por offset
+    wire                        rx_bit                  ; //! bit de rx (signo de la muestra)
     wire        [63:0         ] error_count             ; //! error count
     wire        [63:0         ] bit_count               ; //! bit count
 
     // instanciacion de modulos
-    // control
+    //! control
     control #(
             .NB_COUNT (2)
         )
@@ -65,7 +65,7 @@ module top #(
             .clock    (clock)
     );
 
-    // prbs9
+    //! prbs9
     prbs9 # (
         .SEED   (SEED)
     )
@@ -77,31 +77,32 @@ module top #(
         );
 
     //! filtro RC
-    filtro_fir # ()
-        u_filtro_fir (
-            .o_data     (filter_out)    ,
-            .i_data     (prbs9_out)     ,
-            .i_valid    (valid)         ,
-            .i_enable   (i_sw[0])       ,
-            .i_reset    (reset)         ,
-            .clock      (clock)
+    filter #()
+        u_filter (
+            .i_enable  (i_sw[0])    ,
+            .i_valid   (valid)      ,
+            .i_bit     (prbs9_out)  ,
+            .o_data    (filter_out) ,
+            .reset     (reset)      ,
+            .clock     (clock)
         );
 
-    //! ber
+    //! ber y sync
     ber # ()
         u_ber (
-            .o_errors   (error_count)   ,
-            .o_bits     (bit_count)     ,
-            .i_rx       (rx_bit)        ,
-            .i_ref      (prbs9_out)     ,
-            .i_valid    (valid && i_sw[1]),
-            .clock      (clock)         ,
+            .o_errors   (error_count)       ,
+            .o_bits     (bit_count)         ,
+            .i_rx       (rx_bit)            ,
+            .i_ref      (prbs9_out)         ,
+            .i_valid    (valid && i_sw[1])  ,
+            .clock      (clock)             ,
             .i_reset    (reset)
         );
     
+    
     integer ptr;
     always@(posedge clock or posedge reset) 
-    begin
+    begin:rx_buffer
         if (reset) 
             begin
                 for (ptr = 0; ptr < OS; ptr = ptr + 1)
@@ -115,11 +116,11 @@ module top #(
             end
     end
 
+    // asignaciones
     
-    
-    assign rx_sample= rx_buffer[offset]     ;
-    assign rx_bit   = rx_sample[NB_OUTPUT-1]; // tomo el signo de la muestra como el bit (neg = 1, pos = 0)
-    assign reset    = ~i_reset              ;
+    assign rx_sample    = rx_buffer[offset]     ;
+    assign rx_bit       = rx_sample[NB-1]       ; // tomo el signo de la muestra como el bit (neg = 1, pos = 0)
+    assign reset        = ~i_reset              ;
     
     assign o_led[0] = reset                 ;
     assign o_led[1] = i_sw[0]               ;
