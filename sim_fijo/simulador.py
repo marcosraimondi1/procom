@@ -130,8 +130,8 @@ for i in range(sim_len):
     muestraQ = filter_outQ[offset]
 
     # Decodificacion - Slicer, me fijo en el signo
-    bitI_rec = 0 if muestraI > 0 else 1
-    bitQ_rec = 0 if muestraQ > 0 else 1
+    bitI_rec = 0 if muestraI >= 0 else 1
+    bitQ_rec = 0 if muestraQ >= 0 else 1
 
     bitsRxI.append(bitI_rec)
     bitsRxQ.append(bitQ_rec)
