@@ -20,12 +20,14 @@
 
 `define NBAUDS  6
 `define OS      4
-`define SEED    'h1AA
+`define SEEDI   'h1AA
+`define SEEDQ   'h1FE
 
 module top #(
     // parametros
     parameter NBAUDS    = `NBAUDS   , //! cantidad de baudios del filtro
-    parameter SEED      = `SEED     , //! semilla del prbs9
+    parameter SEEDI     = `SEEDI    , //! semilla del prbs9
+    parameter SEEDQ     = `SEEDQ    , //! semilla del prbs9
     parameter OS        = `OS       , //! oversampling factor
     parameter NB = 8           //! NB of output
 )
@@ -45,7 +47,13 @@ module top #(
     reg             rx_enable          ;
     reg  [1:0]      offset             ;   //! offset de muestreo del buffer
     wire            reset              ;   //! reset por alto
-    wire            prbs9_out          ;   //! salida del prbs9
+
+    wire [63:0]     error_countI       ;   //! error count
+    wire [63:0]     bit_countI         ;   //! bit count
+    wire [63:0]     error_countQ       ;
+    wire [63:0]     bit_countQ         ;
+
+
 
     // para usar los puertos input del vio
     wire [3:0]      sw                 ;   //! switches a usar
@@ -54,65 +62,43 @@ module top #(
     wire            sel_mux_vio        ;   //! select mux from vio
 
 
-    reg  signed [NB-1:0       ] rx_buffer   [OS-1:0]    ; //! buffer de muestras de rx
-    wire signed [NB-1:0       ] filter_out              ; //! salida del filtro
-    wire signed [NB-1:0       ] rx_sample               ; //! muestra seleccionada por offset
-    wire                        rx_bit                  ; //! bit de rx (signo de la muestra)
-    wire        [63:0         ] error_count             ; //! error count
-    wire        [63:0         ] bit_count               ; //! bit count
-
     // instanciacion de modulos
-    //! control
-    control #(
-            .NB_COUNT (2)
-        )
-        u_control (
-            .o_valid  (valid)   ,
-            .i_reset  (reset)   ,
-            .clock    (clock)
-    );
-
-    //! prbs9
-    prbs9 # (
-        .SEED   (SEED)
-    )
-        u_prbs9 (
-            .o_bit      (prbs9_out)         ,
-            .i_enable   (valid && tx_enable),
-            .i_reset    (reset)             ,
-            .clock      (clock)     
+    // module parte I (en fase)
+    system #(
+        .SEED(SEEDI)
+        ) 
+        u_systemI (
+            .error_count    (error_countI)  ,
+            .bit_count      (bit_countI  )  ,
+            .tx_enable      (tx_enable   )  ,
+            .rx_enable      (rx_enable   )  ,
+            .offset         (offset      )  ,
+            .reset          (reset       )  ,
+            .clock          (clock       ) 
         );
-
-    //! filtro RC
-    filter #()
-        u_filter (
-            .i_enable  (tx_enable)  ,
-            .i_valid   (valid)      ,
-            .i_bit     (prbs9_out)  ,
-            .o_data    (filter_out) ,
-            .reset     (reset)      ,
-            .clock     (clock)
+    // module parte Q (en cuadratura)
+    system #(
+        .SEED(SEEDQ)
+        ) 
+        u_systemQ (
+            .error_count    (error_countQ)  ,
+            .bit_count      (bit_countQ  )  ,
+            .tx_enable      (tx_enable   )  ,
+            .rx_enable      (rx_enable   )  ,
+            .offset         (offset      )  ,
+            .reset          (reset       )  ,
+            .clock          (clock       ) 
         );
-
-    //! ber y sync
-    ber # ()
-        u_ber (
-            .o_errors   (error_count)       ,
-            .o_bits     (bit_count)         ,
-            .i_rx       (rx_bit)            ,
-            .i_ref      (prbs9_out)         ,
-            .i_valid    (valid && rx_enable),
-            .clock      (clock)             ,
-            .i_reset    (reset)
-        );
-
     //! ila
     ila #()
         u_ila (
-            .bit_count      (bit_count  )   ,
-            .clock          (clock      )   ,
-            .error_count    (error_count)   ,
-            .o_led          (o_led      )
+            .clock          (clock       )   ,
+            .bit_countI     (bit_countI  )   ,
+            .error_countI   (error_countI)   ,
+            .bit_countQ     (bit_countQ  )   ,
+            .error_countQ   (error_countQ)   ,
+            .latency        (u_systemI.u_ber.min_latency),
+            .o_led          (o_led       )
         );
     
     //! vio
@@ -130,19 +116,12 @@ module top #(
     begin
         if (reset) 
             begin
-                for (ptr = 0; ptr < OS; ptr = ptr + 1)
-                    rx_buffer[ptr] <= 0;
-                
                 rx_enable <= 0;
                 tx_enable <= 0;
                 offset    <= 0;
             end
         else
-            begin
-                rx_buffer[0] <= filter_out;
-                for (ptr = 1; ptr < OS; ptr = ptr + 1)
-                    rx_buffer[ptr] <= rx_buffer[ptr-1];
-                
+            begin               
                 tx_enable <= sw[0]      ;
                 rx_enable <= sw[1]      ;
                 offset    <= sw[3:2]    ;
@@ -151,15 +130,12 @@ module top #(
 
     // asignaciones
     
-    assign rx_sample    = rx_buffer[offset]     ;
-    assign rx_bit       = rx_sample[NB-1]       ; // tomo el signo de la muestra como el bit (neg = 1, pos = 0)
-    
     assign reset        = (sel_mux_vio) ? ~i_reset_vio : ~i_reset    ;
     assign sw           = (sel_mux_vio) ? i_sw_vio : i_sw            ;
     
     assign o_led[0] = reset                 ;
     assign o_led[1] = tx_enable             ;
     assign o_led[2] = rx_enable             ;
-    assign o_led[3] = error_count == 64'd0  ;
+    assign o_led[3] = error_countI == 64'd0 && error_countQ == 64'd0 ;
 
     endmodule
