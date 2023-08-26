@@ -119,10 +119,10 @@ module top #(
     vio #()
         u_vio (
             .clock      (clock      ),
-            .sel_mux    (sel_mux_vio),
-            .i_reset    (i_reset_vio),
-            .i_sw       (i_sw_vio   ),
-            .o_led      (o_led      )
+            .o_sel_mux  (sel_mux_vio),
+            .o_reset    (i_reset_vio),
+            .o_sw       (i_sw_vio   ),
+            .i_led      (o_led      )
         );
     
     integer ptr;
