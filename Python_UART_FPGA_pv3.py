@@ -7,22 +7,25 @@ El usuario debe:
     cada led. R,G,B
     2. Leer el estado de los switch
 """
-
+DEBUG=False
 
 def init_serial():
-    print("Ingrese N° puerto USB: ", end="")
-    portUSB = input("Ingrese N° puerto USB: ")
-    ser = serial.Serial(
-        port='/dev/ttyUSB{}'.format(int(portUSB)),  # Configurar con el puerto
-        baudrate=115200,
-        parity=serial.PARITY_NONE,
-        stopbits=serial.STOPBITS_ONE,
-        bytesize=serial.EIGHTBITS
-    )
-
-    ser.isOpen()
+    if (DEBUG):
+        ser = serial.serial_for_url(
+                "loop://", timeout=1
+        )  # abre el puerto serie con loopback
+    
+    else:
+        portUSB = input("Ingrese N° puerto USB: ")
+        ser = serial.Serial(
+            port='/dev/ttyUSB{}'.format(int(portUSB)),  # Configurar con el puerto
+            baudrate=115200,
+            parity=serial.PARITY_NONE,
+            stopbits=serial.STOPBITS_ONE,
+            bytesize=serial.EIGHTBITS
+        )
+    
     ser.timeout = None
-    print(ser.timeout)
     return ser
 
 
@@ -31,13 +34,13 @@ def launch_app():
     ser = init_serial()
 
     while 1:
-        print('Ingrese un comando:\r\n')
-        print("Comandos: \n")
-        print("\t- toggle <led> <red> <green> <blue>\n")
+        print("Comandos:")
+        print("\t- toggle <led> <red> <green> <blue>")
         print("\t- leer")
-        print("\t- exit\n")
-        print("led = 0-3\n")
+        print("\t- exit")
+        print("led = 0-3")
         print("colores = 0-255\n")
+        print('Ingrese un comando:\r')
         inputData = input("<< ")
         inputData = inputData.split(" ")
 
@@ -60,6 +63,9 @@ def launch_app():
             ser.write(trama)
 
             time.sleep(2)
+            
+            if (DEBUG):
+                continue
 
             while (ser.inWaiting() == 0):
                 continue
@@ -71,12 +77,12 @@ def launch_app():
                 continue
 
             out = str(int.from_bytes(received_data, byteorder='big'))
-            print(ser.inWaiting())
+            
             if out != '':
                 print(">>" + out)
 
         elif opt == 'toggle':
-            if len(inputData != 5):
+            if len(inputData) != 5:
                 print("Missing Arguments for toggle")
                 continue
 
@@ -88,14 +94,20 @@ def launch_app():
 
             # data<29:0> = op_code<29:28> + led<27:24> + red<23:16>
             # + green<15:8> + blue<7:0>
-            data = op_code << 28 + led << 24 + red << 16 + green << 8 + blue
-
+            data = (op_code << 28) + (led << 24) + (red << 16) + (green << 8) + blue
+            
             # crear trama
             trama = armar_trama(data)
+            
 
             # enviar trama
             ser.write(trama)
             time.sleep(1)
+
+            if (DEBUG):
+                sent_data = read_trama(ser) 
+                print("decoded: "+str(sent_data))
+
         else:
             print("Operacion no admitida\n")
 
@@ -131,9 +143,12 @@ def armar_trama(data):
 
     # bytes de datos
     trama += data.to_bytes(size)
-
     # ultimo byte
     trama += (FIN_DE_TRAMA + size).to_bytes(1)
+
+    if (DEBUG):
+        print("coded data: "+str(data.to_bytes(size)))
+        print("trama: "+str(trama))
 
     return trama
 
