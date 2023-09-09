@@ -7,24 +7,26 @@ El usuario debe:
     cada led. R,G,B
     2. Leer el estado de los switch
 """
-DEBUG=False
+DEBUG = False
+
 
 def init_serial():
     if (DEBUG):
         ser = serial.serial_for_url(
-                "loop://", timeout=1
+            "loop://", timeout=1
         )  # abre el puerto serie con loopback
-    
+
     else:
         portUSB = input("Ingrese N° puerto USB: ")
         ser = serial.Serial(
-            port='/dev/ttyUSB{}'.format(int(portUSB)),  # Configurar con el puerto
+            # Configurar con el puerto
+            port='/dev/ttyUSB{}'.format(int(portUSB)),
             baudrate=115200,
             parity=serial.PARITY_NONE,
             stopbits=serial.STOPBITS_ONE,
             bytesize=serial.EIGHTBITS
         )
-    
+
     ser.timeout = None
     return ser
 
@@ -63,7 +65,7 @@ def launch_app():
             ser.write(trama)
 
             time.sleep(2)
-            
+
             if (DEBUG):
                 continue
 
@@ -77,7 +79,7 @@ def launch_app():
                 continue
 
             out = str(int.from_bytes(received_data, byteorder='big'))
-            
+
             if out != '':
                 print(">>" + out)
 
@@ -94,18 +96,18 @@ def launch_app():
 
             # data<29:0> = op_code<29:28> + led<27:24> + red<23:16>
             # + green<15:8> + blue<7:0>
-            data = (op_code << 28) + (led << 24) + (red << 16) + (green << 8) + blue
-            
+            data = (op_code << 28) + (led << 24) + \
+                (red << 16) + (green << 8) + blue
+
             # crear trama
             trama = armar_trama(data)
-            
 
             # enviar trama
             ser.write(trama)
             time.sleep(1)
 
             if (DEBUG):
-                sent_data = read_trama(ser) 
+                sent_data = read_trama(ser)
                 print("decoded: "+str(sent_data))
 
         else:
