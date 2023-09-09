@@ -7,7 +7,7 @@ El usuario debe:
     cada led. R,G,B
     2. Leer el estado de los switch
 """
-DEBUG = False
+DEBUG = True
 
 
 def init_serial():
