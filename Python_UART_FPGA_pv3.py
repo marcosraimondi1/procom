@@ -136,7 +136,7 @@ def armar_trama(data):
         raise Exception("Trama Size too big!")
 
     # primer byte
-    trama = (INICIO_DE_TRAMA + size).to_bytes(1)
+    trama = (INICIO_DE_TRAMA + size).to_bytes(1, byteorder='big')
 
     # 3 bytes mas
     trama += b"\x00"  # L.size(High)
@@ -144,12 +144,12 @@ def armar_trama(data):
     trama += b"\x00"  # Device
 
     # bytes de datos
-    trama += data.to_bytes(size)
+    trama += data.to_bytes(size, byteorder='big')
     # ultimo byte
-    trama += (FIN_DE_TRAMA + size).to_bytes(1)
+    trama += (FIN_DE_TRAMA + size).to_bytes(1, byteorder='big')
 
     if (DEBUG):
-        print("coded data: "+str(data.to_bytes(size)))
+        print("coded data: "+str(data.to_bytes(size, byteorder='big')))
         print("trama: "+str(trama))
 
     return trama
