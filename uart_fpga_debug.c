@@ -3,20 +3,21 @@
 
 int main() {
   unsigned char datos;
-  unsigned char cabecera; // 2 BYTES
+  unsigned char cabecera[100]; // 2 BYTES
   const int INICIO_DE_TRAMA = 0xA0;
   const int FIN_DE_TRAMA = 0x40;
 
   while (1) {
-    fread(&cabecera, 1, 1, stdin);
-
-    int inicio_trama = cabecera & 0xF0;
+    fread(&cabecera, 1, 10, stdin);
+    printf("%s\n",cabecera);
+	return 1;
+	int inicio_trama = cabecera[0] & 0xF0;
     if (inicio_trama != INICIO_DE_TRAMA) {
       fprintf(stderr, "INICIO DE TRAMA INCORRECTO: %c\n", cabecera);
       continue;
     }
 
-    int size = cabecera & 0x0F;
+    int size = cabecera[0] & 0x0F;
 
     char Lsize[2]; // L.size(HIGH) y L.size(LOW)
     fread(&Lsize, 1, 2, stdin);
