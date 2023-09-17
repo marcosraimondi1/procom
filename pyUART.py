@@ -63,10 +63,15 @@ def launch_app():
             ser.write(encapsular(data, nBytes).encode())
 
             time.sleep(2)
+            
+            if ser.inWaiting() > 0:  # leo una sola trama asique no uso while
+                try:
+                    received_data = read_trama(ser)  # leo la trama
+                except Exception as e:
+                    print(e)
+                    continue
 
-            readData = ser.read(1)
-
-            out = str(int.from_bytes(readData, byteorder='big'))
+            out = str(int.from_bytes(received_data, byteorder='big'))
 
             if out != '':
                 print(">> "+out)
@@ -101,7 +106,8 @@ def launch_app():
         else:
             print("Operacion no admitida\n")
 
-
+INICIO_DE_TRAMA = 0xA0
+FIN_DE_TRAMA = 0x40
 def encapsular(data, nBytes):
     """
     Crea un string con bytes codificados en ascii.
@@ -111,7 +117,7 @@ def encapsular(data, nBytes):
         # requiere trama larga
         raise Exception("Trama Size too big!")
 
-    cabecera = chr(0xA0+nBytes)
+    cabecera = chr(INICIO_DE_TRAMA+nBytes)
     unused3 = "000"  # sizeH, sizeL, Device
     data_s = ""
 
@@ -119,12 +125,40 @@ def encapsular(data, nBytes):
         # numero a string codificado en ascii
         data_s += chr((data >> (8*(nBytes-i-1))) & 0x0F)
 
-    end = chr(0x40+nBytes)
+    end = chr(FIN_DE_TRAMA+nBytes)
 
     trama = cabecera+unused3+data_s+end
 
     return trama
 
+def read_trama(ser):
+    # lee una trama y retorna los datos recibidos
+    # verifica que cumpla con la trama acordada, sino levanta excepcion
+    # ej: b'\xa8\x00\x00\x00graficar\x48'
+
+    # verificar inicio de trama
+    byte = ser.read(1)[0]
+    primeros4_bits = byte & 0xF0
+
+    if primeros4_bits != INICIO_DE_TRAMA:
+        ser.flushInput()
+        raise Exception("ERROR: inicio de trama incorrecto")
+
+    size = byte & 0x0F  # size = cantidad de bytes de datos que recibo
+
+    ser.read(3)  # los tres bytes siguientes no se usan
+
+    # read_data
+    received_data = ser.read(size)
+
+    # verificar fin de trama
+    byte = ser.read(1)[0]
+
+    if byte != (FIN_DE_TRAMA + size):
+        ser.flushInput()
+        raise Exception("ERROR: fin de trama incorrecto")
+
+    return received_data
 
 def main():
     launch_app()
