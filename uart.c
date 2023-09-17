@@ -46,6 +46,7 @@ int main() {
   XGpio_SetDataDirection(&GpioInput, 1, 0xFFFFFFFF);
 
   u32 value;
+  u32 led_value = 0;
 
   unsigned char datos; // respuesta
 
@@ -55,9 +56,11 @@ int main() {
   unsigned char end;
 
   while (1) {
-		// TRAMA:
-    //        	- Byte<1> 			: INICIO DE TRAMA = 0xA0 + size (4bits)
-    //        	- Byte<2:4>			: no se usan (sizeH, sizeL, Device)
+    // TRAMA:
+    //        	- Byte<1> 			: INICIO DE TRAMA = 0xA0 + size
+    //        (4bits)
+    //        	- Byte<2:4>			: no se usan (sizeH, sizeL,
+    //        Device)
     //        	- Byte<5:5+size> 	: data
     //        	- Byte<Size+1>		: FIN DE TRAMA = 0x40 + size
 
@@ -86,33 +89,40 @@ int main() {
 
     if (op_code == 3) {
       // leer switches
-      XGpio_DiscreteWrite(&GpioOutput, 1, (u32)0x00000000);
+      led_value = 0;
+      XGpio_DiscreteWrite(&GpioOutput, 1, led_value);
       value = XGpio_DiscreteRead(&GpioInput, 1);
       datos = (char)(value & (0x0000000F));
+      unsigned char trama[6];
+      trama[0] = (char)(0xA0 + 1); // inicio de trama
+      trama[1] = (char)0;          // sizeH
+      trama[2] = (char)0;          // sizeL
+      trama[3] = (char)0;          // Device
+      trama[4] = datos;            // data
+      trama[5] = (char)(0x40 + 1); // fin de trama
+
       while (XUartLite_IsSending(&uart_module)) {
       }
-      XUartLite_Send(&uart_module, &(datos), 1);
+      XUartLite_Send(&uart_module, trama, 6);
     }
 
     if (op_code == 1) {
-      int led = data[1];
-      // int red = data[2];
-      // int green = data[3];
-      // int blue = data[4];
 
-      switch (led) {
-      case 0:
-        XGpio_DiscreteWrite(&GpioOutput, 1, (u32)0x00000249);
-        break;
-      case 1:
-        XGpio_DiscreteWrite(&GpioOutput, 1, (u32)0x00000492);
-        break;
-      case 2:
-        XGpio_DiscreteWrite(&GpioOutput, 1, (u32)0x00000924);
-        break;
-      default:
-        break;
-      }
+      int led = data[1] % 4;
+      int red = data[2] % 2;
+      int green = data[3] % 2;
+      int blue = data[4] % 2;
+
+      int rgb = (red << 2) | (green << 1) | blue;
+
+      int new_value = rgb << (3 * led);
+
+      led_value |= new_value; // pone los 1s
+
+      led_value &= (new_value | (~((1 << (3 * (led + 1))) - 1)) |
+                    ((1 << (3 * led)) - 1)); // pone los 0s
+
+      XGpio_DiscreteWrite(&GpioOutput, 1, led_value);
     }
 
     //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -123,3 +133,4 @@ int main() {
   cleanup_platform();
   return 0;
 }
+
