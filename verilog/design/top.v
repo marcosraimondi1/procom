@@ -124,7 +124,7 @@ module top #(
             .probe_in1_0    (error_countI   ),
             .probe_in2_0    (bit_countQ     ),
             .probe_in3_0    (error_countQ   ),
-            .probe_in3_0    (o_led          ),
+            .probe_in4_0    (o_led          ),
             .probe_out0_0   (i_reset_vio    ),
             .probe_out1_0   (i_sw_vio       ),
             .probe_out2_0   (sel_mux_vio    )

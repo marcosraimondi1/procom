@@ -1,4 +1,3 @@
-
 //  Xilinx Single Port No Change RAM
 //  This code implements a parameterizable single-port no-change memory where when data is written
 //  to the memory, the output remains unchanged.  This is the most power efficient write mode.
@@ -6,18 +5,18 @@
 
 module xilinx_single_port_ram_no_change #(
   parameter RAM_WIDTH = 18,                       // Specify RAM data width
-  parameter RAM_DEPTH = 1024,                     // Specify RAM depth (number of entries)
+  parameter RAM_DEPTH = 1024,                    // Specify RAM depth (number of entries)
   parameter RAM_PERFORMANCE = "HIGH_PERFORMANCE", // Select "HIGH_PERFORMANCE" or "LOW_LATENCY" 
   parameter INIT_FILE = ""                        // Specify name/location of RAM initialization file if using one (leave blank if not)
 ) (
-  input [clogb2(RAM_DEPTH-1)-1:0] addra,  // Address bus, width determined from RAM_DEPTH
-  input [RAM_WIDTH-1:0] dina,           // RAM input data
-  input clka,                           // Clock
-  input wea,                            // Write enable
-  input ena,                            // RAM Enable, for additional power savings, disable port when not in use
-  input rsta,                           // Output reset (does not affect memory contents)
-  input regcea,                         // Output register enable
-  output [RAM_WIDTH-1:0] douta          // RAM output data
+  input [clogb2(RAM_DEPTH-1)-1:0] addra,  // Address bus, width determined from RAM_DEPTH, -- o_addr_log_to_mem
+  input [RAM_WIDTH-1:0] dina,             // RAM input data -- filter_out
+  input clka,                             // Clock
+  input wea,                              // Write enable  -- o_run_log[0]
+  input ena,                              // RAM Enable, for additional power savings, disable port when not in use
+  input rsta,                             // Output reset (does not affect memory contents)
+  input regcea,                           // Output register enable --  o_read_log && i_mem_full
+  output [RAM_WIDTH-1:0] douta            // RAM output data  -- i_data_log_from_mem
 );
 
   reg [RAM_WIDTH-1:0] BRAM [RAM_DEPTH-1:0];
