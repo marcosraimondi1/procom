@@ -47,7 +47,7 @@ module tb_bram;
     wea = 1;
     ena = 1;
     rsta = 0;
-    regcea = 1'b0;
+    regcea = 1'b1;
     dina = 0;
     addra = 9'b000000000;
 
@@ -62,17 +62,22 @@ module tb_bram;
     end
 
     // Read data from memory
-    // #1 addra = 9'b000000000;
-    // #1 wea = 0;
-    // repeat (RAM_DEPTH) begin
-    //   #1 addra = addra + 1;
-    //   if (douta != aux[addra])
-    //   begin
-    //     //$display("Data mismatch at address: %d  dout: %d  aux[addra]: %d", addra, dout, aux[addra]);
-    //     $display("Data mismatch at address: %d", addra);
-    //     $display("Data 1: %d", douta);
-    //   end
-    // end
+    #1 wea = 0;                  // habilita lectura 
+    #10;
+    #1 addra = 9'b000000000;
+    
+
+    repeat (RAM_DEPTH) begin
+      #2 addra = addra + 1;
+      //#1;
+      if (douta != aux[addra])
+      begin
+        //$display("Data mismatch at address: %d  dout: %d  aux[addra]: %d", addra, dout, aux[addra]);
+        $display("Data mismatch at address: %d", addra);
+        $display("Data douta: %d", douta);
+        $display("Data aux: %d", aux[addra]);
+      end
+    end
 
     $display("Memory test passed");
     $finish;
