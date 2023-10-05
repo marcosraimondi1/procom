@@ -63,13 +63,12 @@ module tb_bram;
 
     // Read data from memory
     #1 wea = 0;                  // habilita lectura 
-    #10;
-    #1 addra = 9'b000000000;
+    //#10;
+    #2 addra = 9'b000000000;
     
 
     repeat (RAM_DEPTH) begin
-      #2 addra = addra + 1;
-      //#1;
+      #4; //Posee una latencia de 2 ciclos para sinconizacion de lectura
       if (douta != aux[addra])
       begin
         //$display("Data mismatch at address: %d  dout: %d  aux[addra]: %d", addra, dout, aux[addra]);
@@ -77,6 +76,7 @@ module tb_bram;
         $display("Data douta: %d", douta);
         $display("Data aux: %d", aux[addra]);
       end
+      #2 addra = addra + 1;
     end
 
     $display("Memory test passed");
