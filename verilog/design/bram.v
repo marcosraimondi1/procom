@@ -1,99 +1,117 @@
-//  Xilinx Single Port No Change RAM
-//  This code implements a parameterizable single-port no-change memory where when data is written
-//  to the memory, the output remains unchanged.  This is the most power efficient write mode.
-//  If a reset or enable is not necessary, it may be tied off or removed from the code.
-
-module xilinx_single_port_ram_no_change #(
-  parameter RAM_WIDTH = 18,                       // Specify RAM data width
-  parameter RAM_DEPTH = 1024,                    // Specify RAM depth (number of entries)
-  parameter RAM_PERFORMANCE = "HIGH_PERFORMANCE", // Select "HIGH_PERFORMANCE" or "LOW_LATENCY" 
-  parameter INIT_FILE = ""                        // Specify name/location of RAM initialization file if using one (leave blank if not)
-) (
-  input [clogb2(RAM_DEPTH-1)-1:0] addra,  // Address bus, width determined from RAM_DEPTH, -- o_addr_log_to_mem
-  input [RAM_WIDTH-1:0] dina,             // RAM input data -- filter_out
-  input clka,                             // Clock
-  input wea,                              // Write enable  -- o_run_log[0]
-  input ena,                              // RAM Enable, for additional power savings, disable port when not in use
-  input rsta,                             // Output reset (does not affect memory contents)
-  input regcea,                           // Output register enable --  o_read_log && i_mem_full
-  output [RAM_WIDTH-1:0] douta            // RAM output data  -- i_data_log_from_mem
+module bram #(
+    parameter RAM_WIDTH =    32,    // Specify RAM data width
+    parameter RAM_DEPTH = (2**15)-1 // 32767 Specify RAM depth (number of entries)
+)
+(
+    input                                           clk,    //! Clock
+    input                                         reset,    //! Reset
+    input                                     i_run_log,    //! Start saving input data
+    input                                    i_read_log,    //! 
+    input  [RAM_WIDTH-1:0]             i_data_tx_to_mem,    //! data in [31:0]   
+    input  [clogb2(RAM_DEPTH-1)-1:0]  i_addr_log_to_mem,    //! read address [14:0]
+    
+    output [RAM_WIDTH-1:0]          o_data_log_from_mem,    //! data out [31:0]
+    output                                   o_mem_full     //! Memory full
 );
 
-  reg [RAM_WIDTH-1:0] BRAM [RAM_DEPTH-1:0];
-  reg [RAM_WIDTH-1:0] ram_data = {RAM_WIDTH{1'b0}};
+  // Local Parameters
+  localparam RAM_PERFORMANCE = "HIGH_PERFORMANCE";
+  localparam INIT_FILE = "";
+  localparam [1:0] idle  = 2'b00;
+  localparam [1:0] start = 2'b01;
+  localparam [1:0] full  = 2'b10;
+  //localparam [1:0] stop  = 2'b11;
 
-  // The following code either initializes the memory values to a specified file or to all zeros to match hardware
-  generate
-    if (INIT_FILE != "") begin: use_init_file
-      initial
-        $readmemh(INIT_FILE, BRAM, 0, RAM_DEPTH-1);
-    end else begin: init_bram_to_zero
-      integer ram_index;
-      initial
-        for (ram_index = 0; ram_index < RAM_DEPTH; ram_index = ram_index + 1)
-          BRAM[ram_index] = {RAM_WIDTH{1'b0}};
+  // Inputs
+  reg wea;
+  reg ena;
+  reg regcea;
+  reg [RAM_WIDTH-1:0] dina;
+  reg [clogb2(RAM_DEPTH-1)-1:0] addra;
+  // reg [RAM_WIDTH-1:0] aux [RAM_DEPTH-1:0];
+  reg   [2:0]                state_reg;
+  reg                        i_run_log_prev;
+  
+  // Outputs
+  wire [RAM_WIDTH-1:0] douta;
+  
+  always @(posedge clk) begin
+    if (reset) begin
+        addra     <= 0;
+        dina      <= 0;
+        wea       <= 1'b0;
+        ena       <= 1'b0;
+        regcea    <= 1'b0;
+        state_reg <=  2'b00;
+        i_run_log_prev <= 1'b0;
     end
-  endgenerate
+    else begin
+        i_run_log_prev <= i_run_log;
+        case (state_reg)
 
-  always @(posedge clka)
-    if (ena)
-      if (wea)
-        BRAM[addra] <= dina;
-      else
-        ram_data <= BRAM[addra];
+        idle:
+            if((i_run_log != i_run_log_prev) && i_run_log) begin
+                ena       <= 1'b1 ;
+                addra     <= 0    ;
+                state_reg <= start;
+            end
 
-  //  The following code generates HIGH_PERFORMANCE (use output register) or LOW_LATENCY (no output register)
-  generate
-    if (RAM_PERFORMANCE == "LOW_LATENCY") begin: no_output_register
+        start:
+            begin
+            wea       <= 1'b1;
+            addra     <= addra + 1;
+            dina      <= i_data_tx_to_mem;
+            if(addra == RAM_DEPTH) begin
+                // mem full 
+                wea       <= 1'b0;
+                state_reg <= full;
+            end
+            end
 
-      // The following is a 1 clock cycle read latency at the cost of a longer clock-to-out timing
-       assign douta = ram_data;
-
-    end else begin: output_register
-
-      // The following is a 2 clock cycle read latency with improve clock-to-out timing
-
-      reg [RAM_WIDTH-1:0] douta_reg = {RAM_WIDTH{1'b0}};
-
-      always @(posedge clka)
-        if (rsta)
-          douta_reg <= {RAM_WIDTH{1'b0}};
-        else if (regcea)
-          douta_reg <= ram_data;
-
-      assign douta = douta_reg;
-
+        full:
+          begin
+          if (i_read_log) begin
+            regcea    <= 1'b1;
+            addra     <= i_addr_log_to_mem; // direccion a leer
+          end
+          else if((i_run_log != i_run_log_prev) && i_run_log) begin
+            addra     <= 0    ;
+            state_reg <= start;
+          end
+          end
+            
+        default: 
+          state_reg <= idle;
+          
+        endcase
     end
-  endgenerate
+  end
 
-  //  The following function calculates the address width based on specified RAM depth
+assign o_mem_full = (state_reg == full) ? 1'b1 : 1'b0;
+assign o_data_log_from_mem = douta;
+
+  // Instantiate RAM
+  xilinx_single_port_ram_no_change #(
+    .RAM_WIDTH(RAM_WIDTH),
+    .RAM_DEPTH(RAM_DEPTH),
+    .RAM_PERFORMANCE(RAM_PERFORMANCE),
+    .INIT_FILE(INIT_FILE)
+  ) ram (
+    .clka(clk),
+    .wea(wea),
+    .ena(ena),
+    .rsta(reset),
+    .regcea(regcea),
+    .dina(dina),
+    .addra(addra),
+    .douta(douta)
+  );
+
+  // calcula cuantos bits de direccion hacen falta para direccionar la memoria
   function integer clogb2;
     input integer depth;
       for (clogb2=0; depth>0; clogb2=clogb2+1)
         depth = depth >> 1;
   endfunction
-
+    
 endmodule
-
-// The following is an instantiation template for xilinx_single_port_ram_no_change
-/*
-  //  Xilinx Single Port No Change RAM
-  xilinx_single_port_ram_no_change #(
-    .RAM_WIDTH(18),                       // Specify RAM data width
-    .RAM_DEPTH(1024),                     // Specify RAM depth (number of entries)
-    .RAM_PERFORMANCE("HIGH_PERFORMANCE"), // Select "HIGH_PERFORMANCE" or "LOW_LATENCY" 
-    .INIT_FILE("")                        // Specify name/location of RAM initialization file if using one (leave blank if not)
-  ) your_instance_name (
-    .addra(addra),    // Address bus, width determined from RAM_DEPTH
-    .dina(dina),      // RAM input data, width determined from RAM_WIDTH
-    .clka(clka),      // Clock
-    .wea(wea),        // Write enable
-    .ena(ena),        // RAM Enable, for additional power savings, disable port when not in use
-    .rsta(rsta),      // Output reset (does not affect memory contents)
-    .regcea(regcea),  // Output register enable
-    .douta(douta)     // RAM output data, width determined from RAM_WIDTH
-  );
-
-*/
-						
-						
