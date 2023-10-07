@@ -1,41 +1,36 @@
 `timescale 1ns / 100ps
 
 module tb_bram;
-
+    
   // Parameters
   parameter RAM_WIDTH = 18;
   parameter RAM_DEPTH = 1024;
-  parameter RAM_PERFORMANCE = "HIGH_PERFORMANCE";
-  parameter INIT_FILE = "";
 
   // Inputs
-  reg clk;
-  reg wea;
-  reg ena;
-  reg rsta;
-  reg regcea;
-  reg [RAM_WIDTH-1:0] dina;
-  reg [clogb2(RAM_DEPTH-1)-1:0] addra;
-  reg [RAM_WIDTH-1:0] aux [RAM_DEPTH-1:0];   
+  reg                                           clk;    //! Clock
+  reg                                         reset;    //! Reset
+  reg                                     i_run_log;    //! Start saving input data
+  reg                                    i_read_log;    //! 
+  reg  [RAM_WIDTH-1:0]             i_data_tx_to_mem;    //! data in [31:0]   
+  reg  [clogb2(RAM_DEPTH-1)-1:0]  i_addr_log_to_mem;    //! read address [14:0]
   
   // Outputs
-  wire [RAM_WIDTH-1:0] douta;
+  wire [RAM_WIDTH-1:0]  o_data_log_from_mem;  //! data out [31:0]
+  wire                  o_mem_full;           //! Memory full
 
-  // Instantiate the Unit Under Test (UUT)
-  xilinx_single_port_ram_no_change #(
+  // Instantiate BRAM
+  bram #(
     .RAM_WIDTH(RAM_WIDTH),
-    .RAM_DEPTH(RAM_DEPTH),
-    .RAM_PERFORMANCE(RAM_PERFORMANCE),
-    .INIT_FILE(INIT_FILE)
-  ) uut (
-    .clka(clk),
-    .wea(wea),
-    .ena(ena),
-    .rsta(rsta),
-    .regcea(regcea),
-    .dina(dina),
-    .addra(addra),
-    .douta(douta)
+    .RAM_DEPTH(RAM_DEPTH)
+  ) u_bram (
+    .clk                  (clk),
+    .reset                (reset),
+    .i_run_log            (i_run_log),
+    .i_read_log           (i_read_log),
+    .i_data_tx_to_mem     (i_data_tx_to_mem),
+    .i_addr_log_to_mem    (i_addr_log_to_mem),
+    .o_data_log_from_mem  (o_data_log_from_mem),
+    .o_mem_full           (o_mem_full)
   );
 
   // Clock generation
@@ -44,43 +39,46 @@ module tb_bram;
   // Write data to memory
   initial begin
     clk = 0;
-    wea = 1;
-    ena = 1;
-    rsta = 0;
-    regcea = 1'b1;
-    dina = 0;
-    addra = 9'b000000000;
-
-    // Write data to memory
-    #1 wea = 1;
-
-    repeat (RAM_DEPTH) begin
-      #1 addra = addra + 1; 
-      #1 dina = addra;//% (2 ** RAM_WIDTH); 
-      
-      aux[addra] = dina;   
-    end
-
-    // Read data from memory
-    #1 wea = 0;                  // habilita lectura 
-    //#10;
-    #2 addra = 9'b000000000;
+    i_read_log = 0;
+    i_run_log = 0;
+    i_data_tx_to_mem = 0;
+    i_addr_log_to_mem = 0;
+    #1  reset = 1;
+    #10 reset = 0;
     
-
+    // Write data to memory
+    #2 i_run_log = 1'b1;
+    #2 i_run_log = 1'b0;
+    //#2;
     repeat (RAM_DEPTH) begin
-      #4; //Posee una latencia de 2 ciclos para sinconizacion de lectura
-      if (douta != aux[addra])
-      begin
-        //$display("Data mismatch at address: %d  dout: %d  aux[addra]: %d", addra, dout, aux[addra]);
-        $display("Data mismatch at address: %d", addra);
-        $display("Data douta: %d", douta);
-        $display("Data aux: %d", aux[addra]);
-      end
-      #2 addra = addra + 1;
+      #2 i_data_tx_to_mem = i_data_tx_to_mem + 1;
     end
+    #2;
+    if (o_mem_full) begin
+      $display("Memory full");
+      #2 i_addr_log_to_mem = 31;
 
-    $display("Memory test passed");
-    $finish;
+      #2 i_read_log = 1'b1;
+      #4;
+      $display("Data read from memory: %d", o_data_log_from_mem);
+      $display("Expected: %d", i_addr_log_to_mem);
+      #2 i_addr_log_to_mem = 32;
+
+      #2 i_read_log = 1'b1;
+      #4;
+      $display("Data read from memory: %d", o_data_log_from_mem);
+      $display("Expected: %d", i_addr_log_to_mem);
+      #2 i_addr_log_to_mem = 33;
+
+      #2 i_read_log = 1'b1;
+      #4;
+      $display("Data read from memory: %d", o_data_log_from_mem);
+      $display("Expected: %d", i_addr_log_to_mem);
+      $finish;
+    end else begin
+      $display("Memory not full");
+      $finish;
+    end
   end
 
 //  The following function calculates the address width based on specified RAM depth

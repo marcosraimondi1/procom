@@ -1,6 +1,6 @@
 module bram #(
     parameter RAM_WIDTH =    32,    // Specify RAM data width
-    parameter RAM_DEPTH = (2**15)-1 // 32767 Specify RAM depth (number of entries)
+    parameter RAM_DEPTH = (2**15)   // 32767 Specify RAM depth (number of entries)
 )
 (
     input                                           clk,    //! Clock
@@ -15,7 +15,7 @@ module bram #(
 );
 
   // Local Parameters
-  localparam RAM_PERFORMANCE = "HIGH_PERFORMANCE";
+  localparam RAM_PERFORMANCE = "LOW_LATENCY";
   localparam INIT_FILE = "";
   localparam [1:0] idle  = 2'b00;
   localparam [1:0] start = 2'b01;
@@ -30,7 +30,6 @@ module bram #(
   reg [clogb2(RAM_DEPTH-1)-1:0] addra;
   // reg [RAM_WIDTH-1:0] aux [RAM_DEPTH-1:0];
   reg   [2:0]                state_reg;
-  reg                        i_run_log_prev;
   
   // Outputs
   wire [RAM_WIDTH-1:0] douta;
@@ -41,27 +40,28 @@ module bram #(
         dina      <= 0;
         wea       <= 1'b0;
         ena       <= 1'b0;
-        regcea    <= 1'b0;
+        regcea    <= 1'b1;
         state_reg <=  2'b00;
-        i_run_log_prev <= 1'b0;
     end
     else begin
-        i_run_log_prev <= i_run_log;
         case (state_reg)
 
         idle:
-            if((i_run_log != i_run_log_prev) && i_run_log) begin
+            if(i_run_log) begin
                 ena       <= 1'b1 ;
                 addra     <= 0    ;
+                //wea       <= 1'b1;
                 state_reg <= start;
             end
 
         start:
             begin
             wea       <= 1'b1;
-            addra     <= addra + 1;
             dina      <= i_data_tx_to_mem;
-            if(addra == RAM_DEPTH) begin
+            if(wea)
+                addra     <= addra + 1;
+            
+            if(addra == RAM_DEPTH-1) begin
                 // mem full 
                 wea       <= 1'b0;
                 state_reg <= full;
@@ -74,7 +74,8 @@ module bram #(
             regcea    <= 1'b1;
             addra     <= i_addr_log_to_mem; // direccion a leer
           end
-          else if((i_run_log != i_run_log_prev) && i_run_log) begin
+          else if(i_run_log) begin
+            regcea    <= 1'b0;
             addra     <= 0    ;
             state_reg <= start;
           end
