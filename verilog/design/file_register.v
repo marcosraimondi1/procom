@@ -26,7 +26,7 @@ module file_register
     output  [       14:0]   o_addr_log_to_mem   ,
 
     input                   clock               ,
-    input                   i_reset             ,
+    input                   reset             
 );
 
 reg                 enbTx           ;
@@ -37,31 +37,32 @@ reg                 read_log        ;
 reg [       14:0]   addr_log_to_mem ;
 reg [NB_INST-1:0]   data_to_micro   ;
 reg [NB_BER -1:0]   ber_buffer      ;
+
 //!----------------Comandos disponibles----------------
-localparam [NB_C0M -1:0] RESET   = 8'b00000001;
-localparam [NB_C0M -1:0] EN_TX   = 8'b00000010;
-localparam [NB_C0M -1:0] EN_RX   = 8'b00000011;
-localparam [NB_C0M -1:0] PH_SEL  = 8'b00000100;
-localparam [NB_C0M -1:0] RUN_MEM = 8'b00000010;
-localparam [NB_C0M -1:0] RD_MEM  = 8'b00000011; // lee la memoria
-localparam [NB_C0M -1:0] IS_FULL = 8'b00000100; // ver si esta llena
-localparam [NB_C0M -1:0] BER_S_I = 8'b00000101; // leer samples
-localparam [NB_C0M -1:0] BER_S_Q = 8'b00000110; 
-localparam [NB_C0M -1:0] BER_E_I = 8'b00000111; // leer errores
-localparam [NB_C0M -1:0] BER_E_Q = 8'b00001000;
+localparam [NB_C0M -1:0] RESET    = 8'b00000001;
+localparam [NB_C0M -1:0] EN_TX    = 8'b00000010;
+localparam [NB_C0M -1:0] EN_RX    = 8'b00000011;
+localparam [NB_C0M -1:0] PH_SEL   = 8'b00000100;
+localparam [NB_C0M -1:0] RUN_MEM  = 8'b00000101; // run mem, empieza a cargar la memoria
+localparam [NB_C0M -1:0] RD_MEM   = 8'b00000110; // lee la memoria
+localparam [NB_C0M -1:0] IS_FULL  = 8'b00000111; // ver si esta llena
+localparam [NB_C0M -1:0] BER_S_I  = 8'b00001000; // leer samples
+localparam [NB_C0M -1:0] BER_S_Q  = 8'b00001001; 
+localparam [NB_C0M -1:0] BER_E_I  = 8'b00001010; // leer errores
+localparam [NB_C0M -1:0] BER_E_Q  = 8'b00001011;
+localparam [NB_C0M -1:0] BER_HIGH = 8'b00001100; // para leer la parte alta de la BER (lee la parte alta de la ultima lectura)
 
 //!----------------------------------------------------
 wire [NB_DATA-1:0]  data_from_micro     ;
 wire [NB_C0M -1:0]  command_from_micro  ;
 wire                enable_from_micro   ;
 
+reg reset_from_mic;
+reg state_enable;               //! Detector de flanco ascendente
 
-reg state_enable;
-reg flag;
-
-assign command_from_micro  = i_cmd_from_micro[31:24];
-assign data_from_micro     = i_cmd_from_micro[23:0] ;
-assign enable_from_micro   = i_cmd_from_micro[24]   ;
+assign command_from_micro  = i_cmd_from_micro[31:24]       ;
+assign data_from_micro     = i_cmd_from_micro[NB_DATA-1:0] ;
+assign enable_from_micro   = i_cmd_from_micro[NB_DATA-1]   ;
 
 always @(posedge clock) begin
     if (reset)
@@ -74,6 +75,8 @@ always @(posedge clock) begin
         addr_log_to_mem <= 0;
         data_to_micro   <= 0;
         state_enable    <= 0;
+        reset_from_mic  <= 0;
+        ber_buffer      <= 0;
     end
     else
     begin
@@ -82,7 +85,7 @@ always @(posedge clock) begin
             // se toma la instruccion
             case (command_from_micro)
                 RESET   :
-                    reset <= data_from_micro[0];
+                    reset_from_mic <= data_from_micro[0];
                 
                 EN_TX   :
                     enbTx   <= data_from_micro[0];
@@ -100,9 +103,12 @@ always @(posedge clock) begin
                     end 
                 
                 RD_MEM  :
-                    if (~i_mem_full) begin
+                    if (i_mem_full) begin
                         read_log <= 1'b1;
                         addr_log_to_mem <= data_from_micro[14:0];
+                        
+                        // enviar el dato a micro
+                        data_to_micro <= i_data_log_from_mem;
                     end
 
                 IS_FULL :
@@ -112,46 +118,47 @@ always @(posedge clock) begin
                     begin
                     data_to_micro <= i_ber_samp_I[31:0];
                     ber_buffer <= i_ber_samp_I;
-                    flag <= 1'b1;
                     end
 
                 BER_S_Q :
                     begin
                     data_to_micro <= i_ber_samp_Q[31:0];
                     ber_buffer <= i_ber_samp_Q;
-                    flag <= 1'b1;
                     end
 
                 BER_E_I :
                     begin
                     data_to_micro <= i_ber_error_I[31:0];
                     ber_buffer <= i_ber_error_I;
-                    flag <= 1'b1;
                     end
 
                 BER_E_Q :
                     begin
                     data_to_micro <= i_ber_error_Q[31:0];
                     ber_buffer <= i_ber_error_Q;
-                    flag <= 1'b1;
+                    end
+                    
+                BER_HIGH :
+                    begin
+                    data_to_micro <= ber_buffer[63:32];  
                     end
 
             endcase
-            
-            else if (run_log) begin: one_clock_run
-                run_log<= 1'b0;
-            end
-            else if (flag)begin
-                data_to_micro <= ber_buffer[63:32];  
-                flag <= 1'b0;
-            end
         end
+        else if (run_log) begin: one_clock_run
+            run_log<= 1'b0;
+        end
+        // else if (flag)begin
+        //     data_to_micro <= ber_buffer[63:32];  
+        //     flag <= 1'b0;
+        // end
 
-        state_enable <= enable_from_micro;
+        state_enable <= enable_from_micro;   
     end
+
 end
 
-assign o_reset           = reset           ;
+assign o_reset           = reset_from_mic  ;
 assign o_enbTx           = enbTx           ;
 assign o_enbRx           = enbRx           ;
 assign o_phase_sel       = phase_sel       ;
