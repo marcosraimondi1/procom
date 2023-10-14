@@ -27,15 +27,16 @@ module system #(
     parameter NBAUDS    = `NBAUDS   , //! cantidad de baudios del filtro
     parameter SEED      = `SEED     , //! semilla del prbs9
     parameter OS        = `OS       , //! oversampling factor
-    parameter NB = 8           //! NB of output
+    parameter NB = 8                  //! NB of output
 )
 (
     // declaracion de puertos input-output
-    output [63:0         ]  error_count , //! error count
-    output [63:0         ]  bit_count   , //! bit count
+    output [   63:0       ] error_count , //! error count
+    output [   63:0       ] bit_count   , //! bit count
+    output [NB- 1:0       ] o_filter    , //! salida del filtro
     input                   tx_enable   , //! tx enable
     input                   rx_enable   , //! rx enable
-    input  [1:0          ]  offset      , //! offset de muestreo del buffer
+    input  [    1:0       ] offset      , //! offset de muestreo del buffer
     input                   reset       , //! reset
     input                   clock         //! clock
 );
@@ -116,5 +117,5 @@ module system #(
     
     assign rx_sample    = rx_buffer[offset]     ;
     assign rx_bit       = rx_sample[NB-1]       ; // tomo el signo de la muestra como el bit (neg = 1, pos = 0)
-    
-    endmodule
+    assign o_filter     = filter_out            ;
+    endmodule 
