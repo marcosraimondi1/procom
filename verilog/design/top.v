@@ -67,8 +67,8 @@ module top #(
     // para el micro
     wire                        clockdsp    ;   //! clock de la aplicacion
     wire                        locked      ;   //! lock del clock
-    wire [NB_GPIOS - 1 : 0]     gpo0        ;   //! gpio output
-    wire [NB_GPIOS - 1 : 0]     gpi0        ;   //! gpio input
+    wire [NB_GPIOS - 1 : 0]     gpo0        ;   //! gpio from micro to fpga
+    wire [NB_GPIOS - 1 : 0]     gpi0        ;   //! gpio from fpga to micro
 
     // para usar los puertos input del vio
     wire            i_reset_vio        ;   //! reset from vio
@@ -85,7 +85,7 @@ module top #(
 
     wire  [32-1:0] data_tx_to_mem;
 
-    localparam [NB_C0M -1:0] RESET    = 8'b00000001          ;
+    localparam [NB_C0M -1:0] RESET    = 8'b00000001          ; 
     localparam [NB_C0M -1:0] EN_TX    = 8'b00000010          ;
     localparam [NB_C0M -1:0] EN_RX    = 8'b00000011          ;
     localparam [NB_C0M -1:0] PH_SEL   = 8'b00000100          ;
@@ -165,8 +165,8 @@ module top #(
             .NB_INST (NB_INST)  //! numero de bits de instruccion
         ) u_file_register
         (
-            .i_cmd_from_micro    (gpi0                      ),    //! gpi0, comando del micro hacia el file register
-            .o_data_to_micro     (gpo0                      ),    //! gpo0, datos del file register hacia el micro
+            .i_cmd_from_micro    (gpo0                      ),    //! gpo0, comando del micro hacia el file register
+            .o_data_to_micro     (gpi0                      ),    //! gpi0, datos del file register hacia el micro
             .i_mem_full          (mem_full_from_mem_to_fr   ),    //! entrada del sistema de memoria llena
             .i_ber_samp_I        (bit_countI                ),    //! entrada de la cantidad de muestras I del BER
             .i_ber_samp_Q        (bit_countQ                ),    //! entrada de la cantidad de muestras Q del BER
