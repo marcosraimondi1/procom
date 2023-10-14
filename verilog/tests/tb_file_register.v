@@ -32,17 +32,17 @@ wire    [       14:0]        o_addr_log_to_mem   ;
 
 
 //!----------------Comandos disponibles----------------
-localparam [NB_C0M -1:0] RESET   = 8'b00000001;
-localparam [NB_C0M -1:0] EN_TX   = 8'b00000010;
-localparam [NB_C0M -1:0] EN_RX   = 8'b00000011;
-localparam [NB_C0M -1:0] PH_SEL  = 8'b00000100;
-localparam [NB_C0M -1:0] RUN_MEM = 8'b00000101;
-localparam [NB_C0M -1:0] RD_MEM  = 8'b00000110; // lee la memoria
-localparam [NB_C0M -1:0] IS_FULL = 8'b00000111; // ver si esta llena
-localparam [NB_C0M -1:0] BER_S_I = 8'b00001000; // leer samples
-localparam [NB_C0M -1:0] BER_S_Q = 8'b00001001; 
-localparam [NB_C0M -1:0] BER_E_I = 8'b00001010; // leer errores
-localparam [NB_C0M -1:0] BER_E_Q = 8'b00001011;
+localparam [NB_C0M -1:0] RESET   = 8'b00000001 ;
+localparam [NB_C0M -1:0] EN_TX   = 8'b00000010 ;
+localparam [NB_C0M -1:0] EN_RX   = 8'b00000011 ;
+localparam [NB_C0M -1:0] PH_SEL  = 8'b00000100 ;
+localparam [NB_C0M -1:0] RUN_MEM = 8'b00000101 ;
+localparam [NB_C0M -1:0] RD_MEM  = 8'b00000110 ; // lee la memoria
+localparam [NB_C0M -1:0] IS_FULL = 8'b00000111 ; // ver si esta llena
+localparam [NB_C0M -1:0] BER_S_I = 8'b00001000 ; // leer samples
+localparam [NB_C0M -1:0] BER_S_Q = 8'b00001001 ; 
+localparam [NB_C0M -1:0] BER_E_I = 8'b00001010 ; // leer errores
+localparam [NB_C0M -1:0] BER_E_Q = 8'b00001011 ;
 localparam [NB_C0M -1:0] BER_HIGH = 8'b00001100; // para leer la parte alta de la BER (lee la parte alta de la ultima lectura)
 
 initial begin
