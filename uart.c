@@ -16,6 +16,11 @@
 #define def_LOG_RUN 2
 #define def_LOG_READ 3
 
+// USER DEFINES
+#define INICIO_DE_TRAMA 0xA0
+#define FIN_DE_TRAMA    0x40
+
+// GLOBAL VARIABLES
 XGpio GpioOutput;
 XGpio GpioParameter;
 XGpio GpioInput;
@@ -25,22 +30,148 @@ XUartLite uart_module;
 
 // Funcion para recibir 1 byte bloqueante
 // XUartLite_RecvByte((&uart_module)->RegBaseAddress)
-enum COMANDOS
-  {
+
+enum COMANDOS {
     IDLE     , // 0
     RESET    , // 1
     EN_TX    , // 2
     EN_RX    , // 3
-    PH_SEL   ,
-    RUN_MEM  ,
-    RD_MEM   ,
-    IS_FULL  ,
-    BER_S_I  ,
-    BER_S_Q  ,
-    BER_E_I  ,
-    BER_E_Q  ,
-    BER_HIGH ,
-  };
+    PH_SEL   , // 4 -- selecciona la fase, el campo data envia la fase
+    RUN_MEM  , // 5 -- empieza a cargar la memoria
+    RD_MEM   , // 6 -- lee la memoria, el campo data envia la posicion
+    IS_FULL  , // 7 -- pregunta si la memoria esta llena
+    BER_S_I  , // 8 
+    BER_S_Q  , // 9
+    BER_E_I  , // 10
+    BER_E_Q  , // 11
+    BER_HIGH   // 12
+};
+
+// FUNCTION PROTOTYPES
+u32 create_command(enum COMANDOS comando, u16 data);
+void write_command(u32 command);
+int read_trama(unsigned char *buffer);
+
+
+
+int main() {
+  init_platform();
+  int Status;
+  XUartLite_Initialize(&uart_module, 0);
+
+  GPO_Value = 0x00000000;
+  GPO_Param = 0x00000000;
+
+  Status = XGpio_Initialize(&GpioInput, PORT_IN);
+  if (Status != XST_SUCCESS) {
+    return XST_FAILURE;
+  }
+  Status = XGpio_Initialize(&GpioOutput, PORT_OUT);
+  if (Status != XST_SUCCESS) {
+    return XST_FAILURE;
+  }
+  XGpio_SetDataDirection(&GpioOutput, 1, 0x00000000);
+  XGpio_SetDataDirection(&GpioInput, 1, 0xFFFFFFFF);
+
+  //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  // ACA es donde se escribe toda la funcionalidad
+  //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  write_command(create_command(RESET, 1));
+  write_command(create_command(RESET, 0));
+
+  unsigned char data_from_python[1024];
+
+  while (1) {
+
+    int size;
+    if ((size = read_trama(data_from_python)) == -1) continue;
+
+    int op_code = data_from_python[0]; // MSByte
+
+    int cmd_data = 0; // LSBytes
+    for (int i=1; i<size; i++)
+        cmd_data |= data_from_python[i] << (8*(size-i-1));
+
+    write_command(create_command(op_code, cmd_data));
+
+    int size_to_send = 1;
+    char data_to_send[8] = {0};
+    u32 value;
+    switch (op_code)
+    {
+    case IS_FULL:
+      value = XGpio_DiscreteRead(&GpioInput, 1);
+      size_to_send = 1;
+      data_to_send[0] = value;
+      break;
+
+    case RD_MEM:
+      value = XGpio_DiscreteRead(&GpioInput, 1);
+      size_to_send = 1;
+      data_to_send[0] = (char)(value & 0x000000FF);
+      // data_to_send[1] = (char)((value & 0x0000FF00) >> 8);
+      // data_to_send[2] = (char)((value & 0x00FF0000) >> 16);
+      // data_to_send[3] = (char)((value & 0xFF000000) >> 24);
+      break;
+
+    case BER_S_I:
+    case BER_S_Q:
+    case BER_E_I:
+    case BER_E_Q:
+      value = XGpio_DiscreteRead(&GpioInput, 1);
+      u32 low = value;
+      write_command(create_command(BER_HIGH, 0));
+      value = XGpio_DiscreteRead(&GpioInput, 1);
+      u32 high = value;
+      size_to_send = 8;
+      data_to_send[0] = (char)(low & 0x000000FF);
+      data_to_send[1] = (char)((low & 0x0000FF00) >> 8);
+      data_to_send[2] = (char)((low & 0x00FF0000) >> 16);
+      data_to_send[3] = (char)((low & 0xFF000000) >> 24);
+      data_to_send[4] = (char)(high & 0x000000FF);
+      data_to_send[5] = (char)((high & 0x0000FF00) >> 8);
+      data_to_send[6] = (char)((high & 0x00FF0000) >> 16);
+      data_to_send[7] = (char)((high & 0xFF000000) >> 24);
+      break;
+
+    default: // el comando no devuelve, se envia un 0
+      break;
+    }
+
+    //Envio via UART a fpga
+    unsigned char trama[5+size_to_send];
+    trama[0] = (char)(INICIO_DE_TRAMA + size_to_send); // inicio de trama
+    trama[1] = (char)0;          // sizeH
+    trama[2] = (char)0;          // sizeL
+    trama[3] = (char)0;          // Device
+    
+    for (int i=0; i<size_to_send; i++)
+      trama[4+i] = data_to_send[i];
+  
+    trama[4+size_to_send] = (char)(FIN_DE_TRAMA + size_to_send); // fin de trama
+    
+    while (XUartLite_IsSending(&uart_module)) {}
+    XUartLite_Send(&uart_module, trama, 5+size_to_send);
+
+
+
+    // leer switches
+    //   led_value = 0;
+    //   XGpio_DiscreteWrite(&GpioOutput, 1, led_value);
+    //   value = XGpio_DiscreteRead(&GpioInput, 1);
+    //   datos = (char)(value & (0x0000000F));
+   
+
+    //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    // FIN de toda la funcionalidad
+    //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  }
+
+  cleanup_platform();
+  return 0;
+}
+
 
 u32 create_command(enum COMANDOS comando, u16 data)
 {
@@ -62,104 +193,40 @@ void write_command(u32 command)
     XGpio_DiscreteWrite(&GpioOutput, 1, command);
 }
 
-int main() {
-  init_platform();
-  int Status;
-  XUartLite_Initialize(&uart_module, 0);
-
-  GPO_Value = 0x00000000;
-  GPO_Param = 0x00000000;
-
-  Status = XGpio_Initialize(&GpioInput, PORT_IN);
-  if (Status != XST_SUCCESS) {
-    return XST_FAILURE;
-  }
-  Status = XGpio_Initialize(&GpioOutput, PORT_OUT);
-  if (Status != XST_SUCCESS) {
-    return XST_FAILURE;
-  }
-  XGpio_SetDataDirection(&GpioOutput, 1, 0x00000000);
-  XGpio_SetDataDirection(&GpioInput, 1, 0xFFFFFFFF);
-
-  write_command(create_command(RESET, 1));
-  write_command(create_command(RESET, 0));
-
-  // trama bytes
+int read_trama(unsigned char *buffer)
+{
   unsigned char cabecera;
   unsigned char unused3[3]; // los tres siguientes bytes no se usan
   unsigned char end;
 
-  const int INICIO_DE_TRAMA = 0xA0;
-  const int FIN_DE_TRAMA    = 0x40;
+  // TRAMA:
+  //        	- Byte<1> 			: INICIO DE TRAMA = 0xA0 + size
+  //        (4bits)
+  //        	- Byte<2:4>			: no se usan (sizeH, sizeL,
+  //        Device)
+  //        	- Byte<5:5+size> 	: data
+  //        	- Byte<Size+1>		: FIN DE TRAMA = 0x40 + size
+
+  read(stdin, &cabecera, 1);
+
+  if ((cabecera & 0xF0) != INICIO_DE_TRAMA)
+    return -1; // no es el inicio de trama correcto
+
+  int size = cabecera & 0x0F; // data size
+
+  read(stdin, unused3, 3);
+
+  unsigned char data[size];
+  read(stdin, data, size);
+
+  read(stdin, &end, 1);
+
+  if (end != (FIN_DE_TRAMA + size))
+    return -1; // no es el fin de trama correcto
   
+  // load data to buffer
+  for (int i = 0; i < size; i++)
+    buffer[i] = data[i];
 
-  while (1) {
-
-    // TRAMA:
-    //        	- Byte<1> 			: INICIO DE TRAMA = 0xA0 + size
-    //        (4bits)
-    //        	- Byte<2:4>			: no se usan (sizeH, sizeL,
-    //        Device)
-    //        	- Byte<5:5+size> 	: data
-    //        	- Byte<Size+1>		: FIN DE TRAMA = 0x40 + size
-
-    read(stdin, &cabecera, 1);
-
-    if ((cabecera & 0xF0) != INICIO_DE_TRAMA)
-      continue; // no es el inicio de trama correcto
-
-    int size = cabecera & 0x0F; // data size
-
-    read(stdin, unused3, 3);
-
-    unsigned char data[size];
-    read(stdin, data, size);
-
-    read(stdin, &end, 1);
-
-    if (end != (FIN_DE_TRAMA + size))
-      continue; // no es el fin de trama correcto
-
-    //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    // ACA es donde se escribe toda la funcionalidad
-    //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    int op_code = data[0]; // MSByte
-
-    int cmd_data = 0; // LSBytes
-    for (int i=1; i<size; i++)
-        cmd_data |= data[i] << (8*(size-i-1));
-
-    write_command(create_command(op_code, cmd_data));
-
-    //Envio via UART a fpga
-    unsigned char trama[6];
-    int size_to_send = 1;
-    trama[0] = (char)(INICIO_DE_TRAMA + size_to_send); // inicio de trama
-    trama[1] = (char)0;          // sizeH
-    trama[2] = (char)0;          // sizeL
-    trama[3] = (char)0;          // Device
-    trama[4] = (char)1;          // data
-    trama[5] = (char)(FIN_DE_TRAMA + size_to_send); // fin de trama
-    
-    while (XUartLite_IsSending(&uart_module)) {}
-    XUartLite_Send(&uart_module, trama, 6);
-
-
-
-    //   // leer switches
-    //   led_value = 0;
-    //   XGpio_DiscreteWrite(&GpioOutput, 1, led_value);
-    //   value = XGpio_DiscreteRead(&GpioInput, 1);
-    //   datos = (char)(value & (0x0000000F));
-   
-
-    //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    // FIN de toda la funcionalidad
-    //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  }
-
-  cleanup_platform();
-  return 0;
+  return size;
 }
-

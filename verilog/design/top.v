@@ -146,7 +146,7 @@ module top #(
     //! vio
     vio #()
         u_vio (
-            .clk_0          (clockdsp       ),
+            .clk_0          (clk100         ),
             .probe_in0_0    (bit_countI     ),
             .probe_in1_0    (error_countI   ),
             .probe_in2_0    (bit_countQ     ),
@@ -190,7 +190,7 @@ module top #(
     .RAM_DEPTH(RAM_DEPTH)
     ) u_bram (
         .clk                  (clk100                       ),
-        .reset                (reset             ),
+        .reset                (reset                        ),
         .i_run_log            (run_log_from_fr_to_mem       ),
         .i_read_log           (read_log_from_fr_to_mem      ),
         .i_data_tx_to_mem     (data_tx_to_mem               ),

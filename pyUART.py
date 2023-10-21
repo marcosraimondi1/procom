@@ -20,8 +20,19 @@ BER_S_I  = 8
 BER_S_Q  = 9
 BER_E_I  = 10
 BER_E_Q  = 11
-BER_HIGH = 12
-COMANDOS = [RESET, EN_TX, EN_RX, PH_SEL, RUN_MEM, RD_MEM, IS_FULL, BER_S_I, BER_S_Q, BER_E_I, BER_E_Q, BER_HIGH]
+COMANDOS = {
+    "RESET": RESET,
+    "EN_TX": EN_TX,
+    "EN_RX": EN_RX,
+    "PH_SEL": PH_SEL, 
+    "RUN_MEM": RUN_MEM, 
+    "RD_MEM": RD_MEM, 
+    "IS_FULL": IS_FULL, 
+    "BER_S_I": BER_S_I, 
+    "BER_S_Q": BER_S_Q, 
+    "BER_E_I": BER_E_I, 
+    "BER_E_Q": BER_E_Q
+    }
 
 def init_serial():
     if (DEBUG):
@@ -47,10 +58,13 @@ def init_serial():
 def launch_app():
 
     ser = init_serial()
+    ser.flushInput()
+    ser.flushOutput()
 
     print("Comandos:")
     print("\t- exit")
     print("\t- <num comando> <data value>")
+    print(COMANDOS)
 
     while 1:
         inputData = input("cmd << ")
@@ -62,7 +76,7 @@ def launch_app():
             ser.close()
             exit()
 
-        if int(opt) not in COMANDOS:
+        if int(opt) not in COMANDOS.values():
             print("Comando no valido")
             print("Comandos: ", COMANDOS)
             continue
@@ -92,6 +106,9 @@ def launch_app():
             except Exception as e:
                 print(e)
                 continue
+        else:
+            print("No se recibio respuesta")
+            continue
 
         out = str(int.from_bytes(received_data, byteorder='big'))
 
@@ -143,7 +160,10 @@ def read_trama(ser):
     ser.read(3)  # los tres bytes siguientes no se usan
 
     # read_data
+    print("reading ",size," bytes")
     received_data = ser.read(size)
+    
+    print("finished reading ",size," bytes")
 
     # verificar fin de trama
     byte = ser.read(1)[0]
@@ -152,6 +172,7 @@ def read_trama(ser):
         ser.flushInput()
         raise Exception("ERROR: fin de trama incorrecto")
 
+    print("finished reading trama")
     return received_data
 
 def main():
