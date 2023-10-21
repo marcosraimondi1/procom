@@ -35,8 +35,8 @@ begin
             counter     <= 0            ;
 
             // contador de ber
-            error_count <= 0            ;
-            bit_count   <= 0            ;
+            error_count <= 64'b0        ;
+            bit_count   <= 64'b0        ;
         end
     else
         begin

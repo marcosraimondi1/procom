@@ -1,6 +1,5 @@
 import time
 import serial
-
 """
 El usuario debe:
     1. Encender/Apagar los leds (0,1,2,3) indicando el color que desea prender
@@ -9,6 +8,20 @@ El usuario debe:
 """
 DEBUG = False
 
+# COMANDOS
+RESET    = 1
+EN_TX    = 2
+EN_RX    = 3
+PH_SEL   = 4
+RUN_MEM  = 5
+RD_MEM   = 6
+IS_FULL  = 7
+BER_S_I  = 8
+BER_S_Q  = 9
+BER_E_I  = 10
+BER_E_Q  = 11
+BER_HIGH = 12
+COMANDOS = [RESET, EN_TX, EN_RX, PH_SEL, RUN_MEM, RD_MEM, IS_FULL, BER_S_I, BER_S_Q, BER_E_I, BER_E_Q, BER_HIGH]
 
 def init_serial():
     if (DEBUG):
@@ -36,75 +49,56 @@ def launch_app():
     ser = init_serial()
 
     print("Comandos:")
-    print("\t- toggle")
-    print("\t- leer")
     print("\t- exit")
+    print("\t- <num comando> <data value>")
 
     while 1:
         inputData = input("cmd << ")
         inputData = inputData.split(" ")
 
         opt = inputData[0]
-
+        
         if opt == 'exit':
             ser.close()
             exit()
 
-        elif opt == 'leer':
+        if int(opt) not in COMANDOS:
+            print("Comando no valido")
+            print("Comandos: ", COMANDOS)
+            continue
+        
+        # ENVIAR COMANDO
 
-            print("Wait Input Data")
+        op_code = int(opt)
+        nBytes = 4
+        params = 0
+        
+        if len(inputData) > 1:
+            params = int(inputData[1]) & 0x007FFFFF
 
-            op_code = 3
+        # <31:24> = op_code
+        # 23 = enable // no se usa en python
+        # <22:0> = data
 
-            nBytes = 1
+        data = (op_code << (8*3)) + params
 
-            data = op_code
+        ser.write(encapsular(data, nBytes).encode())
 
-            ser.write(encapsular(data, nBytes).encode())
-
-            time.sleep(2)
-            
-            if ser.inWaiting() > 0:  # leo una sola trama asique no uso while
-                try:
-                    received_data = read_trama(ser)  # leo la trama
-                except Exception as e:
-                    print(e)
-                    continue
-
-            out = str(int.from_bytes(received_data, byteorder='big'))
-
-            if out != '':
-                print(">> "+out)
-            print("\n")
-        elif opt == 'toggle':
-            led = int(input("led = ")) % 4
-            rgb = input("r g b = ").split()
-
-            if (len(rgb) != 3):
-                print("failed rgb pattern\n")
+        time.sleep(2)
+        
+        if ser.inWaiting() > 0:  # leo una sola trama asique no uso while
+            try:
+                received_data = read_trama(ser)  # leo la trama
+            except Exception as e:
+                print(e)
                 continue
 
-            r = int(rgb[0]) % 256
-            g = int(rgb[1]) % 256
-            b = int(rgb[2]) % 256
+        out = str(int.from_bytes(received_data, byteorder='big'))
 
-            op_code = 1
-
-            # nBytes = 5
-            # byte 4 = op_code
-            # byte 3 = led
-            # byte <2:0> = rgb
-
-            data = (op_code << (8*4)) + (led << (8*3)) + \
-                (r << (8*2)) + (g << 8) + b
-
-            nBytes = 5
-            trama = encapsular(data, nBytes)
-            ser.write(trama.encode())
-            time.sleep(1)
-            print("\n")
-        else:
-            print("Operacion no admitida\n")
+        if out != '':
+            print(">> "+out)
+        print("\n")
+        
 
 INICIO_DE_TRAMA = 0xA0
 FIN_DE_TRAMA = 0x40

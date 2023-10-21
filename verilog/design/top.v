@@ -122,7 +122,7 @@ module top #(
             .tx_enable   (tx_enable              ),
             .rx_enable   (rx_enable              ),
             .offset      (offset                 ), // phase
-            .reset       (reset_from_micro       ),
+            .reset       (reset                  ),
             .clock       (clk100                 ),
             .o_filter    (filter_out_I           )           
         );
@@ -137,7 +137,7 @@ module top #(
             .tx_enable   (tx_enable               ),
             .rx_enable   (rx_enable               ),
             .offset      (offset                  ),
-            .reset       (reset_from_micro        ),
+            .reset       (reset                   ),
             .clock       (clk100                  ),
             .o_filter    (filter_out_Q            ) 
         );
@@ -190,7 +190,7 @@ module top #(
     .RAM_DEPTH(RAM_DEPTH)
     ) u_bram (
         .clk                  (clk100                       ),
-        .reset                (reset_from_micro             ),
+        .reset                (reset             ),
         .i_run_log            (run_log_from_fr_to_mem       ),
         .i_read_log           (read_log_from_fr_to_mem      ),
         .i_data_tx_to_mem     (data_tx_to_mem               ),

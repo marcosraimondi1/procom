@@ -98,7 +98,7 @@ module system #(
 
     
     integer ptr;
-    always@(posedge clock or posedge reset) 
+    always@(posedge clock ) //or posedge reset
     begin
         if (reset) 
             begin

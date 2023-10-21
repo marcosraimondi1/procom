@@ -30,7 +30,7 @@ enum COMANDOS
     IDLE     , // 0
     RESET    , // 1
     EN_TX    , // 2
-    EN_RX    ,
+    EN_RX    , // 3
     PH_SEL   ,
     RUN_MEM  ,
     RD_MEM   ,
@@ -42,15 +42,15 @@ enum COMANDOS
     BER_HIGH ,
   };
 
-uint32_t create_command(enum COMDANDOS comando, uint16_t data)
+u32 create_command(enum COMANDOS comando, u16 data)
 {
-  uint32_t command = 0;
+  u32 command = 0;
   command |= (comando << 24);
   command |= data;
   return command;
 }
 
-void write_command(uint32_t command)
+void write_command(u32 command)
 { 
     command &= ~(1<<23);  // enable = 0
     XGpio_DiscreteWrite(&GpioOutput, 1, command);
@@ -81,10 +81,8 @@ int main() {
   XGpio_SetDataDirection(&GpioOutput, 1, 0x00000000);
   XGpio_SetDataDirection(&GpioInput, 1, 0xFFFFFFFF);
 
-  u32 value;
-  u32 led_value = 0;
-
-  unsigned char datos; // respuesta
+  write_command(create_command(RESET, 1));
+  write_command(create_command(RESET, 0));
 
   // trama bytes
   unsigned char cabecera;
@@ -94,14 +92,8 @@ int main() {
   const int INICIO_DE_TRAMA = 0xA0;
   const int FIN_DE_TRAMA    = 0x40;
   
-  
-
 
   while (1) {
-
-    write_command(create_command(RESET, 0));
-
-    // value = XGpio_DiscreteRead(&GpioInput, 1);
 
     // TRAMA:
     //        	- Byte<1> 			: INICIO DE TRAMA = 0xA0 + size
@@ -111,68 +103,56 @@ int main() {
     //        	- Byte<5:5+size> 	: data
     //        	- Byte<Size+1>		: FIN DE TRAMA = 0x40 + size
 
-    // read(stdin, &cabecera, 1);
+    read(stdin, &cabecera, 1);
 
-    // if ((cabecera & 0xF0) != INICIO_DE_TRAMA)
-    //   continue; // no es el inicio de trama correcto
+    if ((cabecera & 0xF0) != INICIO_DE_TRAMA)
+      continue; // no es el inicio de trama correcto
 
-    // int size = cabecera & 0x0F; // data size
+    int size = cabecera & 0x0F; // data size
 
-    // read(stdin, unused3, 3);
+    read(stdin, unused3, 3);
 
-    // unsigned char data[size];
-    // read(stdin, data, size);
+    unsigned char data[size];
+    read(stdin, data, size);
 
-    // read(stdin, &end, 1);
+    read(stdin, &end, 1);
 
-    // if (end != (FIN_DE_TRAMA + size))
-    //   continue; // no es el fin de trama correcto
+    if (end != (FIN_DE_TRAMA + size))
+      continue; // no es el fin de trama correcto
 
     //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     // ACA es donde se escribe toda la funcionalidad
     //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    // int op_code = data[0];
+    int op_code = data[0]; // MSByte
 
-    // if (op_code == 3) {
+    int cmd_data = 0; // LSBytes
+    for (int i=1; i<size; i++)
+        cmd_data |= data[i] << (8*(size-i-1));
+
+    write_command(create_command(op_code, cmd_data));
+
+    //Envio via UART a fpga
+    unsigned char trama[6];
+    int size_to_send = 1;
+    trama[0] = (char)(INICIO_DE_TRAMA + size_to_send); // inicio de trama
+    trama[1] = (char)0;          // sizeH
+    trama[2] = (char)0;          // sizeL
+    trama[3] = (char)0;          // Device
+    trama[4] = (char)1;          // data
+    trama[5] = (char)(FIN_DE_TRAMA + size_to_send); // fin de trama
+    
+    while (XUartLite_IsSending(&uart_module)) {}
+    XUartLite_Send(&uart_module, trama, 6);
+
+
+
     //   // leer switches
     //   led_value = 0;
     //   XGpio_DiscreteWrite(&GpioOutput, 1, led_value);
     //   value = XGpio_DiscreteRead(&GpioInput, 1);
     //   datos = (char)(value & (0x0000000F));
-    //   unsigned char trama[6];
-    //   int size_to_send = 1;
-      
-    //   trama[0] = (char)(INICIO_DE_TRAMA + size_to_send); // inicio de trama
-    //   trama[1] = (char)0;          // sizeH
-    //   trama[2] = (char)0;          // sizeL
-    //   trama[3] = (char)0;          // Device
-    //   trama[4] = datos;            // data
-    //   trama[5] = (char)(FIN_DE_TRAMA + size_to_send); // fin de trama
-
-    //   while (XUartLite_IsSending(&uart_module)) {
-    //   }
-    //   XUartLite_Send(&uart_module, trama, 6);
-    // }
-
-    // if (op_code == 1) {
-
-    //   int led   = data[1] % 4;
-    //   int red   = data[2] % 2;
-    //   int green = data[3] % 2;
-    //   int blue  = data[4] % 2;
-
-    //   int rgb = (red << 2) | (green << 1) | blue;
-
-    //   int new_value = rgb << (3 * led);
-
-    //   led_value |= new_value; // pone los 1s
-
-    //   led_value &= (new_value | (~((1 << (3 * (led + 1))) - 1)) |
-    //                 ((1 << (3 * led)) - 1)); // pone los 0s
-
-    //   XGpio_DiscreteWrite(&GpioOutput, 1, led_value);
-    // }
+   
 
     //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     // FIN de toda la funcionalidad
