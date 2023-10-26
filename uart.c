@@ -110,6 +110,7 @@ int main() {
       value = XGpio_DiscreteRead(&GpioInput, 1);
       size_to_send = 1;
       data_to_send[0] = (char)(value & 0x000000FF);
+      
       // data_to_send[1] = (char)((value & 0x0000FF00) >> 8);
       // data_to_send[2] = (char)((value & 0x00FF0000) >> 16);
       // data_to_send[3] = (char)((value & 0xFF000000) >> 24);
@@ -117,22 +118,22 @@ int main() {
 
     case BER_S_I:
     case BER_S_Q:
-    case BER_E_I:
     case BER_E_Q:
+    case BER_E_I:
       value = XGpio_DiscreteRead(&GpioInput, 1);
       u32 low = value;
       write_command(create_command(BER_HIGH, 0));
       value = XGpio_DiscreteRead(&GpioInput, 1);
       u32 high = value;
       size_to_send = 8;
-      data_to_send[0] = (char)(low & 0x000000FF);
-      data_to_send[1] = (char)((low & 0x0000FF00) >> 8);
-      data_to_send[2] = (char)((low & 0x00FF0000) >> 16);
-      data_to_send[3] = (char)((low & 0xFF000000) >> 24);
-      data_to_send[4] = (char)(high & 0x000000FF);
-      data_to_send[5] = (char)((high & 0x0000FF00) >> 8);
-      data_to_send[6] = (char)((high & 0x00FF0000) >> 16);
-      data_to_send[7] = (char)((high & 0xFF000000) >> 24);
+      data_to_send[7] = (char)(low & 0x000000FF);
+      data_to_send[6] = (char)((low & 0x0000FF00) >> 8);
+      data_to_send[5] = (char)((low & 0x00FF0000) >> 16);
+      data_to_send[4] = (char)((low & 0xFF000000) >> 24);
+      data_to_send[3] = (char)(high & 0x000000FF);
+      data_to_send[2] = (char)((high & 0x0000FF00) >> 8);
+      data_to_send[1] = (char)((high & 0x00FF0000) >> 16);
+      data_to_send[0] = (char)((high & 0xFF000000) >> 24);
       break;
 
     default: // el comando no devuelve, se envia un 0

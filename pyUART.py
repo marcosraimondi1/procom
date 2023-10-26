@@ -98,8 +98,10 @@ def launch_app():
 
         ser.write(encapsular(data, nBytes).encode())
 
-        time.sleep(2)
-        
+        # time.sleep(2)
+        while ser.inWaiting() == 0:
+            continue
+
         if ser.inWaiting() > 0:  # leo una sola trama asique no uso while
             try:
                 received_data = read_trama(ser)  # leo la trama

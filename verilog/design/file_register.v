@@ -60,6 +60,8 @@ wire                enable_from_micro   ;
 reg reset_from_mic;
 reg state_enable;               //! Detector de flanco ascendente
 
+reg read_flag;
+
 assign command_from_micro  = i_cmd_from_micro[31:24]       ;
 assign data_from_micro     = i_cmd_from_micro[NB_DATA-1:0] ;
 assign enable_from_micro   = i_cmd_from_micro[NB_DATA-1]   ;
@@ -67,6 +69,7 @@ assign enable_from_micro   = i_cmd_from_micro[NB_DATA-1]   ;
 always @(posedge clock) begin
     if (reset)
     begin
+        read_flag       <= 1'b0;
         enbTx           <= 0;
         enbRx           <= 0;
         phase_sel       <= 0;
@@ -107,8 +110,9 @@ always @(posedge clock) begin
                         read_log <= 1'b1;
                         addr_log_to_mem <= data_from_micro[14:0];
                         
-                        // enviar el dato a micro
-                        data_to_micro <= i_data_log_from_mem;
+                        read_flag <= 1'b1;
+                        // // enviar el dato a micro
+                        //data_to_micro <= i_data_log_from_mem;
                     end
 
                 IS_FULL :
@@ -147,6 +151,11 @@ always @(posedge clock) begin
         end
         else if (run_log) begin: one_clock_run
             run_log<= 1'b0;
+        end
+        else if (read_flag) begin
+            // enviar el dato a micro
+            data_to_micro <= i_data_log_from_mem;
+            read_flag     <= 1'b0;
         end
         // else if (flag)begin
         //     data_to_micro <= ber_buffer[63:32];  
