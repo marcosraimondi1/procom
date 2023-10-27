@@ -24,13 +24,13 @@ COMANDOS = {
     "RESET": RESET,
     "EN_TX": EN_TX,
     "EN_RX": EN_RX,
-    "PH_SEL": PH_SEL, 
-    "RUN_MEM": RUN_MEM, 
-    "RD_MEM": RD_MEM, 
-    "IS_FULL": IS_FULL, 
-    "BER_S_I": BER_S_I, 
-    "BER_S_Q": BER_S_Q, 
-    "BER_E_I": BER_E_I, 
+    "PH_SEL": PH_SEL,
+    "RUN_MEM": RUN_MEM,
+    "RD_MEM": RD_MEM,
+    "IS_FULL": IS_FULL,
+    "BER_S_I": BER_S_I,
+    "BER_S_Q": BER_S_Q,
+    "BER_E_I": BER_E_I,
     "BER_E_Q": BER_E_Q
     }
 
@@ -63,6 +63,9 @@ def launch_app():
 
     print("Comandos:")
     print("\t- exit")
+    print("\t- start")
+    print("\t- stop")
+    print("\t- read")
     print("\t- <num comando> <data value>")
     print(COMANDOS)
 
@@ -70,23 +73,88 @@ def launch_app():
         inputData = input("cmd << ")
         inputData = inputData.split(" ")
 
-        opt = inputData[0]
-        
+        opt = inputData[0].lower()
+
         if opt == 'exit':
             ser.close()
             exit()
+
+        if opt == 'start' or opt == 'stop':
+            enable = opt == 'start'
+
+            # enable/disable tx
+            data = (COMANDOS["EN_TX"] << (8*3)) + enable
+            ser.write(encapsular(data, 4).encode())
+            while ser.inWaiting() == 0:
+                continue
+            ser.flushInput()
+
+            # enable/disable rx
+            data = (COMANDOS["EN_RX"] << (8*3)) + enable
+            ser.write(encapsular(data, 4).encode())
+            while ser.inWaiting() == 0:
+                continue
+            ser.flushInput()
+
+            continue
+
+        if opt == 'read':
+            # save to memory
+            data = (COMANDOS["RUN_MEM"] << (8*3)) + 0
+            ser.write(encapsular(data, 4).encode())
+            while ser.inWaiting() == 0:
+                continue
+            ser.flushInput()
+
+            # read if full
+            data = (COMANDOS["IS_FULL"] << (8*3)) + 0
+            ser.write(encapsular(data, 4).encode())
+            while ser.inWaiting() == 0:
+                continue
+            try:
+                received_data = read_trama(ser)  # leo la trama
+                ser.flushInput()
+                ser.flushOutput()
+            except Exception as e:
+                print(e)
+                continue
+            is_full = int.from_bytes(received_data, byteorder='big')
+            if is_full == 0:
+                print("Memoria no llena")
+                continue
+
+            # read memory
+            f = open("./data.txt", "w+")
+            for i in range(1024):
+                data = (COMANDOS["RD_MEM"] << (8*3)) + i
+                ser.write(encapsular(data, 4).encode())
+                while ser.inWaiting() == 0:
+                    continue
+                try:
+                    received_data = read_trama(ser)  # leo la trama
+                    ser.flushInput()
+                    ser.flushOutput()
+                except Exception as e:
+                    print(e)
+                    break
+                out = str(int.from_bytes(received_data, byteorder='big'))
+                print(str(i)+" "+out)
+                f.write(out)
+                f.write(",")
+            f.close()
+            continue
 
         if int(opt) not in COMANDOS.values():
             print("Comando no valido")
             print("Comandos: ", COMANDOS)
             continue
-        
+
         # ENVIAR COMANDO
 
         op_code = int(opt)
         nBytes = 4
         params = 0
-        
+
         if len(inputData) > 1:
             params = int(inputData[1]) & 0x007FFFFF
 
@@ -99,12 +167,19 @@ def launch_app():
         ser.write(encapsular(data, nBytes).encode())
 
         # time.sleep(2)
+        time_out = 1000000000000000000
         while ser.inWaiting() == 0:
+            time_out -= 1
+            if time_out == 0:
+                print("Time out!")
+                break
             continue
 
         if ser.inWaiting() > 0:  # leo una sola trama asique no uso while
             try:
                 received_data = read_trama(ser)  # leo la trama
+                ser.flushInput()
+                ser.flushOutput()
             except Exception as e:
                 print(e)
                 continue
@@ -117,7 +192,7 @@ def launch_app():
         if out != '':
             print(">> "+out)
         print("\n")
-        
+
 
 INICIO_DE_TRAMA = 0xA0
 FIN_DE_TRAMA = 0x40
@@ -162,10 +237,10 @@ def read_trama(ser):
     ser.read(3)  # los tres bytes siguientes no se usan
 
     # read_data
-    print("reading ",size," bytes")
+    #print("reading ",size," bytes")
     received_data = ser.read(size)
-    
-    print("finished reading ",size," bytes")
+
+    #print("finished reading ",size," bytes")
 
     # verificar fin de trama
     byte = ser.read(1)[0]
@@ -174,7 +249,7 @@ def read_trama(ser):
         ser.flushInput()
         raise Exception("ERROR: fin de trama incorrecto")
 
-    print("finished reading trama")
+    #print("finished reading trama")
     return received_data
 
 def main():

@@ -18,7 +18,7 @@
 
 // USER DEFINES
 #define INICIO_DE_TRAMA 0xA0
-#define FIN_DE_TRAMA    0x40
+#define FIN_DE_TRAMA 0x40
 
 // GLOBAL VARIABLES
 XGpio GpioOutput;
@@ -31,20 +31,21 @@ XUartLite uart_module;
 // Funcion para recibir 1 byte bloqueante
 // XUartLite_RecvByte((&uart_module)->RegBaseAddress)
 
-enum COMANDOS {
-    IDLE     , // 0
-    RESET    , // 1
-    EN_TX    , // 2
-    EN_RX    , // 3
-    PH_SEL   , // 4 -- selecciona la fase, el campo data envia la fase
-    RUN_MEM  , // 5 -- empieza a cargar la memoria
-    RD_MEM   , // 6 -- lee la memoria, el campo data envia la posicion
-    IS_FULL  , // 7 -- pregunta si la memoria esta llena
-    BER_S_I  , // 8 
-    BER_S_Q  , // 9
-    BER_E_I  , // 10
-    BER_E_Q  , // 11
-    BER_HIGH   // 12
+enum COMANDOS
+{
+  IDLE,    // 0
+  RESET,   // 1
+  EN_TX,   // 2
+  EN_RX,   // 3
+  PH_SEL,  // 4 -- selecciona la fase, el campo data envia la fase
+  RUN_MEM, // 5 -- empieza a cargar la memoria
+  RD_MEM,  // 6 -- lee la memoria, el campo data envia la posicion
+  IS_FULL, // 7 -- pregunta si la memoria esta llena
+  BER_S_I, // 8
+  BER_S_Q, // 9
+  BER_E_I, // 10
+  BER_E_Q, // 11
+  BER_HIGH // 12
 };
 
 // FUNCTION PROTOTYPES
@@ -52,9 +53,8 @@ u32 create_command(enum COMANDOS comando, u16 data);
 void write_command(u32 command);
 int read_trama(unsigned char *buffer);
 
-
-
-int main() {
+int main()
+{
   init_platform();
   int Status;
   XUartLite_Initialize(&uart_module, 0);
@@ -63,11 +63,13 @@ int main() {
   GPO_Param = 0x00000000;
 
   Status = XGpio_Initialize(&GpioInput, PORT_IN);
-  if (Status != XST_SUCCESS) {
+  if (Status != XST_SUCCESS)
+  {
     return XST_FAILURE;
   }
   Status = XGpio_Initialize(&GpioOutput, PORT_OUT);
-  if (Status != XST_SUCCESS) {
+  if (Status != XST_SUCCESS)
+  {
     return XST_FAILURE;
   }
   XGpio_SetDataDirection(&GpioOutput, 1, 0x00000000);
@@ -82,16 +84,18 @@ int main() {
 
   unsigned char data_from_python[1024];
 
-  while (1) {
+  while (1)
+  {
 
     int size;
-    if ((size = read_trama(data_from_python)) == -1) continue;
+    if ((size = read_trama(data_from_python)) == -1)
+      continue;
 
     int op_code = data_from_python[0]; // MSByte
 
     int cmd_data = 0; // LSBytes
-    for (int i=1; i<size; i++)
-        cmd_data |= data_from_python[i] << (8*(size-i-1));
+    for (int i = 1; i < size; i++)
+      cmd_data |= data_from_python[i] << (8 * (size - i - 1));
 
     write_command(create_command(op_code, cmd_data));
 
@@ -110,10 +114,6 @@ int main() {
       value = XGpio_DiscreteRead(&GpioInput, 1);
       size_to_send = 1;
       data_to_send[0] = (char)(value & 0x000000FF);
-      
-      // data_to_send[1] = (char)((value & 0x0000FF00) >> 8);
-      // data_to_send[2] = (char)((value & 0x00FF0000) >> 16);
-      // data_to_send[3] = (char)((value & 0xFF000000) >> 24);
       break;
 
     case BER_S_I:
@@ -140,29 +140,27 @@ int main() {
       break;
     }
 
-    //Envio via UART a fpga
-    unsigned char trama[5+size_to_send];
+    // Envio via UART a fpga
+    unsigned char trama[5 + size_to_send];
     trama[0] = (char)(INICIO_DE_TRAMA + size_to_send); // inicio de trama
-    trama[1] = (char)0;          // sizeH
-    trama[2] = (char)0;          // sizeL
-    trama[3] = (char)0;          // Device
-    
-    for (int i=0; i<size_to_send; i++)
-      trama[4+i] = data_to_send[i];
-  
-    trama[4+size_to_send] = (char)(FIN_DE_TRAMA + size_to_send); // fin de trama
-    
+    trama[1] = (char)0;                                // sizeH
+    trama[2] = (char)0;                                // sizeL
+    trama[3] = (char)0;                                // Device
+
+    for (int i = 0; i < size_to_send; i++)
+      trama[4 + i] = data_to_send[i];
+
+    trama[4 + size_to_send] = (char)(FIN_DE_TRAMA + size_to_send); // fin de trama
+
     while (XUartLite_IsSending(&uart_module)) {}
-    XUartLite_Send(&uart_module, trama, 5+size_to_send);
-
-
+    
+    XUartLite_Send(&uart_module, trama, 5 + size_to_send);
 
     // leer switches
     //   led_value = 0;
     //   XGpio_DiscreteWrite(&GpioOutput, 1, led_value);
     //   value = XGpio_DiscreteRead(&GpioInput, 1);
     //   datos = (char)(value & (0x0000000F));
-   
 
     //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     // FIN de toda la funcionalidad
@@ -173,7 +171,6 @@ int main() {
   return 0;
 }
 
-
 u32 create_command(enum COMANDOS comando, u16 data)
 {
   u32 command = 0;
@@ -183,15 +180,15 @@ u32 create_command(enum COMANDOS comando, u16 data)
 }
 
 void write_command(u32 command)
-{ 
-    command &= ~(1<<23);  // enable = 0
-    XGpio_DiscreteWrite(&GpioOutput, 1, command);
-    
-    command |= (1<<23);   // enable = 1
-    XGpio_DiscreteWrite(&GpioOutput, 1, command);
-    
-    command &= ~(1<<23);  // enable = 0
-    XGpio_DiscreteWrite(&GpioOutput, 1, command);
+{
+  command &= ~(1 << 23); // enable = 0
+  XGpio_DiscreteWrite(&GpioOutput, 1, command);
+
+  command |= (1 << 23); // enable = 1
+  XGpio_DiscreteWrite(&GpioOutput, 1, command);
+
+  command &= ~(1 << 23); // enable = 0
+  XGpio_DiscreteWrite(&GpioOutput, 1, command);
 }
 
 int read_trama(unsigned char *buffer)
@@ -224,7 +221,7 @@ int read_trama(unsigned char *buffer)
 
   if (end != (FIN_DE_TRAMA + size))
     return -1; // no es el fin de trama correcto
-  
+
   // load data to buffer
   for (int i = 0; i < size; i++)
     buffer[i] = data[i];
