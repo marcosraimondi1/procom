@@ -7,56 +7,24 @@ El usuario debe:
     2. Leer el estado de los switch
 """
 DEBUG = False
-
-# COMANDOS
-RESET    = 1
-EN_TX    = 2
-EN_RX    = 3
-PH_SEL   = 4
-RUN_MEM  = 5
-RD_MEM   = 6
-IS_FULL  = 7
-BER_S_I  = 8
-BER_S_Q  = 9
-BER_E_I  = 10
-BER_E_Q  = 11
+INICIO_DE_TRAMA = 0xA0
+FIN_DE_TRAMA = 0x40
+SER_TIMEOUT = 1000000000000000000
 COMANDOS = {
-    "RESET": RESET,
-    "EN_TX": EN_TX,
-    "EN_RX": EN_RX,
-    "PH_SEL": PH_SEL,
-    "RUN_MEM": RUN_MEM,
-    "RD_MEM": RD_MEM,
-    "IS_FULL": IS_FULL,
-    "BER_S_I": BER_S_I,
-    "BER_S_Q": BER_S_Q,
-    "BER_E_I": BER_E_I,
-    "BER_E_Q": BER_E_Q
-    }
-
-def init_serial():
-    if (DEBUG):
-        ser = serial.serial_for_url(
-            "loop://", timeout=1
-        )  # abre el puerto serie con loopback
-
-    else:
-        portUSB = input("Ingrese N° puerto USB: ")
-        ser = serial.Serial(
-            # Configurar con el puerto
-            port='/dev/ttyUSB{}'.format(int(portUSB)),
-            baudrate=115200,
-            parity=serial.PARITY_NONE,
-            stopbits=serial.STOPBITS_ONE,
-            bytesize=serial.EIGHTBITS
-        )
-
-    ser.timeout = None
-    return ser
-
+    "RESET"     :  1    ,
+    "EN_TX"     :  2    ,
+    "EN_RX"     :  3    ,
+    "PH_SEL"    :  4    ,
+    "RUN_MEM"   :  5    ,
+    "RD_MEM"    :  6    ,
+    "IS_FULL"   :  7    ,
+    "BER_S_I"   :  8    ,
+    "BER_S_Q"   :  9    ,
+    "BER_E_I"   :  10   ,
+    "BER_E_Q"   :  11
+}
 
 def launch_app():
-
     ser = init_serial()
     ser.flushInput()
     ser.flushOutput()
@@ -81,67 +49,11 @@ def launch_app():
 
         if opt == 'start' or opt == 'stop':
             enable = opt == 'start'
-
-            # enable/disable tx
-            data = (COMANDOS["EN_TX"] << (8*3)) + enable
-            ser.write(encapsular(data, 4).encode())
-            while ser.inWaiting() == 0:
-                continue
-            ser.flushInput()
-
-            # enable/disable rx
-            data = (COMANDOS["EN_RX"] << (8*3)) + enable
-            ser.write(encapsular(data, 4).encode())
-            while ser.inWaiting() == 0:
-                continue
-            ser.flushInput()
-
+            start_cmd(ser, enable)
             continue
 
         if opt == 'read':
-            # save to memory
-            data = (COMANDOS["RUN_MEM"] << (8*3)) + 0
-            ser.write(encapsular(data, 4).encode())
-            while ser.inWaiting() == 0:
-                continue
-            ser.flushInput()
-
-            # read if full
-            data = (COMANDOS["IS_FULL"] << (8*3)) + 0
-            ser.write(encapsular(data, 4).encode())
-            while ser.inWaiting() == 0:
-                continue
-            try:
-                received_data = read_trama(ser)  # leo la trama
-                ser.flushInput()
-                ser.flushOutput()
-            except Exception as e:
-                print(e)
-                continue
-            is_full = int.from_bytes(received_data, byteorder='big')
-            if is_full == 0:
-                print("Memoria no llena")
-                continue
-
-            # read memory
-            f = open("./data.txt", "w+")
-            for i in range(1024):
-                data = (COMANDOS["RD_MEM"] << (8*3)) + i
-                ser.write(encapsular(data, 4).encode())
-                while ser.inWaiting() == 0:
-                    continue
-                try:
-                    received_data = read_trama(ser)  # leo la trama
-                    ser.flushInput()
-                    ser.flushOutput()
-                except Exception as e:
-                    print(e)
-                    break
-                out = str(int.from_bytes(received_data, byteorder='big'))
-                print(str(i)+" "+out)
-                f.write(out)
-                f.write(",")
-            f.close()
+            read_cmd(ser)
             continue
 
         if int(opt) not in COMANDOS.values():
@@ -149,53 +61,14 @@ def launch_app():
             print("Comandos: ", COMANDOS)
             continue
 
-        # ENVIAR COMANDO
-
+        # ENVIAR COMANDO INDIVIDUAL
         op_code = int(opt)
-        nBytes = 4
         params = 0
 
         if len(inputData) > 1:
             params = int(inputData[1]) & 0x007FFFFF
+        send_single_cmd(ser, op_code, params)
 
-        # <31:24> = op_code
-        # 23 = enable // no se usa en python
-        # <22:0> = data
-
-        data = (op_code << (8*3)) + params
-
-        ser.write(encapsular(data, nBytes).encode())
-
-        # time.sleep(2)
-        time_out = 1000000000000000000
-        while ser.inWaiting() == 0:
-            time_out -= 1
-            if time_out == 0:
-                print("Time out!")
-                break
-            continue
-
-        if ser.inWaiting() > 0:  # leo una sola trama asique no uso while
-            try:
-                received_data = read_trama(ser)  # leo la trama
-                ser.flushInput()
-                ser.flushOutput()
-            except Exception as e:
-                print(e)
-                continue
-        else:
-            print("No se recibio respuesta")
-            continue
-
-        out = str(int.from_bytes(received_data, byteorder='big'))
-
-        if out != '':
-            print(">> "+out)
-        print("\n")
-
-
-INICIO_DE_TRAMA = 0xA0
-FIN_DE_TRAMA = 0x40
 def encapsular(data, nBytes):
     """
     Crea un string con bytes codificados en ascii.
@@ -252,9 +125,122 @@ def read_trama(ser):
     #print("finished reading trama")
     return received_data
 
+def wait_for_trama(ser, timeout):
+    """
+    Espera hasta que llegue una trama.
+    Devuelve True si se acabo el tiempo.
+    """
+    count = 0
+    while ser.inWaiting() == 0:
+        count += 1
+        if count == timeout:
+            return True
+        continue
+    return False
+
+def send_command(ser, command, data):
+    """
+    Envia un comando al microcontrolador.
+    """
+    data = (command << (8*3)) + data
+    ser.write(encapsular(data, 4).encode())
+
+def start_cmd(ser, enable):
+    # enable/disable tx
+    send_command(ser, COMANDOS["EN_TX"], enable)
+    wait_for_trama(ser, SER_TIMEOUT)
+    ser.flushInput()
+
+    # enable/disable rx
+    send_command(ser, COMANDOS["EN_RX"], enable)
+    wait_for_trama(ser, SER_TIMEOUT)
+    ser.flushInput()
+
+def read_cmd(ser):
+    # save to memory
+    send_command(ser, COMANDOS["RUN_MEM"], 0)
+    wait_for_trama(ser, SER_TIMEOUT)
+    ser.flushInput()
+
+    # read if full
+    send_command(ser, COMANDOS["IS_FULL"], 0)
+    if wait_for_trama(ser, SER_TIMEOUT):
+        print("Time out!")
+        return
+
+    try:
+        received_data = read_trama(ser)  # leo la trama
+    except Exception as e:
+        print(e)
+        return
+
+    is_full = int.from_bytes(received_data, byteorder='big')
+    if is_full == 0:
+        print("Memoria no llena")
+        return
+
+    # read memory and save to file
+    print("Leyendo memoria...")
+    f = open("./data.txt", "w+")
+    for i in range(1024):
+        send_command(ser, COMANDOS["RD_MEM"], i)
+        wait_for_trama(ser, SER_TIMEOUT)
+        try:
+            received_data = read_trama(ser)  # leo la trama
+        except Exception as e:
+            print(e)
+            break
+        out = str(int.from_bytes(received_data, byteorder='big'))
+        print(str(i)+" "+out)
+        f.write(out)
+        f.write(",")
+    f.close()
+
+def send_single_cmd(ser, op_code, params):
+    # <31:24> = op_code
+    # 23 = enable // no se usa en python
+    # <22:0> = data
+
+    send_command(ser, op_code, params)
+
+    if wait_for_trama(ser, SER_TIMEOUT):
+        print("Time out!")
+        return
+
+    try:
+        received_data = read_trama(ser)  # leo la trama
+    except Exception as e:
+        print(e)
+        return
+
+    out = str(int.from_bytes(received_data, byteorder='big'))
+
+    if out != '':
+        print(">> "+out)
+    print("\n")
+
+def init_serial():
+    if (DEBUG):
+        ser = serial.serial_for_url(
+            "loop://", timeout=1
+        )  # abre el puerto serie con loopback
+
+    else:
+        portUSB = input("Ingrese N° puerto USB: ")
+        ser = serial.Serial(
+            # Configurar con el puerto
+            port='/dev/ttyUSB{}'.format(int(portUSB)),
+            baudrate=115200,
+            parity=serial.PARITY_NONE,
+            stopbits=serial.STOPBITS_ONE,
+            bytesize=serial.EIGHTBITS
+        )
+
+    ser.timeout = None
+    return ser
+
 def main():
     launch_app()
-
 
 if __name__ == "__main__":
     main()
