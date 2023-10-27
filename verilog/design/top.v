@@ -124,6 +124,7 @@ module top #(
             .offset      (offset                 ), // phase
             .reset       (reset                  ),
             .clock       (clk100                 ),
+            .reset_ber   (reset_from_micro       ),
             .o_filter    (filter_out_I           )           
         );
         
@@ -139,6 +140,7 @@ module top #(
             .offset      (offset                  ),
             .reset       (reset                   ),
             .clock       (clk100                  ),
+            .reset_ber   (reset_from_micro        ),
             .o_filter    (filter_out_Q            ) 
         );
     

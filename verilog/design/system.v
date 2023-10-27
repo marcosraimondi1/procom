@@ -38,6 +38,7 @@ module system #(
     input                   rx_enable   , //! rx enable
     input  [    1:0       ] offset      , //! offset de muestreo del buffer
     input                   reset       , //! reset
+    input                   reset_ber   , //! reset del contador de ber
     input                   clock         //! clock
 );
 
@@ -93,7 +94,7 @@ module system #(
             .i_ref      (prbs9_out)         ,
             .i_valid    (valid && rx_enable),
             .clock      (clock)             ,
-            .i_reset    (reset)
+            .i_reset    (reset | reset_ber)
         );
 
     
