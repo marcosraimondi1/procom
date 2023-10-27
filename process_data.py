@@ -31,19 +31,36 @@ while line:
     data += list(map(lambda x: int(x), line.split(",")))
     line = f.readline()
 
+dataI = []
+dataQ = []
+for i in range(len(data)):
+    dataI.append(data[i] & 0xFF)
+    dataQ.append((data[i] >> 8) & 0xFF)
 
 for i in range(len(data)):
-    data[i] = fixedIntToFloat(data[i], 8, 7)
+    dataI[i] = fixedIntToFloat(dataI[i], 8, 7)
+    dataQ[i] = fixedIntToFloat(dataQ[i], 8, 7)
 
 plt.figure()
-plt.stem(data)
-plt.plot(data, '--^r', linewidth=1.5, markersize=7)
+plt.subplot(2,1,1)
+plt.title("Filter Output I")
+plt.stem(dataI)
+plt.plot(dataI, '--^r', linewidth=1.5, markersize=7)
+plt.xlim(0, 50)
+plt.ylim(-1.5, 1.5)
+plt.ylabel("Amplitude")
+plt.grid()
+
+plt.subplot(2,1,2)
+plt.title("Filter Output Q")
+plt.stem(dataQ)
+plt.plot(dataQ, '--^r', linewidth=1.5, markersize=7)
 plt.xlim(0, 50)
 plt.ylim(-1.5, 1.5)
 plt.xlabel("Samples")
 plt.ylabel("Amplitude")
-plt.title("Filter Output")
 plt.grid()
+
 plt.show()
 
 f.close()

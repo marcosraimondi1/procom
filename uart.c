@@ -112,8 +112,9 @@ int main()
 
     case RD_MEM:
       value = XGpio_DiscreteRead(&GpioInput, 1);
-      size_to_send = 1;
-      data_to_send[0] = (char)(value & 0x000000FF);
+      size_to_send = 2;
+      data_to_send[1] = (char)(value >> 0) & 0xFF; // parte I
+      data_to_send[0] = (char)(value >> 8) & 0xFF; // parte Q
       break;
 
     case BER_S_I:
@@ -126,14 +127,14 @@ int main()
       value = XGpio_DiscreteRead(&GpioInput, 1);
       u32 high = value;
       size_to_send = 8;
-      data_to_send[7] = (char)(low & 0x000000FF);
-      data_to_send[6] = (char)((low & 0x0000FF00) >> 8);
-      data_to_send[5] = (char)((low & 0x00FF0000) >> 16);
-      data_to_send[4] = (char)((low & 0xFF000000) >> 24);
-      data_to_send[3] = (char)(high & 0x000000FF);
-      data_to_send[2] = (char)((high & 0x0000FF00) >> 8);
-      data_to_send[1] = (char)((high & 0x00FF0000) >> 16);
-      data_to_send[0] = (char)((high & 0xFF000000) >> 24);
+      data_to_send[7] = (char)(low >> 0) & 0xFF;
+      data_to_send[6] = (char)(low >> 8) & 0xFF;
+      data_to_send[5] = (char)(low >> 16) & 0xFF;
+      data_to_send[4] = (char)(low >> 24) & 0xFF;
+      data_to_send[3] = (char)(high >> 0) & 0xFF;
+      data_to_send[2] = (char)(high >> 8) & 0xFF;
+      data_to_send[1] = (char)(high >> 16) & 0xFF;
+      data_to_send[0] = (char)(high >> 24) & 0xFF;
       break;
 
     default: // el comando no devuelve, se envia un 0
@@ -152,8 +153,10 @@ int main()
 
     trama[4 + size_to_send] = (char)(FIN_DE_TRAMA + size_to_send); // fin de trama
 
-    while (XUartLite_IsSending(&uart_module)) {}
-    
+    while (XUartLite_IsSending(&uart_module))
+    {
+    }
+
     XUartLite_Send(&uart_module, trama, 5 + size_to_send);
 
     // leer switches
