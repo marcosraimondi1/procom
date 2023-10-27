@@ -9,7 +9,7 @@ El usuario debe:
 DEBUG = False
 INICIO_DE_TRAMA = 0xA0
 FIN_DE_TRAMA = 0x40
-SER_TIMEOUT = 1000000000000000000
+SER_TIMEOUT = 1000000
 COMANDOS = {
     "RESET"     :  1    ,
     "EN_TX"     :  2    ,
@@ -31,6 +31,8 @@ def launch_app():
 
     print("Comandos:")
     print("\t- exit")
+    print("\t- reset")
+    print("\t- phase <0-3>")
     print("\t- start")
     print("\t- stop")
     print("\t- read")
@@ -54,6 +56,18 @@ def launch_app():
 
         if opt == 'read':
             read_cmd(ser)
+            continue
+        
+        if opt == 'reset':
+            reset_cmd(ser)
+            continue
+
+        if opt == 'phase':
+            if len(inputData) < 2:
+                print("Falta parametro")
+                continue
+            phase = int(inputData[1]) & 3
+            phase_cmd(ser, phase)
             continue
 
         if int(opt) not in COMANDOS.values():
@@ -166,6 +180,7 @@ def read_cmd(ser):
     send_command(ser, COMANDOS["IS_FULL"], 0)
     if wait_for_trama(ser, SER_TIMEOUT):
         print("Time out!")
+        ser.flushInput()
         return
 
     try:
@@ -196,6 +211,20 @@ def read_cmd(ser):
         f.write(",")
     f.close()
 
+def phase_cmd(ser, phase):
+    send_command(ser, COMANDOS["PH_SEL"], phase)
+    wait_for_trama(ser, SER_TIMEOUT)
+    ser.flushInput()
+
+def reset_cmd(ser):
+    send_command(ser, COMANDOS["RESET"], 1)
+    wait_for_trama(ser, SER_TIMEOUT)
+    ser.flushInput()
+    
+    send_command(ser, COMANDOS["RESET"], 0)
+    wait_for_trama(ser, SER_TIMEOUT)
+    ser.flushInput()
+
 def send_single_cmd(ser, op_code, params):
     # <31:24> = op_code
     # 23 = enable // no se usa en python
@@ -205,6 +234,7 @@ def send_single_cmd(ser, op_code, params):
 
     if wait_for_trama(ser, SER_TIMEOUT):
         print("Time out!")
+        ser.flushInput()
         return
 
     try:
