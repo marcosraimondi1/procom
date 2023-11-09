@@ -1,0 +1,59 @@
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebRTC</title>
+    <link rel="stylesheet" href="https://unpkg.com/boltcss/bolt.min.css">
+    <link rel="stylesheet" href="./style.css" />
+</head>
+
+<body>
+
+    <nav>
+        <select id="video-resolution" class="nav-item">
+            <option value="" selected>Default resolution</option>
+            <option value="320x240">320x240</option>
+            <option value="640x480">640x480</option>
+            <option value="960x540">960x540</option>
+            <option value="1280x720">1280x720</option>
+        </select>
+        <select id="video-transform" class="nav-item">
+            <option value="none" selected>No transform</option>
+            <option value="edges">Edge detection</option>
+            <option value="cartoon">Cartoon effect</option>
+            <option value="rotate">Rotate</option>
+        </select>
+
+        <button id="start" onclick="start()" class="nav-item">Start</button>
+        <button id="stop" style="display: none" onclick="stop()" class="nav-item">Stop</button>
+    </nav>
+
+    <h2>State</h2>
+    <p>
+        ICE gathering state: <span id="ice-gathering-state"></span>
+    </p>
+    <p>
+        ICE connection state: <span id="ice-connection-state"></span>
+    </p>
+    <p>
+        Signaling state: <span id="signaling-state"></span>
+    </p>
+
+    <div id="media" style="display: none">
+        <h2>Media</h2>
+        <video id="video" autoplay="true" playsinline="true"></video>
+    </div>
+
+    <h2>SDP</h2>
+
+    <h3>Offer</h3>
+    <pre id="offer-sdp"></pre>
+
+    <h3>Answer</h3>
+    <pre id="answer-sdp"></pre>
+
+    <script src="client.js"></script>
+</body>
+
+</html>

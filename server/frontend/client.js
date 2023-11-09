@@ -7,17 +7,10 @@ var dataChannelLog = document.getElementById('data-channel'),
 // peer connection
 var pc = null;
 
-// data channel
-var dc = null, dcInterval = null;
-
 function createPeerConnection() {
     var config = {
         sdpSemantics: 'unified-plan'
     };
-
-    if (document.getElementById('use-stun').checked) {
-        config.iceServers = [{urls: ['stun:stun.l.google.com:19302']}];
-    }
 
     pc = new RTCPeerConnection(config);
 
@@ -37,12 +30,10 @@ function createPeerConnection() {
     }, false);
     signalingLog.textContent = pc.signalingState;
 
-    // connect audio / video
+    // connect video
     pc.addEventListener('track', function(evt) {
         if (evt.track.kind == 'video')
             document.getElementById('video').srcObject = evt.streams[0];
-        else
-            document.getElementById('audio').srcObject = evt.streams[0];
     });
 
     return pc;
@@ -68,17 +59,6 @@ function negotiate() {
         });
     }).then(function() {
         var offer = pc.localDescription;
-        var codec;
-
-        codec = document.getElementById('audio-codec').value;
-        if (codec !== 'default') {
-            offer.sdp = sdpFilterCodec('audio', codec, offer.sdp);
-        }
-
-        codec = document.getElementById('video-codec').value;
-        if (codec !== 'default') {
-            offer.sdp = sdpFilterCodec('video', codec, offer.sdp);
-        }
 
         document.getElementById('offer-sdp').textContent = offer.sdp;
         return fetch('/offer', {
@@ -104,90 +84,39 @@ function negotiate() {
 
 function start() {
     document.getElementById('start').style.display = 'none';
+    document.getElementById('media').style.display = 'block';
+    document.getElementById('stop').style.display = 'inline-block';
 
     pc = createPeerConnection();
 
-    var time_start = null;
-
-    function current_stamp() {
-        if (time_start === null) {
-            time_start = new Date().getTime();
-            return 0;
-        } else {
-            return new Date().getTime() - time_start;
-        }
-    }
-
-    if (document.getElementById('use-datachannel').checked) {
-        var parameters = JSON.parse(document.getElementById('datachannel-parameters').value);
-
-        dc = pc.createDataChannel('chat', parameters);
-        dc.onclose = function() {
-            clearInterval(dcInterval);
-            dataChannelLog.textContent += '- close\n';
-        };
-        dc.onopen = function() {
-            dataChannelLog.textContent += '- open\n';
-            dcInterval = setInterval(function() {
-                var message = 'ping ' + current_stamp();
-                dataChannelLog.textContent += '> ' + message + '\n';
-                dc.send(message);
-            }, 1000);
-        };
-        dc.onmessage = function(evt) {
-            dataChannelLog.textContent += '< ' + evt.data + '\n';
-
-            if (evt.data.substring(0, 4) === 'pong') {
-                var elapsed_ms = current_stamp() - parseInt(evt.data.substring(5), 10);
-                dataChannelLog.textContent += ' RTT ' + elapsed_ms + ' ms\n';
-            }
-        };
-    }
-
     var constraints = {
-        audio: document.getElementById('use-audio').checked,
-        video: false
+        audio: false,
+        video: true
     };
 
-    if (document.getElementById('use-video').checked) {
-        var resolution = document.getElementById('video-resolution').value;
-        if (resolution) {
-            resolution = resolution.split('x');
-            constraints.video = {
-                width: parseInt(resolution[0], 0),
-                height: parseInt(resolution[1], 0)
-            };
-        } else {
-            constraints.video = true;
-        }
+    var resolution = document.getElementById('video-resolution').value;
+    if (resolution) {
+        resolution = resolution.split('x');
+        constraints.video = {
+            width: parseInt(resolution[0], 0),
+            height: parseInt(resolution[1], 0)
+        };
     }
-
-    if (constraints.audio || constraints.video) {
-        if (constraints.video) {
-            document.getElementById('media').style.display = 'block';
-        }
-        navigator.mediaDevices.getUserMedia(constraints).then(function(stream) {
-            stream.getTracks().forEach(function(track) {
-                pc.addTrack(track, stream);
-            });
-            return negotiate();
-        }, function(err) {
-            alert('Could not acquire media: ' + err);
+    
+    navigator.mediaDevices.getUserMedia(constraints).then(function(stream) {
+        stream.getTracks().forEach(function(track) {
+            pc.addTrack(track, stream);
         });
-    } else {
-        negotiate();
-    }
+        return negotiate();
+    }, function(err) {
+        alert('Could not acquire media: ' + err);
+    });
 
-    document.getElementById('stop').style.display = 'inline-block';
 }
 
 function stop() {
     document.getElementById('stop').style.display = 'none';
-
-    // close data channel
-    if (dc) {
-        dc.close();
-    }
+    document.getElementById('start').style.display = 'block';
 
     // close transceivers
     if (pc.getTransceivers) {
