@@ -30,28 +30,38 @@
     </nav>
 
     <h2>State</h2>
-    <p>
-        ICE gathering state: <span id="ice-gathering-state"></span>
-    </p>
-    <p>
-        ICE connection state: <span id="ice-connection-state"></span>
-    </p>
-    <p>
-        Signaling state: <span id="signaling-state"></span>
-    </p>
+    <div id="status">
+        <p>
+            ICE gathering state: <span id="ice-gathering-state"></span>
+        </p>
+        <p>
+            ICE connection state: <span id="ice-connection-state"></span>
+        </p>
+        <p>
+            Signaling state: <span id="signaling-state"></span>
+        </p>
+    </div>
 
+    <h2>Media</h2>
     <div id="media" style="display: none">
-        <h2>Media</h2>
-        <video id="video" autoplay="true" playsinline="true"></video>
+        <div id="videos">
+            <video id="video-original" autoplay="true" playsinline="true"></video>
+            <video id="video-processed" autoplay="true" playsinline="true"></video>
+        </div>
     </div>
 
     <h2>SDP</h2>
+    <div id="data">
+        <div>
+            <h3>Offer</h3>
+            <pre id="offer-sdp"></pre>
+        </div>
 
-    <h3>Offer</h3>
-    <pre id="offer-sdp"></pre>
-
-    <h3>Answer</h3>
-    <pre id="answer-sdp"></pre>
+        <div>
+            <h3>Answer</h3>
+            <pre id="answer-sdp"></pre>
+        </div>
+    </div>
 
     <script src="client.js"></script>
 </body>

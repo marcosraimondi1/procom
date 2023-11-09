@@ -1,8 +1,16 @@
 // get DOM elements
-var dataChannelLog = document.getElementById('data-channel'),
-    iceConnectionLog = document.getElementById('ice-connection-state'),
-    iceGatheringLog = document.getElementById('ice-gathering-state'),
-    signalingLog = document.getElementById('signaling-state');
+let startButton        = document.getElementById('start');
+let stopButton         = document.getElementById('stop');
+let media              = document.getElementById('media');
+let transformInput     = document.getElementById('video-transform');
+let resolutionInput    = document.getElementById('video-resolution');
+let iceConnectionLog   = document.getElementById('ice-connection-state');
+let iceGatheringLog    = document.getElementById('ice-gathering-state');
+let signalingLog       = document.getElementById('signaling-state');
+let videoProcessed     = document.getElementById('video-processed');
+let videoOriginal      = document.getElementById('video-original');
+let offerSDP           = document.getElementById('offer-sdp');
+let answerSDP          = document.getElementById('answer-sdp');
 
 // peer connection
 var pc = null;
@@ -33,7 +41,7 @@ function createPeerConnection() {
     // connect video
     pc.addEventListener('track', function(evt) {
         if (evt.track.kind == 'video')
-            document.getElementById('video').srcObject = evt.streams[0];
+            videoProcessed.srcObject = evt.streams[0];
     });
 
     return pc;
@@ -60,12 +68,12 @@ function negotiate() {
     }).then(function() {
         var offer = pc.localDescription;
 
-        document.getElementById('offer-sdp').textContent = offer.sdp;
+        offerSDP.textContent = offer.sdp;
         return fetch('/offer', {
             body: JSON.stringify({
                 sdp: offer.sdp,
                 type: offer.type,
-                video_transform: document.getElementById('video-transform').value
+                video_transform: transformInput.value
             }),
             headers: {
                 'Content-Type': 'application/json'
@@ -75,7 +83,7 @@ function negotiate() {
     }).then(function(response) {
         return response.json();
     }).then(function(answer) {
-        document.getElementById('answer-sdp').textContent = answer.sdp;
+        answerSDP.textContent = answer.sdp;
         return pc.setRemoteDescription(answer);
     }).catch(function(e) {
         alert(e);
@@ -83,9 +91,11 @@ function negotiate() {
 }
 
 function start() {
-    document.getElementById('start').style.display = 'none';
-    document.getElementById('media').style.display = 'block';
-    document.getElementById('stop').style.display = 'inline-block';
+    startButton.style.display = 'none';
+    media.style.display = 'block';
+    stopButton.style.display = 'inline-block';
+    resolutionInput.disabled = true;
+    transformInput.disabled = true;
 
     pc = createPeerConnection();
 
@@ -94,7 +104,7 @@ function start() {
         video: true
     };
 
-    var resolution = document.getElementById('video-resolution').value;
+    var resolution = resolutionInput.value;
     if (resolution) {
         resolution = resolution.split('x');
         constraints.video = {
@@ -104,10 +114,17 @@ function start() {
     }
     
     navigator.mediaDevices.getUserMedia(constraints).then(function(stream) {
+
+        // show original video
+        videoOriginal.srcObject = stream;
+
+        // stream to peer connection
         stream.getTracks().forEach(function(track) {
             pc.addTrack(track, stream);
         });
+
         return negotiate();
+    
     }, function(err) {
         alert('Could not acquire media: ' + err);
     });
@@ -115,8 +132,11 @@ function start() {
 }
 
 function stop() {
-    document.getElementById('stop').style.display = 'none';
-    document.getElementById('start').style.display = 'block';
+    stopButton.style.display = 'none';
+    startButton.style.display = 'block';
+    media.style.display = 'none';
+    resolutionInput.disabled = false;
+    transformInput.disabled = false;
 
     // close transceivers
     if (pc.getTransceivers) {
