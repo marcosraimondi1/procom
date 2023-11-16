@@ -18,7 +18,6 @@ logger = logging.getLogger("pc")
 pcs = set()
 relay = MediaRelay()
 
-
 class VideoTransformTrack(MediaStreamTrack):
     """
     A video stream track that transforms frames from an another track.
@@ -33,14 +32,33 @@ class VideoTransformTrack(MediaStreamTrack):
 
     async def recv(self):
         frame = await self.track.recv()
+        # img = frame.to_ndarray(format="bgr24")
+        # new_frame = rebuildFrame(img, frame)
+        # return new_frame
 
         if self.transform == "cartoon":
-            img = frame.to_ndarray(format="bgr24")
+            return self.cartoon(frame)
+        elif self.transform == "edges":
+            return self.edgeDetection(frame)
+        elif self.transform == "rotate":
+            return self.rotate(frame)
+        else:
+            return frame
 
-            # prepare color
-            img_color = cv2.pyrDown(cv2.pyrDown(img))
-            for _ in range(6):
-                img_color = cv2.bilateralFilter(img_color, 9, 9, 7)
+    def rebuildFrame(self, img, frame):
+        # rebuild a VideoFrame, preserving timing information
+        new_frame = VideoFrame.from_ndarray(img, format="bgr24")
+        new_frame.pts = frame.pts
+        new_frame.time_base = frame.time_base
+        return new_frame
+
+    def cartoon(self, frame):
+        img = frame.to_ndarray(format="bgr24")
+
+        # prepare color
+        img_color = cv2.pyrDown(cv2.pyrDown(img))
+        for _ in range(6):
+            img_color = cv2.bilateralFilter(img_color, 9, 9, 7)
             img_color = cv2.pyrUp(cv2.pyrUp(img_color))
 
             # prepare edges
@@ -58,35 +76,23 @@ class VideoTransformTrack(MediaStreamTrack):
             # combine color and edges
             img = cv2.bitwise_and(img_color, img_edges)
 
-            # rebuild a VideoFrame, preserving timing information
-            new_frame = VideoFrame.from_ndarray(img, format="bgr24")
-            new_frame.pts = frame.pts
-            new_frame.time_base = frame.time_base
-            return new_frame
-        elif self.transform == "edges":
-            # perform edge detection
-            img = frame.to_ndarray(format="bgr24")
-            img = cv2.cvtColor(cv2.Canny(img, 100, 200), cv2.COLOR_GRAY2BGR)
+            return self.rebuildFrame(img, frame)
 
-            # rebuild a VideoFrame, preserving timing information
-            new_frame = VideoFrame.from_ndarray(img, format="bgr24")
-            new_frame.pts = frame.pts
-            new_frame.time_base = frame.time_base
-            return new_frame
-        elif self.transform == "rotate":
-            # rotate image
-            img = frame.to_ndarray(format="bgr24")
-            rows, cols, _ = img.shape
-            M = cv2.getRotationMatrix2D((cols / 2, rows / 2), frame.time * 45, 1)
-            img = cv2.warpAffine(img, M, (cols, rows))
+    def edgeDetection(self, frame):
+        # perform edge detection
+        img = frame.to_ndarray(format="bgr24")
+        img = cv2.cvtColor(cv2.Canny(img, 100, 200), cv2.COLOR_GRAY2BGR)
 
-            # rebuild a VideoFrame, preserving timing information
-            new_frame = VideoFrame.from_ndarray(img, format="bgr24")
-            new_frame.pts = frame.pts
-            new_frame.time_base = frame.time_base
-            return new_frame
-        else:
-            return frame
+        return self.rebuildFrame(img, frame)
+
+    def rotate(self, frame):
+        # rotate image
+        img = frame.to_ndarray(format="bgr24")
+        rows, cols, _ = img.shape
+        M = cv2.getRotationMatrix2D((cols / 2, rows / 2), frame.time * 45, 1)
+        img = cv2.warpAffine(img, M, (cols, rows))
+
+        return self.rebuildFrame(img, frame)
 
 
 async def index(request):
@@ -121,13 +127,6 @@ async def offer(request):
         recorder = MediaRecorder(args.record_to)
     else:
         recorder = MediaBlackhole()
-
-    @pc.on("datachannel")
-    def on_datachannel(channel):
-        @channel.on("message")
-        def on_message(message):
-            if isinstance(message, str) and message.startswith("ping"):
-                channel.send("pong" + message[4:])
 
     @pc.on("connectionstatechange")
     async def on_connectionstatechange():
@@ -181,7 +180,7 @@ async def on_shutdown(app):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="WebRTC audio / video / data-channels demo"
+        description="WebRTC video processing"
     )
     parser.add_argument("--cert-file", help="SSL certificate file (for HTTPS)")
     parser.add_argument("--key-file", help="SSL key file (for HTTPS)")
