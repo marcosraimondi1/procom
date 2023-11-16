@@ -1,3 +1,7 @@
+import multiprocessing as mp
+from multiprocessing import Process, Lock, Array
+import time
+import numpy as np
 import argparse
 import asyncio
 import json
@@ -31,10 +35,13 @@ class VideoTransformTrack(MediaStreamTrack):
         self.transform = transform
 
     async def recv(self):
+        global resolution, imgToProcess, imgProcessed
         frame = await self.track.recv()
-        # img = frame.to_ndarray(format="bgr24")
-        # new_frame = rebuildFrame(img, frame)
-        # return new_frame
+        img = frame.to_ndarray(format="gray")
+
+        new_frame = self.edgeDetection(frame)
+
+        return new_frame
 
         if self.transform == "cartoon":
             return self.cartoon(frame)
@@ -53,7 +60,7 @@ class VideoTransformTrack(MediaStreamTrack):
         return new_frame
 
     def cartoon(self, frame):
-        img = frame.to_ndarray(format="bgr24")
+        img = frame.to_ndarray(format="gray")
 
         # prepare color
         img_color = cv2.pyrDown(cv2.pyrDown(img))
@@ -80,14 +87,14 @@ class VideoTransformTrack(MediaStreamTrack):
 
     def edgeDetection(self, frame):
         # perform edge detection
-        img = frame.to_ndarray(format="bgr24")
+        img = frame.to_ndarray(format="gray")
         img = cv2.cvtColor(cv2.Canny(img, 100, 200), cv2.COLOR_GRAY2BGR)
 
         return self.rebuildFrame(img, frame)
 
     def rotate(self, frame):
         # rotate image
-        img = frame.to_ndarray(format="bgr24")
+        img = frame.to_ndarray(format="gray")
         rows, cols, _ = img.shape
         M = cv2.getRotationMatrix2D((cols / 2, rows / 2), frame.time * 45, 1)
         img = cv2.warpAffine(img, M, (cols, rows))
@@ -178,7 +185,8 @@ async def on_shutdown(app):
     pcs.clear()
 
 
-if __name__ == "__main__":
+def startApp():
+    global args
     parser = argparse.ArgumentParser(
         description="WebRTC video processing"
     )
@@ -214,3 +222,67 @@ if __name__ == "__main__":
     web.run_app(
         app, access_log=None, host=args.host, port=args.port, ssl_context=ssl_context
     )
+
+def getImgToProcess():
+    global imgToProcess, resolution
+    new_img = np.zeros(shape=(len(imgToProcess),1), dtype=np.uint8)
+    with imgToProcess.get_lock():
+        for i in range(len(imgToProcess)):
+            new_img[i] = imgToProcess[i]
+
+    new_img.reshape(resolution)
+    return new_img
+
+def setImgProcessed(img):
+    global imgProcessed
+    # send processed image
+    with imgProcessed.get_lock():
+        for i in range(len(imgProcessed)):
+            imgProcessed[i] = img[i]
+
+def getImgProcessed():
+    global imgProcessed, resolution
+    new_img = np.zeros(shape=(len(imgProcessed),1), dtype=np.uint8)
+    with imgProcessed.get_lock():
+        for i in range(len(imgProcessed)):
+            new_img[i] = imgProcessed[i]
+
+    new_img.reshape(resolution)
+    return new_img
+
+def setImgToProcess(img):
+    global imgToProcess
+    with imgToProcess.get_lock():
+        for i in range(len(imgToProcess)):
+            imgToProcess[i] = img[i]
+
+            
+
+def ethInterface():
+    global resolution, imgToProcess, imgProcessed
+
+    while (True):
+        # get image to process
+        new_img = getImgToProcess()
+
+        # process the image
+        processed_img = cv2.cvtColor(cv2.Canny(new_img, 100, 200), cv2.COLOR_GRAY2BGR)
+        processed_img = processed_img.ravel()
+
+        # send processed image
+        setImgProcessed(processed_img)
+
+        time.sleep(2)
+
+
+
+if __name__ == "__main__":
+    mp.set_start_method('fork')
+    lock = Lock()
+    args = None
+    resolution = (640, 480)
+    imgToProcess = Array('i', resolution[0]*resolution[1]) # shared memory, process protected
+    imgProcessed = Array('i', resolution[0]*resolution[1]) # shared memory, process protected
+    p = Process(target=ethInterface, daemon=True)
+    p.start()
+    startApp()
