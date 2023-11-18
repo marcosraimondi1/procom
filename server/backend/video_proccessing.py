@@ -2,6 +2,12 @@ import cv2
 from aiortc import MediaStreamTrack
 from av import VideoFrame
 
+from globals import SEMAPHORE, MEMORY
+
+# custom modules
+import ipc
+
+
 class VideoTransformTrack(MediaStreamTrack):
     """
     A video stream track that transforms frames from an another track.
@@ -15,22 +21,26 @@ class VideoTransformTrack(MediaStreamTrack):
         self.transform = transform
 
     async def recv(self):
-        global resolution, imgToProcess, imgProcessed
+        SEMAPHORE.acquire()
+        s = ipc.read_from_memory(MEMORY)
+        SEMAPHORE.release()
+        print(s)
+
         frame = await self.track.recv()
-        img = frame.to_ndarray(format="gray")
+        # img = frame.to_ndarray(format="gray")
 
         new_frame = self.edgeDetection(frame)
 
         return new_frame
 
-        if self.transform == "cartoon":
-            return self.cartoon(frame)
-        elif self.transform == "edges":
-            return self.edgeDetection(frame)
-        elif self.transform == "rotate":
-            return self.rotate(frame)
-        else:
-            return frame
+        # if self.transform == "cartoon":
+        #     return self.cartoon(frame)
+        # elif self.transform == "edges":
+        #     return self.edgeDetection(frame)
+        # elif self.transform == "rotate":
+        #     return self.rotate(frame)
+        # else:
+        #     return frame
 
     def rebuildFrame(self, img, frame):
         # rebuild a VideoFrame, preserving timing information

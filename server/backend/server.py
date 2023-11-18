@@ -28,6 +28,8 @@ def parseArguments():
     return args
 
 if __name__ == "__main__":
+    # define memory keys and sizes
+
     mp.set_start_method('fork')
     p = Process(target=ethInterface, daemon=True)
     p.start()
