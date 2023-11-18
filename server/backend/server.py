@@ -1,5 +1,8 @@
 # system
 import argparse
+import atexit
+import globals
+import signal
 
 # multiprocessing
 import multiprocessing as mp
@@ -35,3 +38,16 @@ if __name__ == "__main__":
     p.start()
     args = parseArguments();
     runApp(args)
+
+
+def cleanup():
+    globals.SEM_1.remove()
+    globals.SEM_2.remove()
+    globals.MEM_1.remove()
+    globals.MEM_2.remove()
+
+def sigint_handler(signum, frame):
+    exit(1)
+
+atexit.register(cleanup)
+signal.signal(signal.SIGINT, sigint_handler)
