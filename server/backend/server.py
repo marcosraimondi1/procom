@@ -1,7 +1,6 @@
 # system
 import argparse
 import atexit
-import globals
 import signal
 
 # multiprocessing
@@ -9,8 +8,10 @@ import multiprocessing as mp
 from multiprocessing import Process
 
 # Custom Modules
-from web import runApp
-from eth_process import ethInterface
+import modules.globals as globals
+from modules.web import runApp
+from modules.eth_process import ethInterface
+from modules.ipc import unlink_mem, unlink_sem
 
 
 def parseArguments():
@@ -41,10 +42,10 @@ if __name__ == "__main__":
 
 
 def cleanup():
-    globals.SEM_1.remove()
-    globals.SEM_2.remove()
-    globals.MEM_1.remove()
-    globals.MEM_2.remove()
+    unlink_mem(globals.MEM_1)
+    unlink_mem(globals.MEM_2)
+    unlink_sem(globals.SEM_1)
+    unlink_sem(globals.SEM_2)
 
 def sigint_handler(signum, frame):
     exit(1)

@@ -6,7 +6,7 @@ import ssl
 from aiohttp import web
 
 # custom modules
-from endpoints import addEndpoints
+from modules.endpoints import addEndpoints
 
 def runApp(args):
     if args.verbose:

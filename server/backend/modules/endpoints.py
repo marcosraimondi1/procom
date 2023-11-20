@@ -11,10 +11,10 @@ from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaRelay
 
 # custom modules
-from video_proccessing import VideoTransformTrack
+from modules.video_proccessing import VideoTransformTrack
 
 ROOT = os.path.dirname(__file__)
-FRONTEND_PATH = os.path.join(ROOT, "../frontend/")
+FRONTEND_PATH = os.path.join(ROOT, "../../frontend/")
 logger = logging.getLogger("pc")
 pcs = set()
 relay = MediaRelay()
