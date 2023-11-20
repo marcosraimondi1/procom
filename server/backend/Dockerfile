@@ -1,12 +1,14 @@
 # imagen base de python
-FROM python:3.8
+FROM python:3.10.12
 
-# definimos la carpeta de trabajo
 WORKDIR /backend
 
 # update packages
 RUN apt-get update \
     && apt-get install -y
+
+# install libgl1 needed for opencv-python
+RUN apt-get install libgl1-mesa-glx -y
 
 # copiamos archivos exceptos los del .dockerignore
 COPY . .

@@ -1,0 +1,49 @@
+body {
+    margin: 50px;
+}
+
+nav {
+    display: flex;
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.nav-item {
+    margin: 0 10px;
+}
+
+pre {
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+video {
+    max-width: 50%;
+    margin: 10px;
+}
+
+#videos {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+}
+
+.option {
+    margin-bottom: 8px;
+}
+
+#data {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+#data>div {
+    width: 50%;
+    padding: 10px;
+}
