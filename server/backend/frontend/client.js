@@ -1,16 +1,17 @@
 // get DOM elements
+// UI
 let startButton        = document.getElementById('start');
 let stopButton         = document.getElementById('stop');
-let media              = document.getElementById('media');
 let transformInput     = document.getElementById('video-transform');
 let resolutionInput    = document.getElementById('video-resolution');
+// video
+let videoProcessed     = document.getElementById('video-processed');
+let videoOriginal      = document.getElementById('video-original');
+let media              = document.getElementById('media');
+// status
 let iceConnectionLog   = document.getElementById('ice-connection-state');
 let iceGatheringLog    = document.getElementById('ice-gathering-state');
 let signalingLog       = document.getElementById('signaling-state');
-let videoProcessed     = document.getElementById('video-processed');
-let videoOriginal      = document.getElementById('video-original');
-let offerSDP           = document.getElementById('offer-sdp');
-let answerSDP          = document.getElementById('answer-sdp');
 
 // peer connection
 var pc = null;
@@ -73,7 +74,6 @@ function negotiate() {
     }).then(function() {
         var offer = pc.localDescription;
 
-        offerSDP.textContent = offer.sdp;
         return fetch('/offer', {
             body: JSON.stringify({
                 sdp: offer.sdp,
@@ -88,7 +88,6 @@ function negotiate() {
     }).then(function(response) {
         return response.json();
     }).then(function(answer) {
-        answerSDP.textContent = answer.sdp;
         return pc.setRemoteDescription(answer);
     }).catch(function(e) {
         alert(e);
