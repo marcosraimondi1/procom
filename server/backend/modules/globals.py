@@ -1,5 +1,6 @@
-# ipc constants
 import modules.ipc as ipc
+
+# ipc constants
 KEY1 = "MEM1"
 KEY2 = "MEM2"
 SEM_1 = ipc.get_semaphore(KEY1)
@@ -9,4 +10,8 @@ MEM_2 = ipc.get_shared_memory(KEY2, 640*480)
 
 # image constants
 RESOLUTION = (480, 640)
+
+# socket
+HOST = '127.0.0.1'
+PORT = 3001
 

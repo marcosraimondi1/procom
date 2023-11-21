@@ -1,5 +1,4 @@
 # system
-import logging
 import asyncio
 import os
 import uuid
@@ -15,7 +14,6 @@ from modules.video_proccessing import VideoTransformTrack
 
 ROOT = os.path.dirname(__file__)
 FRONTEND_PATH = os.path.join(ROOT, "../frontend/")
-logger = logging.getLogger("pc")
 pcs = set()
 relay = MediaRelay()
 
@@ -48,22 +46,18 @@ async def offer(request):
     pc_id = "PeerConnection(%s)" % uuid.uuid4()
     pcs.add(pc)
 
-    def log_info(msg, *args):
-        logger.info(pc_id + " " + msg, *args)
-
-    log_info("Created for %s", request.remote)
-
+    print(f"new peer connection {pc_id}")
 
     @pc.on("connectionstatechange")
     async def on_connectionstatechange():
-        log_info("Connection state is %s", pc.connectionState)
+        print("Connection state is ", pc.connectionState)
         if pc.connectionState == "failed":
             await pc.close()
             pcs.discard(pc)
 
     @pc.on("track")
     def on_track(track):
-        log_info("Track %s received", track.kind)
+        print("Track received", track.kind)
 
         if track.kind == "video":
             pc.addTrack(
@@ -74,7 +68,7 @@ async def offer(request):
 
         @track.on("ended")
         async def on_ended():
-            log_info("Track %s ended", track.kind)
+            print("Track ended", track.kind)
 
     # handle offer
     await pc.setRemoteDescription(offer)

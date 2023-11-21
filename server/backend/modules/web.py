@@ -1,5 +1,4 @@
 # system
-import logging
 import ssl
 
 # web
@@ -9,11 +8,6 @@ from aiohttp import web
 from modules.endpoints import addEndpoints
 
 def runApp(args):
-    if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
-    else:
-        logging.basicConfig(level=logging.INFO)
-
     if args.cert_file:
         ssl_context = ssl.SSLContext()
         ssl_context.load_cert_chain(args.cert_file, args.key_file)
