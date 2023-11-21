@@ -1,7 +1,13 @@
 import socket
 import numpy as np
-from modules.globals import PORT, RESOLUTION
 from modules.transformations import edgeDetection
+
+# image constants
+RESOLUTION = (480, 640)
+
+# socket
+HOST = '192.168.100.35'
+PORT = 3001
 
 def listen():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:

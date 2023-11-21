@@ -61,6 +61,6 @@ def ethInterface():
             with SEM_1:
                 write_to_memory(MEM_1, bytes)
 
-            time.sleep(.035)
+            time.sleep(.002)
 
 
