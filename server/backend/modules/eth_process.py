@@ -20,6 +20,7 @@ def ethInterface():
     with SEM_2:
         write_to_memory(MEM_2, zeros.tobytes())
 
+    print("Ethernet Subprocess Started ...")
     while (True):
         # get image to process
         with SEM_2:
