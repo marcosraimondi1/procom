@@ -23,7 +23,7 @@ def ethInterface():
 
     print("Subprocess Started ...")
 
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client:
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as client:
 
         isConnected = True
         try:
