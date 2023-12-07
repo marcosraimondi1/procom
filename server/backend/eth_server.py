@@ -6,11 +6,10 @@ from modules.transformations import edgeDetection
 RESOLUTION = (480, 640)
 
 # socket
-HOST = '192.168.100.35'
 PORT = 3001
 
 def listen():
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as server:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
         print("listening....")
         server.bind(('', PORT))
         server.listen(1)

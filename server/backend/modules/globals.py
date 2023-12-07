@@ -12,6 +12,6 @@ MEM_2 = ipc.get_shared_memory(KEY2, 640*480)
 RESOLUTION = (480, 640)
 
 # socket
-HOST = '192.168.100.35'
+HOST = '0.0.0.0'
 PORT = 3001
 
