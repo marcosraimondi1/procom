@@ -1,32 +1,38 @@
 import numpy as np
 
 from modules.transformations import edgeDetection
-from modules.globals import RESOLUTION, PORT
-from modules.eth_process import UdpSocketClient
+from modules.globals import RESOLUTION, PORT, USE_TCP
+from modules.sockets import UdpSocketClient, TcpSocketClient
 
 IMG_SIZE = RESOLUTION[0]*RESOLUTION[1]
 
 def listen():
-    udp = UdpSocketClient()
+    print("listening....")
 
-    with udp.client:
-        print("listening....")
-        udp.client.bind(('', PORT))
+    if USE_TCP:
+        conn = TcpSocketClient(('', PORT))
+    else:
+        conn = UdpSocketClient()
+
+    with conn.client:
+
+        if (not USE_TCP):
+            conn.client.bind(('', PORT))
 
         while True:
             # receive image
-            bytes, address = udp.receive_bytes(IMG_SIZE)
+            data, address = conn.receive_bytes(IMG_SIZE)
 
-            if (len(bytes) != IMG_SIZE):
+            if (len(data) != IMG_SIZE):
                 continue
 
             # process image
-            # img = np.frombuffer(bytes, dtype=np.uint8).reshape(RESOLUTION)
+            # img = np.frombuffer(data, dtype=np.uint8).reshape(RESOLUTION)
             # new_img = edgeDetection(img)
-            # bytes = new_img.tobytes()
+            # data = new_img.tobytes()
             
             # send image to socket
-            udp.send_bytes(bytes, address)
+            conn.send_bytes(data, address)
 
 while(True):
     try:
