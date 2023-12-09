@@ -1,66 +1,78 @@
 import time
-import numpy as np
 import socket
 
 # custom modules
-from modules.globals import *
+from modules.globals import MEM_1, MEM_2, HOST, PORT, RESOLUTION
 from modules.transformations import *
-from modules.ipc import read_from_memory, write_to_memory
 
-def ethInterface():
-    if (SEM_1.value == 0):
-        SEM_1.release()
-    if (SEM_2.value == 0):
-        SEM_2.release()
+class UdpSocketClient:
+    MAX_PACKET_SIZE = 61440
+    RECEIVE_TIMEOUT_S = 0.05  
 
-    # initialize memory to zeros
-    zeros = np.zeros(RESOLUTION, dtype=np.uint8)
-    with SEM_1:
-        write_to_memory(MEM_1, zeros.tobytes())
+    def __init__(self):
+        self.client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) 
+        self.client.settimeout(self.RECEIVE_TIMEOUT_S)
 
-    with SEM_2:
-        write_to_memory(MEM_2, zeros.tobytes())
+    def chunk_bytes(self, bytes):
+        chunks = [bytes[i:i + self.MAX_PACKET_SIZE] for i in range(0, len(bytes), self.MAX_PACKET_SIZE)]
+        return chunks
 
-    print("Subprocess Started ...")
-
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client:
-
-        isConnected = True
-        try:
-            client.connect((HOST, PORT))
-        except Exception as e:
-            isConnected = False
-            print("Failed connecting")
-            print(e)
-
-        while (isConnected):
-            # get image to process
-            with SEM_2:
-                bytes = read_from_memory(MEM_2)
-
-            # send image to socket
+    def send_bytes(self, data, address):
+        chunks = self.chunk_bytes(data)
+        for chunk in chunks:
             try:
-                client.sendall(bytes)
+                self.client.sendto(chunk, address)
             except Exception as e:
                 print("Failed sending")
                 print(e)
                 break
-            
+
+    def receive_bytes(self, size):
+        address = ('', 0)
+        data = b''
+        try:
+            while len(data) < size:
+                data_bytes, address = self.client.recvfrom(size-len(data))
+                data += data_bytes
+
+        except TimeoutError:
+            pass
+
+        except Exception as e:
+            print("Failed receiving")
+            print(e)
+
+        return data, address
+
+IMG_SIZE = RESOLUTION[0]*RESOLUTION[1]
+
+def ethInterface():
+    print("Subprocess Started ...")
+
+    udp = UdpSocketClient()
+
+    dropped_frames = 0
+    with udp.client:
+
+        while (True):
+            print(f"dropped {dropped_frames}")
+            # get image to process
+            bytes = MEM_2.read_bytes()
+
+            # send image to socket
+            udp.send_bytes(bytes, (HOST,PORT))
 
             # get image from socket
-            try:
-                bytes = b''
-                while len(bytes) < (RESOLUTION[0]*RESOLUTION[1]):
-                    bytes += client.recv(RESOLUTION[0]*RESOLUTION[1]-len(bytes))
-            except Exception as e:
-                print("Failed receiving")
-                print(e)
-                break
+            data, _ = udp.receive_bytes(IMG_SIZE)
+
+            if (len(data) != IMG_SIZE):
+                dropped_frames += 1
+                continue
 
             # send processed image
-            with SEM_1:
-                write_to_memory(MEM_1, bytes)
+            MEM_1.write_bytes(data)
 
             time.sleep(.002)
+
 
 

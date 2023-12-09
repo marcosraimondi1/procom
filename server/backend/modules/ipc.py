@@ -1,3 +1,5 @@
+from typing import Tuple
+import numpy as np
 import mmap
 import posix_ipc
 
@@ -13,17 +15,47 @@ def get_shared_memory(key, size):
     memory.close_fd()
     return mapfile
 
-def write_to_memory(mapfile, bytes):
-    mapfile.seek(0) # ir al inicio de la memoria
-    mapfile.write(bytes)
-
-def read_from_memory(mapfile):
-    mapfile.seek(0)
-    bytes = mapfile.read()
-    return bytes
-
 def unlink_mem(mapfile):
     mapfile.close()
 
 def unlink_sem(sem):
     sem.unlink()
+
+def init_semaphore_to_one(sem):
+    if (sem.value == 0):
+        sem.release()
+
+class SharedMemory():
+    def __init__(self, key, size):
+        self.key = key
+        self.semaphore = get_semaphore(key)
+        self.memory = get_shared_memory(key, size)
+
+        init_semaphore_to_one(self.semaphore)
+
+        # initialize memory to zeros
+        zeros = np.zeros(size, dtype=np.uint8)
+        self.write_array(zeros)
+
+    def write_array(self, array):
+        self.write_bytes(array.tobytes())
+
+    def write_bytes(self, data):
+        with self.semaphore:
+            self.memory.seek(0)
+            self.memory.write(data)
+
+    def read_array(self, shape):
+        data = self.read_bytes()
+        array = np.frombuffer(data, dtype=np.uint8).reshape(shape)
+        return array
+
+    def read_bytes(self):
+        with self.semaphore:
+            self.memory.seek(0)
+            data = self.memory.read()
+        return data
+
+    def release(self):
+        unlink_mem(self.memory)
+        unlink_sem(self.semaphore)

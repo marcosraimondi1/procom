@@ -1,10 +1,8 @@
 from aiortc import MediaStreamTrack
 from av import VideoFrame
-import numpy as np
 
 # custom modules
 from modules.globals import *
-from modules.ipc import read_from_memory, write_to_memory
 
 class VideoTransformTrack(MediaStreamTrack):
     """
@@ -24,14 +22,10 @@ class VideoTransformTrack(MediaStreamTrack):
         img = frame.to_ndarray(format="gray")
 
         # send to process
-        with SEM_2:
-            write_to_memory(MEM_2, img.tobytes())
+        MEM_2.write_array(img)
 
         # get processed
-        with SEM_1:
-            bytes = read_from_memory(MEM_1)
-
-        new_img = np.frombuffer(bytes, dtype=np.uint8).reshape(RESOLUTION)
+        new_img = MEM_1.read_array(RESOLUTION)
 
         new_frame = self.rebuildFrame(new_img, frame)
 
