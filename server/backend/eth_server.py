@@ -11,6 +11,7 @@ def listen():
 
     if USE_TCP:
         conn = TcpSocketClient(('', PORT))
+        print(f"listening {conn.address}")
     else:
         conn = UdpSocketClient()
 

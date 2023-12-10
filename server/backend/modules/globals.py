@@ -10,6 +10,6 @@ MEM_1 = SharedMemory(KEY1, RESOLUTION[0]*RESOLUTION[1])
 MEM_2 = SharedMemory(KEY2, RESOLUTION[0]*RESOLUTION[1])
 
 # socket
-HOST = '0.0.0.0'
+HOST = '0.0.0.0' # ip of video processing server
 PORT = 3001
-USE_TCP = False
+USE_TCP = True
