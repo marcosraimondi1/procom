@@ -15,17 +15,19 @@ class VideoTransformTrack(MediaStreamTrack):
         super().__init__()  # don't forget this!
         self.track = track
         self.transform = transform
+        TRANSFORMATION.write_bytes(TRANSFORMATION_OPTIONS[transform])
 
     async def recv(self):
 
         frame = await self.track.recv()
         img = frame.to_ndarray(format="gray")
 
+
         # send to process
-        MEM_2.write_array(img)
+        BUFFER_TO_PROCESS.write_array(img)
 
         # get processed
-        new_img = MEM_1.read_array(RESOLUTION)
+        new_img = PROCESSED_BUFFER.read_array(RESOLUTION)
 
         new_frame = self.rebuildFrame(new_img, frame)
 

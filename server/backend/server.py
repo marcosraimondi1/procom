@@ -39,8 +39,8 @@ if __name__ == "__main__":
     runApp(args)
 
 def cleanup():
-    globals.MEM_1.release()
-    globals.MEM_2.release()
+    globals.PROCESSED_BUFFER.release()
+    globals.BUFFER_TO_PROCESS.release()
 
 def sigint_handler(signum, frame):
     exit(1)

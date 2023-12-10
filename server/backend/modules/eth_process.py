@@ -1,9 +1,8 @@
 # custom modules
-from modules.globals import MEM_1, MEM_2, HOST, PORT, RESOLUTION, USE_TCP
+from modules.globals import *
 from modules.transformations import *
 from modules.sockets import UdpSocketClient, TcpSocketClient
 
-IMG_SIZE = RESOLUTION[0]*RESOLUTION[1]
 
 def ethInterface():
     print("Subprocess Started ...")
@@ -17,16 +16,19 @@ def ethInterface():
 
         while (True):
             # get image to process
-            img = MEM_2.read_bytes()
+            img = BUFFER_TO_PROCESS.read_bytes()
+
+            # get type of transformation
+            transformation = TRANSFORMATION.read_bytes()
 
             # send image to socket
-            conn.send_bytes(img, (HOST,PORT))
+            conn.send_bytes(img+transformation, (HOST,PORT))
 
             # get image from socket
-            img, _ = conn.receive_bytes(IMG_SIZE)
+            img, _ = conn.receive_bytes(FRAME_SIZE-len(TRANSFORMATION_OPTIONS["none"]))
 
-            if (len(img) != IMG_SIZE):
+            if (len(img) != FRAME_SIZE-len(TRANSFORMATION_OPTIONS["none"])):
                 continue
 
             # send processed image
-            MEM_1.write_bytes(img)
+            PROCESSED_BUFFER.write_bytes(img)

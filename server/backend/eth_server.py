@@ -1,10 +1,8 @@
 import numpy as np
 
-from modules.transformations import edgeDetection
-from modules.globals import RESOLUTION, PORT, USE_TCP
+from modules.transformations import edgeDetection, rotate
+from modules.globals import RESOLUTION, PORT, TRANSFORMATION_OPTIONS, USE_TCP, FRAME_SIZE
 from modules.sockets import UdpSocketClient, TcpSocketClient
-
-IMG_SIZE = RESOLUTION[0]*RESOLUTION[1]
 
 def listen():
     print("listening....")
@@ -22,15 +20,23 @@ def listen():
 
         while True:
             # receive image
-            data, address = conn.receive_bytes(IMG_SIZE)
+            data, address = conn.receive_bytes(FRAME_SIZE)
 
-            if (len(data) != IMG_SIZE):
+            if (len(data) != FRAME_SIZE):
                 continue
 
+            transformation = data[-2:]
+
             # process image
-            # img = np.frombuffer(data, dtype=np.uint8).reshape(RESOLUTION)
-            # new_img = edgeDetection(img)
-            # data = new_img.tobytes()
+            img = np.frombuffer(data[:-2], dtype=np.uint8).reshape(RESOLUTION)
+            if (transformation == TRANSFORMATION_OPTIONS["edges"]):
+                new_img = edgeDetection(img)
+            elif (transformation == TRANSFORMATION_OPTIONS["rotate"]):
+                new_img = rotate(img)
+            else:
+                new_img = img
+
+            data = new_img.tobytes()
             
             # send image to socket
             conn.send_bytes(data, address)
