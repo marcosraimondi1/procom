@@ -1,8 +1,13 @@
 # custom modules
+from typing import Tuple
 from modules.globals import *
 from modules.transformations import *
 from modules.sockets import UdpSocketClient, TcpSocketClient
 
+def process_data(data:bytes)->Tuple:
+    transformation = data[-len(TRANSFORMATION_OPTIONS["none"]):]
+    image = data[:-len(TRANSFORMATION_OPTIONS["none"])]
+    return image,transformation
 
 def ethInterface():
     print("Subprocess Started ...")
@@ -25,10 +30,12 @@ def ethInterface():
             conn.send_bytes(img+transformation, (HOST,PORT))
 
             # get image from socket
-            img, _ = conn.receive_bytes(FRAME_SIZE-len(TRANSFORMATION_OPTIONS["none"]))
+            data, _ = conn.receive_bytes(FRAME_SIZE)
 
-            if (len(img) != FRAME_SIZE-len(TRANSFORMATION_OPTIONS["none"])):
+            if (len(data) != FRAME_SIZE):
                 continue
+
+            img, _ = process_data(data)
 
             # send processed image
             PROCESSED_BUFFER.write_bytes(img)

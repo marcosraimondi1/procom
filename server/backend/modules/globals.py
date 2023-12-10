@@ -22,4 +22,4 @@ TRANSFORMATION_OPTIONS = {
 HOST = '0.0.0.0' # ip of video processing server
 PORT = 3001
 FRAME_SIZE = IMG_SIZE + len(TRANSFORMATION_OPTIONS["none"])
-USE_TCP = True
+USE_TCP = False

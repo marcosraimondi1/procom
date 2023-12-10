@@ -1,3 +1,4 @@
+from modules.globals import *
 import socket
 
 class TcpSocketClient:
@@ -39,8 +40,9 @@ class TcpSocketClient:
 
 
 class UdpSocketClient:
-    MAX_PACKET_SIZE = 61440
+    MAX_PACKET_SIZE = 61444
     RECEIVE_TIMEOUT_S = 0.05 
+    HEADER = b'001100101111000011'
 
     def __init__(self):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) 
@@ -51,7 +53,8 @@ class UdpSocketClient:
         return chunks
 
     def send_bytes(self, data, address):
-        chunks = self.chunk_bytes(data)
+        frame = self.HEADER + data
+        chunks = self.chunk_bytes(frame)
         for chunk in chunks:
             try:
                 self.client.sendto(chunk, address)
@@ -62,11 +65,13 @@ class UdpSocketClient:
 
     def receive_bytes(self, size):
         address = ('', 0)
-        data = b''
+        frame = b''
+        frame_size = size + len(self.HEADER)
+
         try:
-            while len(data) < size:
-                data_bytes, address = self.client.recvfrom(size-len(data))
-                data += data_bytes
+            while len(frame) < frame_size:
+                data_bytes, address = self.client.recvfrom(frame_size-len(frame))
+                frame += data_bytes
 
         except TimeoutError:
             pass
@@ -75,4 +80,16 @@ class UdpSocketClient:
             print("Failed receiving")
             print(e)
 
+        data = self.check_frame(frame, frame_size)
         return data, address
+
+
+    def check_frame(self, frame:bytes, frame_size:int)->bytes:
+        if (len(frame) != frame_size):
+            return b''
+
+        header = frame[:len(self.HEADER)]
+        if (header != self.HEADER):
+            return b''
+
+        return frame[len(self.HEADER):]

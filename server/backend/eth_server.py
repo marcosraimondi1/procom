@@ -3,6 +3,7 @@ import numpy as np
 from modules.transformations import edgeDetection, rotate
 from modules.globals import RESOLUTION, PORT, TRANSFORMATION_OPTIONS, USE_TCP, FRAME_SIZE
 from modules.sockets import UdpSocketClient, TcpSocketClient
+from modules.eth_process import process_data
 
 def listen():
     print("listening....")
@@ -25,10 +26,10 @@ def listen():
             if (len(data) != FRAME_SIZE):
                 continue
 
-            transformation = data[-2:]
+            img_bytes, transformation = process_data(data)
 
             # process image
-            img = np.frombuffer(data[:-2], dtype=np.uint8).reshape(RESOLUTION)
+            img = np.frombuffer(img_bytes, dtype=np.uint8).reshape(RESOLUTION)
             if (transformation == TRANSFORMATION_OPTIONS["edges"]):
                 new_img = edgeDetection(img)
             elif (transformation == TRANSFORMATION_OPTIONS["rotate"]):
@@ -36,7 +37,7 @@ def listen():
             else:
                 new_img = img
 
-            data = new_img.tobytes()
+            data = new_img.tobytes() + transformation
             
             # send image to socket
             conn.send_bytes(data, address)
