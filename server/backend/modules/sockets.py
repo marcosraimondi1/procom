@@ -1,9 +1,10 @@
-from modules.globals import *
 import socket
 
 class TcpSocketClient:
     def __init__(self, address):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.address = address
+
         if (address[0] == ''):
             self.server = self.client
             with self.server:
@@ -14,7 +15,6 @@ class TcpSocketClient:
         else:
             try:
                 self.client.connect(address)
-                self.address = address
             except Exception as e:
                 print("Failed connecting")
                 print(e)

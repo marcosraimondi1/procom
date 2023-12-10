@@ -1,9 +1,27 @@
 import numpy as np
 
 from modules.transformations import edgeDetection, rotate
-from modules.globals import RESOLUTION, PORT, TRANSFORMATION_OPTIONS, USE_TCP, FRAME_SIZE
 from modules.sockets import UdpSocketClient, TcpSocketClient
-from modules.eth_process import process_data
+
+# image constants
+RESOLUTION = (480, 640)
+IMG_SIZE = RESOLUTION[0]*RESOLUTION[1]
+
+TRANSFORMATION_OPTIONS = {
+    "none": b'00',
+    "edges": b'01',
+    "rotate": b'10'
+}
+
+# socket
+PORT = 3001
+FRAME_SIZE = IMG_SIZE + len(TRANSFORMATION_OPTIONS["none"])
+USE_TCP = True
+
+def process_data(data:bytes):
+    transformation = data[-len(TRANSFORMATION_OPTIONS["none"]):]
+    image = data[:-len(TRANSFORMATION_OPTIONS["none"])]
+    return image,transformation
 
 def listen():
     print("listening....")

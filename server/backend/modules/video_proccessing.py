@@ -1,3 +1,4 @@
+import time
 from aiortc import MediaStreamTrack
 from av import VideoFrame
 
@@ -15,6 +16,7 @@ class VideoTransformTrack(MediaStreamTrack):
         super().__init__()  # don't forget this!
         self.track = track
         self.transform = transform
+        # self.last = 0
         TRANSFORMATION.write_bytes(TRANSFORMATION_OPTIONS[transform])
 
     async def recv(self):
@@ -22,9 +24,14 @@ class VideoTransformTrack(MediaStreamTrack):
         frame = await self.track.recv()
         img = frame.to_ndarray(format="gray")
 
+        # fps = 1/(time.time() - self.last)
+        # self.last = time.time()
+        # print(fps)
 
         # send to process
         BUFFER_TO_PROCESS.write_array(img)
+
+        NEW_FRAME.write_bytes(b'1')
 
         # get processed
         new_img = PROCESSED_BUFFER.read_array(RESOLUTION)
