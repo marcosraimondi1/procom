@@ -1,4 +1,6 @@
-import time
+import cv2
+import numpy as np
+# import time
 from aiortc import MediaStreamTrack
 from av import VideoFrame
 
@@ -18,6 +20,17 @@ class VideoTransformTrack(MediaStreamTrack):
         self.transform = transform
         # self.last = 0
         TRANSFORMATION.write_bytes(TRANSFORMATION_OPTIONS[transform])
+
+    def encode(self, img, quality):
+        _, img_encoded = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY,quality])
+        array_encoded = np.array(img_encoded)
+        bytes_encoded = array_encoded.tobytes()
+        return bytes_encoded
+
+    def decode(self, data):
+        data_decode = np.frombuffer(data, dtype=np.uint8)
+        new_img = cv2.imdecode(data_decode, cv2.IMREAD_GRAYSCALE)
+        return new_img
 
     async def recv(self):
 
