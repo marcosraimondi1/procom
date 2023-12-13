@@ -53,8 +53,9 @@ class UdpSocketClient:
         return chunks
 
     def send_bytes(self, data, address):
-        frame = self.HEADER + data
+        frame = data
         chunks = self.chunk_bytes(frame)
+
         for chunk in chunks:
             try:
                 self.client.sendto(chunk, address)
@@ -66,7 +67,7 @@ class UdpSocketClient:
     def receive_bytes(self, size):
         address = ('', 0)
         frame = b''
-        frame_size = size + len(self.HEADER)
+        frame_size = size 
 
         try:
             while len(frame) < frame_size:
@@ -80,16 +81,4 @@ class UdpSocketClient:
             print("Failed receiving")
             print(e)
 
-        data = self.check_frame(frame, frame_size)
-        return data, address
-
-
-    def check_frame(self, frame:bytes, frame_size:int)->bytes:
-        if (len(frame) != frame_size):
-            return b''
-
-        header = frame[:len(self.HEADER)]
-        if (header != self.HEADER):
-            return b''
-
-        return frame[len(self.HEADER):]
+        return frame, address

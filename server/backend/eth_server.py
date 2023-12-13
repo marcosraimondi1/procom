@@ -15,8 +15,8 @@ TRANSFORMATION_OPTIONS = {
 
 # socket
 PORT = 3001
-FRAME_SIZE = IMG_SIZE + len(TRANSFORMATION_OPTIONS["none"])
-USE_TCP = True
+FRAME_SIZE = 40000 + len(TRANSFORMATION_OPTIONS["none"])
+USE_TCP = False
 
 def process_data(data:bytes):
     transformation = data[-len(TRANSFORMATION_OPTIONS["none"]):]
@@ -47,7 +47,7 @@ def listen():
             img_bytes, transformation = process_data(data)
 
             # process image
-            img = np.frombuffer(img_bytes, dtype=np.uint8).reshape(RESOLUTION)
+            img = np.frombuffer(img_bytes, dtype=np.uint8).reshape((200,200))
             if (transformation == TRANSFORMATION_OPTIONS["edges"]):
                 new_img = edgeDetection(img)
             elif (transformation == TRANSFORMATION_OPTIONS["rotate"]):

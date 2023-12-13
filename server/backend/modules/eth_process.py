@@ -1,3 +1,4 @@
+import numpy as np
 import time
 from typing import Tuple
 
@@ -24,34 +25,48 @@ def ethInterface():
     with conn.client:
         last = 0
 
+        samples = 0
+        sum = 0
         while (True):
 
             while(NEW_FRAME.read_bytes() == b'0'):
                 time.sleep(0.01)
 
-
             NEW_FRAME.write_bytes(b'0')
 
             # get image to process
-            img = BUFFER_TO_PROCESS.read_bytes()
+            img = BUFFER_TO_PROCESS.read_array(RESOLUTION)
 
             # get type of transformation
             transformation = TRANSFORMATION.read_bytes()
 
+            # resize img
+            resized_img = cv2.resize(img, (200, 200))
+
             # send image to socket
-            conn.send_bytes(img+transformation, (HOST,PORT))
+            to_send_bytes = resized_img.tobytes() + transformation
+            conn.send_bytes(to_send_bytes, (HOST,PORT))
 
             # get image from socket
-            data, _ = conn.receive_bytes(FRAME_SIZE)
+            data, _ = conn.receive_bytes(len(to_send_bytes))
 
-            if (len(data) != FRAME_SIZE):
+            if (len(data) != len(to_send_bytes)):
                 continue
 
-            img, _ = process_data(data)
+            img_bytes, _ = process_data(data)
+            img = np.frombuffer(img_bytes, dtype=np.uint8).reshape((200,200))
+            new_img = cv2.resize(img, (640, 480))
 
             # send processed image
-            PROCESSED_BUFFER.write_bytes(img)
+            PROCESSED_BUFFER.write_array(new_img)
+
 
             fps = 1/(time.time()-last)
             last = time.time()
-            print(f"FPS {fps}", end='\r')
+
+            samples += 1
+            if (samples == 1000):
+                sum = 0
+                samples = 1
+            sum += fps
+            print(f"FPS {sum/samples}", end='\r')
