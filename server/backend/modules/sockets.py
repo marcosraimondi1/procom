@@ -41,7 +41,7 @@ class TcpSocketClient:
 
 class UdpSocketClient:
     MAX_PACKET_SIZE = 61444
-    RECEIVE_TIMEOUT_S = 0.05 
+    RECEIVE_TIMEOUT_S = 0.01 
     HEADER = b'001100101111000011'
 
     def __init__(self):
