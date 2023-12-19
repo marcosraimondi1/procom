@@ -68,7 +68,7 @@ def ethInterface():
             transformation = TRANSFORMATION.read_bytes()
 
             # resize img
-            resized_img = cv2.resize(img, ETH_RESOLUTION)
+            resized_img = cv2.resize(img, (ETH_RESOLUTION[1], ETH_RESOLUTION[0]))
 
             to_send_bytes = resized_img.tobytes() + transformation
 

@@ -38,7 +38,7 @@ def listen():
             img_bytes, transformation = process_data(data)
 
             # process image
-            img = np.frombuffer(img_bytes, dtype=np.uint8).reshape((200,200))
+            img = np.frombuffer(img_bytes, dtype=np.uint8).reshape(ETH_RESOLUTION)
             if (transformation == TRANSFORMATION_OPTIONS["edges"]):
                 new_img = edgeDetection(img)
             elif (transformation == TRANSFORMATION_OPTIONS["rotate"]):
