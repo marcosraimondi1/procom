@@ -10,11 +10,14 @@ RUN apt-get update \
 # install libgl1 needed for opencv-python
 RUN apt-get install libgl1-mesa-glx -y
 
-# copiamos archivos exceptos los del .dockerignore
-COPY . .
+# copy requirements
+COPY requirements.txt
 
 # install modules
 RUN pip install -r requirements.txt
+
+# copiamos archivos exceptos los del .dockerignore
+COPY . .
 
 # definimos puertos
 EXPOSE 8080

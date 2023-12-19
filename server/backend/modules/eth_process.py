@@ -54,7 +54,7 @@ def ethInterface():
     print("Subprocess Started ...")
 
     conn = get_connection(USE_TCP)
-    fps = FPS()
+    # fps = FPS()
 
     with conn.client:
         while (True):
@@ -90,6 +90,6 @@ def ethInterface():
             # send processed image
             PROCESSED_BUFFER.write_array(new_img)
 
-            fps.calc()
-            fps.print()
+            # fps.calc()
+            # fps.print()
 

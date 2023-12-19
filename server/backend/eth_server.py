@@ -2,20 +2,11 @@ import numpy as np
 
 from modules.transformations import edgeDetection, rotate
 from modules.sockets import UdpSocketClient, TcpSocketClient
-
-# image constants
-RESOLUTION = (200, 200)
-IMG_SIZE = RESOLUTION[0]*RESOLUTION[1]
-
-TRANSFORMATION_OPTIONS = {
-    "none": b'00',
-    "edges": b'01',
-    "rotate": b'10'
-}
+from modules.globals import *
 
 # socket
 PORT = 3001
-FRAME_SIZE = IMG_SIZE + len(TRANSFORMATION_OPTIONS["none"])
+FRAME_SIZE = ETH_RESOLUTION[0]*ETH_RESOLUTION[1] + len(TRANSFORMATION_OPTIONS["none"])
 USE_TCP = False
 
 def process_data(data:bytes):

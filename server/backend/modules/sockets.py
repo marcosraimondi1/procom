@@ -46,7 +46,7 @@ class UdpSocketClient:
 
     def __init__(self):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) 
-        self.client.settimeout(self.RECEIVE_TIMEOUT_S)
+        # self.client.settimeout(self.RECEIVE_TIMEOUT_S)
 
     def chunk_bytes(self, bytes):
         chunks = [bytes[i:i + self.MAX_PACKET_SIZE] for i in range(0, len(bytes), self.MAX_PACKET_SIZE)]
@@ -73,9 +73,6 @@ class UdpSocketClient:
             while len(frame) < frame_size:
                 data_bytes, address = self.client.recvfrom(frame_size-len(frame))
                 frame += data_bytes
-
-        except TimeoutError:
-            pass
 
         except Exception as e:
             print("Failed receiving")
