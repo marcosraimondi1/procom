@@ -1,5 +1,3 @@
-import cv2
-import numpy as np
 # import time
 from aiortc import MediaStreamTrack
 from av import VideoFrame
@@ -26,9 +24,6 @@ class VideoTransformTrack(MediaStreamTrack):
         frame = await self.track.recv()
 
         img = frame.to_ndarray(format="gray")
-        shape = img.shape
-
-        img = cv2.resize(img, (RESOLUTION[1], RESOLUTION[0]))
 
         # fps = 1/(time.time() - self.last)
         # self.last = time.time()
@@ -42,7 +37,6 @@ class VideoTransformTrack(MediaStreamTrack):
         # get processed
         new_img = PROCESSED_BUFFER.read_array(RESOLUTION)
 
-        new_img = cv2.resize(new_img, (shape[1], shape[0]))
         new_frame = self.rebuildFrame(new_img, frame)
 
         return new_frame
