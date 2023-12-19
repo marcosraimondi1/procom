@@ -11,7 +11,7 @@ RUN apt-get update \
 RUN apt-get install libgl1-mesa-glx -y
 
 # copy requirements
-COPY requirements.txt
+COPY requirements.txt .
 
 # install modules
 RUN pip install -r requirements.txt
