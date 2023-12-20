@@ -17,7 +17,7 @@ def addText(img, text, position):
     font = cv2.FONT_HERSHEY_SIMPLEX
     font_scale = 0.7
     font_thickness = 2
-    font_color = (255, 255, 255)
+    font_color = (0, 0, 0)
     cv2.putText(img, text, position, font, font_scale, font_color, font_thickness)
     return img
 

@@ -41,7 +41,7 @@ class TcpSocketClient:
 
 class UdpSocketClient:
     MAX_PACKET_SIZE = 61444
-    RECEIVE_TIMEOUT_S = 0.01 
+    RECEIVE_TIMEOUT_S = 0.03 
 
     def __init__(self):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) 
@@ -72,6 +72,9 @@ class UdpSocketClient:
             while len(frame) < frame_size:
                 data_bytes, address = self.client.recvfrom(frame_size-len(frame))
                 frame += data_bytes
+
+        except TimeoutError:
+            pass
 
         except Exception as e:
             print("Failed receiving")
