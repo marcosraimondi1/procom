@@ -1,9 +1,30 @@
+from datetime import datetime
+import cv2
+
 # import time
 from aiortc import MediaStreamTrack
 from av import VideoFrame
 
 # custom modules
 from modules.globals import *
+
+def getTimeStamp():
+    current_datetime = datetime.now()
+    timestamp = current_datetime.strftime("%H:%M:%S.%f")
+    return timestamp
+
+def addText(img, text, position):
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    font_scale = 0.7
+    font_thickness = 2
+    font_color = (255, 255, 255)
+    cv2.putText(img, text, position, font, font_scale, font_color, font_thickness)
+    return img
+
+def addTimeStamp(title, img, position):
+    timestamp = getTimeStamp()
+    return addText(img, title+timestamp, position)
+
 
 class VideoTransformTrack(MediaStreamTrack):
     """
@@ -24,10 +45,8 @@ class VideoTransformTrack(MediaStreamTrack):
         frame = await self.track.recv()
 
         img = frame.to_ndarray(format="gray")
-
-        # fps = 1/(time.time() - self.last)
-        # self.last = time.time()
-        # print(fps)
+        
+        img = addTimeStamp("received ", img, (50,50))
 
         # send to process
         BUFFER_TO_PROCESS.write_array(img)
@@ -36,6 +55,7 @@ class VideoTransformTrack(MediaStreamTrack):
 
         # get processed
         new_img = PROCESSED_BUFFER.read_array(RESOLUTION)
+        new_img = addTimeStamp("sent ", new_img, (50,75))
 
         new_frame = self.rebuildFrame(new_img, frame)
 
