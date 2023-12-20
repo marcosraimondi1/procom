@@ -4,11 +4,6 @@ from modules.transformations import edgeDetection, rotate
 from modules.sockets import UdpSocketClient, TcpSocketClient
 from modules.globals import *
 
-# socket
-PORT = 3001
-FRAME_SIZE = ETH_RESOLUTION[0]*ETH_RESOLUTION[1] + len(TRANSFORMATION_OPTIONS["none"])
-USE_TCP = False
-
 def process_data(data:bytes):
     transformation = data[-len(TRANSFORMATION_OPTIONS["none"]):]
     image = data[:-len(TRANSFORMATION_OPTIONS["none"])]
