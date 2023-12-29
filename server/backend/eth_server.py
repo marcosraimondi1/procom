@@ -3,7 +3,6 @@ import numpy as np
 from modules.transformations import edgeDetection, rotate
 from modules.sockets import UdpSocketClient, TcpSocketClient
 from modules.globals import *
-from modules.video_proccessing import addTimeStamp
 
 def process_data(data:bytes):
     transformation = data[-len(TRANSFORMATION_OPTIONS["none"]):]
@@ -15,9 +14,10 @@ def listen():
 
     if USE_TCP:
         conn = TcpSocketClient(('', PORT))
-        print(f"listening {conn.address}")
+        print(f"using tcp, listening {conn.address}")
     else:
-        conn = UdpSocketClient()
+        print("using udp")
+        conn = UdpSocketClient(True)
 
     with conn.client:
 
@@ -35,7 +35,7 @@ def listen():
 
             # process image
             img = np.frombuffer(img_bytes, dtype=np.uint8).reshape(ETH_RESOLUTION)
-            img = addTimeStamp("eth recv ", img, (10, 50), 0.4)
+
             if (transformation == TRANSFORMATION_OPTIONS["edges"]):
                 new_img = edgeDetection(img)
             elif (transformation == TRANSFORMATION_OPTIONS["rotate"]):

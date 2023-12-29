@@ -6,26 +6,7 @@ from typing import Tuple
 from modules.globals import *
 from modules.transformations import *
 from modules.sockets import UdpSocketClient, TcpSocketClient
-
-class FPS:
-
-    def __init__(self) -> None:
-        self.last = 0
-        self.sum = 0
-        self.fps = 0
-        self.samples = 0
-
-    def calc(self):
-        self.fps = 1/(time.time()-self.last)
-        self.last = time.time()
-        self.samples += 1
-        if (self.samples == 1000):
-            self.sum = 0
-            self.samples = 1
-        self.sum += self.fps
-
-    def print(self):
-        print(f"FPS {self.sum/self.samples}", end='\r')
+from modules.video_proccessing import addTimeStamp
 
 def process_data(data:bytes)->Tuple:
     transformation = data[-len(TRANSFORMATION_OPTIONS["none"]):]
@@ -38,7 +19,8 @@ def get_connection(use_tcp):
         conn = TcpSocketClient((HOST,PORT))
     else:
         print("using UDP")
-        conn = UdpSocketClient()
+        conn = UdpSocketClient(False)
+
     return conn
 
 def wait_new_frame():
@@ -52,9 +34,9 @@ def isValidData(data):
 
 def ethInterface():
     print("Subprocess Started ...")
+    NEW_FRAME.write_bytes(b'0')
 
     conn = get_connection(USE_TCP)
-    # fps = FPS()
 
     with conn.client:
         while (True):
@@ -66,6 +48,9 @@ def ethInterface():
 
             # get type of transformation
             transformation = TRANSFORMATION.read_bytes()
+
+            if (transformation == TRANSFORMATION_OPTIONS["none"]):
+                img = addTimeStamp("1. eth send ", img, (50,50), 0.7)
 
             # resize img
             resized_img = cv2.resize(img, (ETH_RESOLUTION[1], ETH_RESOLUTION[0]))
@@ -87,9 +72,8 @@ def ethInterface():
             img = np.frombuffer(img_bytes, dtype=np.uint8).reshape(ETH_RESOLUTION)
             new_img = cv2.resize(img, (RESOLUTION[1], RESOLUTION[0]))
 
+            if (transformation == TRANSFORMATION_OPTIONS["none"]):
+                new_img = addTimeStamp("2. eth recv ", new_img, (50,75), 0.7)
+
             # send processed image
             PROCESSED_BUFFER.write_array(new_img)
-
-            # fps.calc()
-            # fps.print()
-

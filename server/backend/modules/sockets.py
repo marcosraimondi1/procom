@@ -43,9 +43,11 @@ class UdpSocketClient:
     MAX_PACKET_SIZE = 61444
     RECEIVE_TIMEOUT_S = 0.03 
 
-    def __init__(self):
+    def __init__(self, is_blocking):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) 
-        # self.client.settimeout(self.RECEIVE_TIMEOUT_S)
+
+        if not is_blocking:
+            self.client.settimeout(self.RECEIVE_TIMEOUT_S)
 
     def chunk_bytes(self, bytes):
         chunks = [bytes[i:i + self.MAX_PACKET_SIZE] for i in range(0, len(bytes), self.MAX_PACKET_SIZE)]

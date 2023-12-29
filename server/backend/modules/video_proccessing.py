@@ -1,5 +1,6 @@
 from datetime import datetime
 import cv2
+import psutil
 
 # import time
 from aiortc import MediaStreamTrack
@@ -24,6 +25,9 @@ def addTimeStamp(title, img, position, scale):
     timestamp = getTimeStamp()
     return addText(img, title+timestamp, position, scale)
 
+def addCPU(img, position, scale):
+    cpu = f"cpu {psutil.cpu_percent(interval=1)}%"
+    return addText(img, cpu, position, scale)
 
 class VideoTransformTrack(MediaStreamTrack):
     """
@@ -45,8 +49,6 @@ class VideoTransformTrack(MediaStreamTrack):
 
         img = frame.to_ndarray(format="gray")
         
-        img = addTimeStamp("received ", img, (50,50), 0.7)
-
         # send to process
         BUFFER_TO_PROCESS.write_array(img)
 
@@ -54,7 +56,6 @@ class VideoTransformTrack(MediaStreamTrack):
 
         # get processed
         new_img = PROCESSED_BUFFER.read_array(RESOLUTION)
-        new_img = addTimeStamp("sent ", new_img, (50,75), 0.7)
 
         new_frame = self.rebuildFrame(new_img, frame)
 
