@@ -13,17 +13,16 @@ def getTimeStamp():
     timestamp = current_datetime.strftime("%H:%M:%S.%f")
     return timestamp
 
-def addText(img, text, position):
+def addText(img, text, position, scale):
     font = cv2.FONT_HERSHEY_SIMPLEX
-    font_scale = 0.7
     font_thickness = 2
     font_color = (0, 0, 0)
-    cv2.putText(img, text, position, font, font_scale, font_color, font_thickness)
+    cv2.putText(img, text, position, font, scale, font_color, font_thickness)
     return img
 
-def addTimeStamp(title, img, position):
+def addTimeStamp(title, img, position, scale):
     timestamp = getTimeStamp()
-    return addText(img, title+timestamp, position)
+    return addText(img, title+timestamp, position, scale)
 
 
 class VideoTransformTrack(MediaStreamTrack):
@@ -46,7 +45,7 @@ class VideoTransformTrack(MediaStreamTrack):
 
         img = frame.to_ndarray(format="gray")
         
-        img = addTimeStamp("received ", img, (50,50))
+        img = addTimeStamp("received ", img, (50,50), 0.7)
 
         # send to process
         BUFFER_TO_PROCESS.write_array(img)
@@ -55,7 +54,7 @@ class VideoTransformTrack(MediaStreamTrack):
 
         # get processed
         new_img = PROCESSED_BUFFER.read_array(RESOLUTION)
-        new_img = addTimeStamp("sent ", new_img, (50,75))
+        new_img = addTimeStamp("sent ", new_img, (50,75), 0.7)
 
         new_frame = self.rebuildFrame(new_img, frame)
 
