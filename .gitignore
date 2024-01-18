@@ -1,2 +1,3 @@
-funda.code-workspace
+*.code-workspace
 venv
+__pycache__
