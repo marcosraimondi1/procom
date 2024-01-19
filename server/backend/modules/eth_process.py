@@ -20,6 +20,7 @@ def get_connection(use_tcp):
     else:
         print("using UDP")
         conn = UdpSocketClient(False)
+        conn.client.bind(('',PORT))
 
     return conn
 
