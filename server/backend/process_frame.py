@@ -1,13 +1,5 @@
-from scipy import signal
 import numpy as np
 import cv2
-
-def convolve_frame(frame, kernel):
-    """Convolves a frame with a kernel using zero padding, returns result of same size as input frame"""
-    result = signal.convolve2d(frame, kernel, mode='same', boundary='fill', fillvalue=0)
-
-    return np.array(result, dtype=np.uint8)
-
 
 def convolve_frame_manual(frame, kernel):
     """Convolves a frame with a kernel using zero padding, returns result of same size as input frame"""
@@ -49,7 +41,6 @@ def convolve_frame_manual(frame, kernel):
             result[i, j] = np.sum(product)
 
     return result
-
 
 # KERNELS
 edges = np.array([[-1,-1,-1], [-1,8,-1], [-1,-1,-1]])

@@ -8,15 +8,6 @@ def process_data(data:bytes):
     transformation = data[-len(TRANSFORMATION_OPTIONS["identity"]):]
     image = data[:-len(TRANSFORMATION_OPTIONS["identity"])]
 
-    if (transformation == TRANSFORMATION_OPTIONS["edges"]):
-        transformation = "edges"
-    elif (transformation == TRANSFORMATION_OPTIONS["gaussian_blur"]):
-        transformation = "gaussian_blur"
-    elif (transformation == TRANSFORMATION_OPTIONS["sharpen"]):
-        transformation = "sharpen"
-    else:
-        transformation = "identity"
-
     return image,transformation
 
 def listen():
@@ -46,7 +37,16 @@ def listen():
             # process image
             img = np.frombuffer(img_bytes, dtype=np.uint8).reshape(ETH_RESOLUTION)
 
-            new_img = process_frame(img, transformation)
+            if (transformation == TRANSFORMATION_OPTIONS["edges"]):
+                kernel = "edges"
+            elif (transformation == TRANSFORMATION_OPTIONS["gaussian_blur"]):
+                kernel = "gaussian_blur"
+            elif (transformation == TRANSFORMATION_OPTIONS["sharpen"]):
+                kernel = "sharpen"
+            else:
+                kernel = "identity"
+        
+            new_img = process_frame(img, kernel)
 
             data = new_img.tobytes() + transformation
             

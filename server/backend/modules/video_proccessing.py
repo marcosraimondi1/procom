@@ -1,6 +1,5 @@
 from datetime import datetime
 import cv2
-import psutil
 
 # import time
 from aiortc import MediaStreamTrack
@@ -24,10 +23,6 @@ def addText(img, text, position, scale):
 def addTimeStamp(title, img, position, scale):
     timestamp = getTimeStamp()
     return addText(img, title+timestamp, position, scale)
-
-def addCPU(img, position, scale):
-    cpu = f"cpu {psutil.cpu_percent(interval=1)}%"
-    return addText(img, cpu, position, scale)
 
 class VideoTransformTrack(MediaStreamTrack):
     """
