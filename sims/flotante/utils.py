@@ -33,11 +33,11 @@ def pre_process_frame(image):
     
     return resized
 
-def post_process_frame(frame):
+def post_process_frame(frame, resolution=(640, 480)):
     """Post-processes a frame, change resolution"""
     
     # Resize the frame
-    resized = cv2.resize(frame, (480, 640))
+    resized = cv2.resize(frame, resolution[::-1])
 
     return resized
 

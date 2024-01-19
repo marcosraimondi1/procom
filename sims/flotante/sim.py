@@ -1,5 +1,5 @@
 import numpy as np
-import cv2
+import cv2 # opencv-python
 from scipy import signal
 
 from utils import KERNELS, load_frame, pre_process_frame, post_process_frame, display_frame
@@ -9,7 +9,8 @@ kernel = KERNELS["gaussian_blur"]
 # FRAME
 car = "./car.jpg"
 gioconda = "./gioconda.jpg"
-path = car
+pencil = "./pencil.jpg"
+path = pencil
 
 def convolve_frame(frame, kernel):
     """Convolves a frame with a kernel using zero padding, returns result of same size as input frame"""
@@ -64,13 +65,16 @@ def main():
     original = load_frame(path)
     pre_processed = pre_process_frame(original)
 
-    processed1 = convolve_frame_manual(pre_processed, kernel)
-    print(processed1)
-
-    # processed = convolve_frame(pre_processed, kernel)
-    # post_processed = post_process_frame(processed)
-    # display_frame(pre_processed, "Pre-processed")
-    # display_frame(processed, "Processed")
+    processed = convolve_frame_manual(pre_processed, kernel)
+    post_processed = post_process_frame(processed, original.shape[:2])
+    
+    display_frame(original, "Original")
+    display_frame(pre_processed, "Pre-processed")
+    display_frame(processed, "Processed")
+    display_frame(post_processed, "Post-processed")
+    
+    processed1 = convolve_frame(pre_processed, kernel)
+    assert(np.array_equal(processed1, processed))
 
 if __name__ == "__main__":
     main()
