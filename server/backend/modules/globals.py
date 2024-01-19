@@ -15,9 +15,10 @@ NEW_FRAME = SharedMemory(KEY4, 1)
 
 TRANSFORMATION = SharedMemory(KEY3, 2) 
 TRANSFORMATION_OPTIONS = {
-    "none": b'00',
+    "identity": b'00',
     "edges": b'01',
-    "rotate": b'10'
+    "gaussian_blur": b'10',
+    "sharpen": b'11',
 }
 
 # socket

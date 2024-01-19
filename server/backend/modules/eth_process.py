@@ -9,8 +9,8 @@ from modules.sockets import UdpSocketClient, TcpSocketClient
 from modules.video_proccessing import addTimeStamp
 
 def process_data(data:bytes)->Tuple:
-    transformation = data[-len(TRANSFORMATION_OPTIONS["none"]):]
-    image = data[:-len(TRANSFORMATION_OPTIONS["none"])]
+    transformation = data[-len(TRANSFORMATION_OPTIONS["identity"]):]
+    image = data[:-len(TRANSFORMATION_OPTIONS["identity"])]
     return image,transformation
 
 def get_connection(use_tcp):
@@ -49,7 +49,7 @@ def ethInterface():
             # get type of transformation
             transformation = TRANSFORMATION.read_bytes()
 
-            if (transformation == TRANSFORMATION_OPTIONS["none"]):
+            if (transformation == TRANSFORMATION_OPTIONS["identity"]):
                 img = addTimeStamp("1. eth send ", img, (50,50), 0.7)
 
             # resize img
@@ -72,7 +72,7 @@ def ethInterface():
             img = np.frombuffer(img_bytes, dtype=np.uint8).reshape(ETH_RESOLUTION)
             new_img = cv2.resize(img, (RESOLUTION[1], RESOLUTION[0]))
 
-            if (transformation == TRANSFORMATION_OPTIONS["none"]):
+            if (transformation == TRANSFORMATION_OPTIONS["identity"]):
                 new_img = addTimeStamp("2. eth recv ", new_img, (50,75), 0.7)
 
             # send processed image

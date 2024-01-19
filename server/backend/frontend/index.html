@@ -15,9 +15,10 @@
             <option value="640x480" selected>640x480</option>
         </select>
         <select id="video-transform" class="nav-item">
-            <option value="none" selected>No transform</option>
-            <option value="edges">Edge detection</option>
-            <option value="rotate">Rotate</option>
+            <option value="identity" selected>Identity Kernel</option>
+            <option value="edges">Edge Kernel</option>
+            <option value="gaussian_blur">Gaussian Blur Kernel</option>
+            <option value="sharpen">Sharpen Kernel</option>
         </select>
 
         <button id="start" onclick="start()" class="nav-item">Start</button>

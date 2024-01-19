@@ -1,12 +1,22 @@
 import numpy as np
 
-from modules.transformations import edgeDetection, rotate
+from process_frame import process_frame
 from modules.sockets import UdpSocketClient, TcpSocketClient
 from modules.globals import *
 
 def process_data(data:bytes):
-    transformation = data[-len(TRANSFORMATION_OPTIONS["none"]):]
-    image = data[:-len(TRANSFORMATION_OPTIONS["none"])]
+    transformation = data[-len(TRANSFORMATION_OPTIONS["identity"]):]
+    image = data[:-len(TRANSFORMATION_OPTIONS["identity"])]
+
+    if (transformation == TRANSFORMATION_OPTIONS["edges"]):
+        transformation = "edges"
+    elif (transformation == TRANSFORMATION_OPTIONS["gaussian_blur"]):
+        transformation = "gaussian_blur"
+    elif (transformation == TRANSFORMATION_OPTIONS["sharpen"]):
+        transformation = "sharpen"
+    else:
+        transformation = "identity"
+
     return image,transformation
 
 def listen():
@@ -36,12 +46,7 @@ def listen():
             # process image
             img = np.frombuffer(img_bytes, dtype=np.uint8).reshape(ETH_RESOLUTION)
 
-            if (transformation == TRANSFORMATION_OPTIONS["edges"]):
-                new_img = edgeDetection(img)
-            elif (transformation == TRANSFORMATION_OPTIONS["rotate"]):
-                new_img = rotate(img)
-            else:
-                new_img = img
+            new_img = process_frame(img, transformation)
 
             data = new_img.tobytes() + transformation
             
