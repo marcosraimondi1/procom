@@ -41,7 +41,7 @@ class TcpSocketClient:
 
 class UdpSocketClient:
     MAX_PACKET_SIZE = 61444
-    RECEIVE_TIMEOUT_S = 0.03 
+    RECEIVE_TIMEOUT_S = 0.1
 
     def __init__(self, is_blocking):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) 
@@ -49,21 +49,12 @@ class UdpSocketClient:
         if not is_blocking:
             self.client.settimeout(self.RECEIVE_TIMEOUT_S)
 
-    def chunk_bytes(self, bytes):
-        chunks = [bytes[i:i + self.MAX_PACKET_SIZE] for i in range(0, len(bytes), self.MAX_PACKET_SIZE)]
-        return chunks
-
     def send_bytes(self, data, address):
-        frame = data
-        chunks = self.chunk_bytes(frame)
-
-        for chunk in chunks:
-            try:
-                self.client.sendto(chunk, address)
-            except Exception as e:
-                print("Failed sending")
-                print(e)
-                break
+        try:
+            self.client.sendto(data, address)
+        except Exception as e:
+            print("Failed sending")
+            print(e)
 
     def receive_bytes(self, size):
         address = ('', 0)
@@ -71,10 +62,8 @@ class UdpSocketClient:
         frame_size = size 
 
         try:
-            while len(frame) < frame_size:
-                data_bytes, address = self.client.recvfrom(frame_size-len(frame))
-                frame += data_bytes
-
+            data_bytes, address = self.client.recvfrom(frame_size-len(frame))
+            frame += data_bytes
         except TimeoutError:
             pass
 

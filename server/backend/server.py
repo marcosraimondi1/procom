@@ -10,7 +10,7 @@ from multiprocessing import Process
 # Custom Modules
 import modules.globals as globals
 from modules.web import runApp
-from modules.eth_process import ethInterface
+from modules.ethernet.eth_process import startEthInterface
 
 
 def parseArguments():
@@ -32,9 +32,7 @@ def parseArguments():
 
 if __name__ == "__main__":
     # define memory keys and sizes
-    mp.set_start_method('fork')
-    p = Process(target=ethInterface, daemon=True)
-    p.start()
+    startEthInterface()
     args = parseArguments();
     runApp(args)
 

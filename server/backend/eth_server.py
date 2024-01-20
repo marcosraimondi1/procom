@@ -1,7 +1,7 @@
 import numpy as np
 
 from process_frame import process_frame
-from modules.sockets import UdpSocketClient, TcpSocketClient
+from modules.ethernet.sockets import UdpSocketClient, TcpSocketClient
 from modules.globals import *
 
 def process_data(data:bytes):
