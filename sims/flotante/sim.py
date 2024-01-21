@@ -23,7 +23,7 @@ def convolve_frame_manual(frame, kernel):
     """Convolves a frame with a kernel using zero padding, returns result of same size as input frame"""
     # Get kernel size
     kernel_size = 3
-
+    
     # Get frame size
     frame_size = frame.shape[0]
 
@@ -31,9 +31,9 @@ def convolve_frame_manual(frame, kernel):
     padded = np.pad(frame, pad_width=1, constant_values=0)
 
     # Create a new frame for the result
-    result = np.zeros_like(frame, dtype=np.uint8)
+    result = np.zeros_like(frame)
 
-    product = np.zeros_like(kernel, dtype=np.uint8)
+    product = np.zeros_like(kernel)
 
     # Iterate over the frame
     for i in range(frame_size):
@@ -66,6 +66,7 @@ def main():
     pre_processed = pre_process_frame(original)
 
     processed = convolve_frame_manual(pre_processed, kernel)
+    processed_manual = convolve_frame(pre_processed, kernel)
     post_processed = post_process_frame(processed, original.shape[:2])
     
     display_frame(original, "Original")
@@ -73,8 +74,11 @@ def main():
     display_frame(processed, "Processed")
     display_frame(post_processed, "Post-processed")
     
-    processed1 = convolve_frame(pre_processed, kernel)
-    assert(np.array_equal(processed1, processed))
+    # np.savetxt("pre_processed.txt", pre_processed, fmt='%d', delimiter=', ')
+    # np.savetxt("processed.txt", processed, fmt='%d', delimiter=', ')
+    # np.savetxt("processed_manual.txt", processed_manual, fmt='%d', delimiter=', ')
+    
+    assert(np.array_equal(processed_manual, processed))
 
 if __name__ == "__main__":
     main()
