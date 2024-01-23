@@ -49,11 +49,19 @@ def receive_frames(conn):
 
         # resize image
         img = np.frombuffer(img_bytes, dtype=np.uint8).reshape(ETH_RESOLUTION)
-        new_img = cv2.resize(img, (RESOLUTION[1], RESOLUTION[0]))
+        new_img = cv2.resize(img, (CUT_SIZE, CUT_SIZE))
+
+        zeros = np.zeros((RESOLUTION[0], RESOLUTION[1]), dtype=np.uint8)
+        # current = BUFFER_TO_PROCESS.read_array(RESOLUTION)
+        # np.copyto(zeros, current)
+        start_x = RESOLUTION[0]//2 - CUT_SIZE//2
+        start_y = RESOLUTION[1]//2 - CUT_SIZE//2
+        zeros[start_x:start_x+CUT_SIZE, start_y:start_y+CUT_SIZE] = new_img
+        new_img = zeros
 
         if (transformation == TRANSFORMATION_OPTIONS["identity"]):
-            new_img = addTimeStamp("2. eth recv ", new_img, (50,75), 0.7)
-
+            new_img = addTimeStamp("2. recv ", new_img, (20,75), 0.5)
+        
         # send processed image
         PROCESSED_BUFFER.write_array(new_img)
 
@@ -69,8 +77,13 @@ def send_frames(conn):
         # get type of transformation
         transformation = TRANSFORMATION.read_bytes()
 
+        # cut image
+        start_x = RESOLUTION[0]//2 - CUT_SIZE//2
+        start_y = RESOLUTION[1]//2 - CUT_SIZE//2
+        img = img[start_x:start_x+CUT_SIZE, start_y:start_y+CUT_SIZE]
+
         if (transformation == TRANSFORMATION_OPTIONS["identity"]):
-            img = addTimeStamp("1. eth send ", img, (50,50), 0.7)
+            img = addTimeStamp("1. send ", img, (20,50), 0.5)
 
         # resize img
         resized_img = cv2.resize(img, (ETH_RESOLUTION[1], ETH_RESOLUTION[0]))

@@ -16,7 +16,7 @@ def getTimeStamp():
 def addText(img, text, position, scale):
     font = cv2.FONT_HERSHEY_SIMPLEX
     font_thickness = 2
-    font_color = (0, 0, 0)
+    font_color = (255, 255, 255)
     cv2.putText(img, text, position, font, scale, font_color, font_thickness)
     return img
 
