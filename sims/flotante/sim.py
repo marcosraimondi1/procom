@@ -36,13 +36,11 @@ def convolve_frame_manual(frame, kernel):
     subframe = np.zeros_like(kernel)
     #Creo una matriz (punto fijo) del tamaño del kernel para los productos parciales 
     product = arrayFixedInt(16, 14, np.zeros(kernel_size**2), signedMode='S', roundMode='round', saturateMode='saturate')
-
+    #Reacomodo el kernel para iterarlo mas facil
     kernel = kernel.reshape((kernel_size**2))
-    
-    # result = DeFixedInt(20,14,'S','round','saturate')
-    result = arrayFixedInt(20, 14, np.zeros(frame_height*frame_width), signedMode='S', roundMode='round', saturateMode='saturate')
-    result = result.reshape((frame_height,frame_width))
-    
+    #Variable de punto fijo para guardar los resultados de las operaciones
+    result = DeFixedInt(20,14,'S','round','saturate')
+    #NDarray para guardar la imagen final
     convolution = np.zeros_like(frame)
         
     for i in range(frame_height):
@@ -53,11 +51,11 @@ def convolve_frame_manual(frame, kernel):
             
             for k in range(kernel_size**2):
                 product[k].value = subframe[k] * kernel[k]
-                result[i, j].value = result[i, j].fValue + product[k].fValue
-
-            convolution[i, j] = result[i, j].fValue * 256
+                result.value = result.fValue + product[k].fValue
             
-    display_frame(convolution, 'Convolucion')
+            convolution[i, j] = result.fValue * 256
+            result.value = 0
+            
     return convolution
 
 def main():
@@ -74,10 +72,6 @@ def main():
     display_frame(processed, "Processed")
     display_frame(processed_manual, "Processed Manual")
     display_frame(post_processed, "Post-processed")
-    
-    # np.savetxt("pre_processed.txt", pre_processed, fmt='%d', delimiter=', ')
-    # np.savetxt("processed.txt", processed, fmt='%d', delimiter=', ')
-    # np.savetxt("processed_manual.txt", processed_manual, fmt='%d', delimiter=', ')
     
     assert(np.array_equal(processed_manual, processed))
 
