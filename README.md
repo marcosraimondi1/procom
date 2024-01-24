@@ -1,135 +1,60 @@
-aiortc
-======
+# Real Time Video Processing Web Server
 
-|rtd| |pypi-v| |pypi-pyversions| |pypi-l| |tests| |codecov| |gitter|
+## Description
 
-.. |rtd| image:: https://readthedocs.org/projects/aiortc/badge/?version=latest
-   :target: https://aiortc.readthedocs.io/
+This project implements a web server with python and uses webRTC to establish a real time communication with the client. The frontend captures video and streams it to the backend, where it is sent to a video processing server where it is filtered using different kernels. Then the server sends back the processed frame.
 
-.. |pypi-v| image:: https://img.shields.io/pypi/v/aiortc.svg
-    :target: https://pypi.python.org/pypi/aiortc
+## Architecture
 
-.. |pypi-pyversions| image:: https://img.shields.io/pypi/pyversions/aiortc.svg
-    :target: https://pypi.python.org/pypi/aiortc
+web client <--- webRTC ---> web backend 
+web backend <---- shared memory ---> ethernet subprocess
+ethernet subprocess <--- UDP ---> frame processing server
 
-.. |pypi-l| image:: https://img.shields.io/pypi/l/aiortc.svg
-    :target: https://pypi.python.org/pypi/aiortc
+This project is part of an FPGA project, the FPGA will take part as the frame processing server.
 
-.. |tests| image:: https://github.com/aiortc/aiortc/workflows/tests/badge.svg
-    :target: https://github.com/aiortc/aiortc/actions
+frame processing server:
+<--- UDP ---> microblaze <--- GPIO/DMA ---> program logic
 
-.. |codecov| image:: https://img.shields.io/codecov/c/github/aiortc/aiortc.svg
-    :target: https://codecov.io/gh/aiortc/aiortc
+## Requirements
 
-.. |gitter| image:: https://img.shields.io/gitter/room/aiortc/Lobby.svg
-    :target: https://gitter.im/aiortc/Lobby
+- python 3 or higher
+- linux environment
 
-What is ``aiortc``?
--------------------
+## Build
 
-``aiortc`` is a library for `Web Real-Time Communication (WebRTC)`_ and
-`Object Real-Time Communication (ORTC)`_ in Python. It is built on top of
-``asyncio``, Python's standard asynchronous I/O framework.
+1. Create a virtual environment:
 
-The API closely follows its Javascript counterpart while using pythonic
-constructs:
+```bash
+python -m venv venv
+source venv/bin/activate
+```
 
-- promises are replaced by coroutines
-- events are emitted using ``pyee.EventEmitter``
+2. Install required dependencies from server/backend/requirements.txt:
 
-To learn more about ``aiortc`` please `read the documentation`_.
+```bash
+pip install -r requirements.txt
+```
 
-.. _Web Real-Time Communication (WebRTC): https://webrtc.org/
-.. _Object Real-Time Communication (ORTC): https://ortc.org/
-.. _read the documentation: https://aiortc.readthedocs.io/en/latest/
+3. Run webserver:
 
-Why should I use ``aiortc``?
-----------------------------
+```bash
+python server.py
+```
 
-The main WebRTC and ORTC implementations are either built into web browsers,
-or come in the form of native code. While they are extensively battle tested,
-their internals are complex and they do not provide Python bindings.
-Furthermore they are tightly coupled to a media stack, making it hard to plug
-in audio or video processing algorithms.
+4. Run frame processing server:
 
-In contrast, the ``aiortc`` implementation is fairly simple and readable. As
-such it is a good starting point for programmers wishing to understand how
-WebRTC works or tinker with its internals. It is also easy to create innovative
-products by leveraging the extensive modules available in the Python ecosystem.
-For instance you can build a full server handling both signaling and data
-channels or apply computer vision algorithms to video frames using OpenCV.
+```bash
+python eth_server.py
+```
 
-Furthermore, a lot of effort has gone into writing an extensive test suite for
-the ``aiortc`` code to ensure best-in-class code quality.
+5. The web application should be accesible through localhost:8080
 
-Implementation status
----------------------
+## Configurations
 
-``aiortc`` allows you to exchange audio, video and data channels and
-interoperability is regularly tested against both Chrome and Firefox. Here are
-some of its features:
+Most configurations can be done from the globals.py file in the backend/modules directory.
 
-- SDP generation / parsing
-- Interactive Connectivity Establishment, with half-trickle and mDNS support
-- DTLS key and certificate generation
-- DTLS handshake, encryption / decryption (for SCTP)
-- SRTP keying, encryption and decryption for RTP and RTCP
-- Pure Python SCTP implementation
-- Data Channels
-- Sending and receiving audio (Opus / PCMU / PCMA)
-- Sending and receiving video (VP8 / H.264)
-- Bundling audio / video / data channels
-- RTCP reports, including NACK / PLI to recover from packet loss
-
-Installing
-----------
-
-Since release 0.9.28 binary wheels are available on PyPI for Linux, Mac and
-Windows. The easiest way to install ``aiortc`` is to run:
-
-.. code:: bash
-
-    pip install aiortc
-
-Building from source
---------------------
-
-If there are no wheels for your system or if you wish to build aiortc from
-source you will need a couple of libraries installed on your system:
-
-- OpenSSL 1.0.2 or greater
-- FFmpeg 4.0 or greater
-- LibVPX for video encoding / decoding
-- Opus for audio encoding / decoding
-
-Linux
-.....
-
-On Debian/Ubuntu run:
-
-.. code:: bash
-
-    apt install libavdevice-dev libavfilter-dev libopus-dev libvpx-dev pkg-config
-
-`pylibsrtp` comes with binary wheels for most platforms, but if it needs to be
-built from you will also need to run:
-
-.. code:: bash
-
-    apt install libsrtp2-dev
-
-OS X
-....
-
-On OS X run:
-
-.. code:: bash
-
-    brew install ffmpeg opus libvpx pkg-config
-
-License
--------
-
-``aiortc`` is released under the `BSD license`_.
-
-.. _BSD license: https://aiortc.readthedocs.io/en/latest/license.html
+Frequent Configurations:
+- HOST: ip of the frame processing server, '0.0.0.0' for localhost
+- PORT: port where the frame processing server is listening
+- CUT_SIZE: size to keep from the original size of the video
+- ETH_RESOLUTION: resolution to be sent to the frame processing server. This has an impact on the frame processing performance. Also the total size of the frame needs to be smaller than the max size of udp datagram (64kB).
