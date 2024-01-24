@@ -2,9 +2,9 @@ import numpy as np
 import cv2
 
 # KERNELS
-edges = np.array([[-1,-1,-1], [-1,8,-1], [-1,-1,-1]])
-gaussian_blur = np.array([[1,2,1], [2,4,2], [1,2,1]]) / 16
-sharpen = np.array([[0,-1,0], [-1,5,-1], [0,-1,0]])
+edges = np.array([[-1,-1,-1], [-1,8,-1], [-1,-1,-1]]) /8
+gaussian_blur = np.array([[1,2,1], [2,4,2], [1,2,1]]) /16
+sharpen = np.array([[0,-1,0], [-1,5,-1], [0,-1,0]])   /5
 identity = np.array([[0,0,0], [0,1,0], [0,0,0]])
 
 KERNELS = {

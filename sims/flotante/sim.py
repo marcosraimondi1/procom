@@ -1,6 +1,7 @@
 import numpy as np
 import cv2 # opencv-python
 from scipy import signal
+from tool._fixedInt import *
 
 from utils import KERNELS, load_frame, pre_process_frame, post_process_frame, display_frame
 
@@ -25,53 +26,53 @@ def convolve_frame_manual(frame, kernel):
     kernel_size = 3
     
     # Get frame size
-    frame_size = frame.shape[0]
+    frame_width  = frame.shape[0]
+    frame_height = frame.shape[1]
 
-    # Add zero padding to the frame
-    padded = np.pad(frame, pad_width=1, constant_values=0)
+    # Agrego padding al frame y normalizo los valores
+    padded_frame = np.pad(frame, pad_width=1, constant_values=0)
+    padded_frame = padded_frame/256
 
-    # Create a new frame for the result
-    result = np.zeros_like(frame)
+    subframe = np.zeros_like(kernel)
+    #Creo una matriz (punto fijo) del tamaño del kernel para los productos parciales 
+    product = arrayFixedInt(16, 14, np.zeros(kernel_size**2), signedMode='S', roundMode='round', saturateMode='saturate')
 
-    product = np.zeros_like(kernel)
-
-    # Iterate over the frame
-    for i in range(frame_size):
-        for j in range(frame_size):
+    kernel = kernel.reshape((kernel_size**2))
+    
+    # result = DeFixedInt(20,14,'S','round','saturate')
+    result = arrayFixedInt(20, 14, np.zeros(frame_height*frame_width), signedMode='S', roundMode='round', saturateMode='saturate')
+    result = result.reshape((frame_height,frame_width))
+    
+    convolution = np.zeros_like(frame)
+        
+    for i in range(frame_height):
+        for j in range(frame_width):
             # Get the subframe of the kernel size
-            subframe = padded[i:i+kernel_size, j:j+kernel_size] # es un shift register de kernel size
-
-            # Multiply element wise the subframe with the kernel
-            product[0,0] = subframe[0,0] * kernel[0,0]
-            product[0,1] = subframe[0,1] * kernel[0,1]
-            product[0,2] = subframe[0,2] * kernel[0,2]
-
-            product[1,0] = subframe[1,0] * kernel[1,0]
-            product[1,1] = subframe[1,1] * kernel[1,1]
-            product[1,2] = subframe[1,2] * kernel[1,2]
-
-            product[2,0] = subframe[2,0] * kernel[2,0]
-            product[2,1] = subframe[2,1] * kernel[2,1]
-            product[2,2] = subframe[2,2] * kernel[2,2]
-
+            subframe = padded_frame[i:i+kernel_size, j:j+kernel_size] # es un shift register de kernel size
+            subframe = subframe.reshape((kernel_size**2))
             
-            # Add all the elements of the product
-            result[i, j] = np.sum(product)
+            for k in range(kernel_size**2):
+                product[k].value = subframe[k] * kernel[k]
+                result[i, j].value = result[i, j].fValue + product[k].fValue
 
-    return result
+            convolution[i, j] = result[i, j].fValue * 256
+            
+    display_frame(convolution, 'Convolucion')
+    return convolution
 
 def main():
     """Main function"""
     original = load_frame(path)
     pre_processed = pre_process_frame(original)
 
-    processed = convolve_frame_manual(pre_processed, kernel)
-    processed_manual = convolve_frame(pre_processed, kernel)
-    post_processed = post_process_frame(processed, original.shape[:2])
+    processed_manual = convolve_frame_manual(pre_processed, kernel)
+    processed = convolve_frame(pre_processed, kernel)
+    post_processed = post_process_frame(processed_manual, original.shape[:2])
     
     display_frame(original, "Original")
     display_frame(pre_processed, "Pre-processed")
     display_frame(processed, "Processed")
+    display_frame(processed_manual, "Processed Manual")
     display_frame(post_processed, "Post-processed")
     
     # np.savetxt("pre_processed.txt", pre_processed, fmt='%d', delimiter=', ')
