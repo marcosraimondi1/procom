@@ -1,4 +1,5 @@
 import numpy as np
+from frame_processing.tool._fixedInt import *
 import time
 from typing import Tuple
 
@@ -24,7 +25,7 @@ def get_connection(use_tcp):
     else:
         print("using UDP")
         conn = UdpSocketClient(True)
-        conn.client.bind(('',PORT)) # comment this line if running eth_process.py on the same machine as the server
+        #conn.client.bind(('',PORT)) # comment this line if running eth_process.py on the same machine as the server
 
     return conn
 
@@ -34,13 +35,13 @@ def wait_new_frame():
     NEW_FRAME.write_bytes(b'0')
 
 def isValidData(data):
-    return (len(data) == FRAME_SIZE)
+    return (len(data) == UDP_DATAGRAM_TO_PROCESS_SIZE)
 
 def receive_frames(conn):
     print("Receive process started ...")
     while (True):
         # get image from socket
-        data, _ = conn.receive_bytes(FRAME_SIZE)
+        data, _ = conn.receive_bytes(UDP_DATAGRAM_TO_PROCESS_SIZE)
 
         if not isValidData(data):
             continue
@@ -48,20 +49,20 @@ def receive_frames(conn):
         img_bytes, transformation = process_data(data)
 
         # resize image
-        img = np.frombuffer(img_bytes, dtype=np.uint8).reshape(ETH_RESOLUTION)
+        img = np.frombuffer(img_bytes, dtype=np.uint8).reshape(ETH_RESOLUTION_PADDED)
+
         new_img = cv2.resize(img, (CUT_SIZE, CUT_SIZE))
 
         zeros = np.zeros((RESOLUTION[0], RESOLUTION[1]), dtype=np.uint8)
-        # current = BUFFER_TO_PROCESS.read_array(RESOLUTION)
-        # np.copyto(zeros, current)
+
+        if (transformation == TRANSFORMATION_OPTIONS["identity"]):
+            new_img = addTimeStamp("2. recv ", new_img, (20,75), 0.5)
+            
         start_x = RESOLUTION[0]//2 - CUT_SIZE//2
         start_y = RESOLUTION[1]//2 - CUT_SIZE//2
         zeros[start_x:start_x+CUT_SIZE, start_y:start_y+CUT_SIZE] = new_img
         new_img = zeros
 
-        if (transformation == TRANSFORMATION_OPTIONS["identity"]):
-            new_img = addTimeStamp("2. recv ", new_img, (20,75), 0.5)
-        
         # send processed image
         PROCESSED_BUFFER.write_array(new_img)
 
@@ -88,7 +89,13 @@ def send_frames(conn):
         # resize img
         resized_img = cv2.resize(img, (ETH_RESOLUTION[1], ETH_RESOLUTION[0]))
 
-        to_send_bytes = resized_img.tobytes() + transformation
+        # pre process frame
+        
+        # pad image
+        padded_frame = np.pad(resized_img, pad_width=1, constant_values=0)
+        padded_frame.astype(np.uint8)
+                
+        to_send_bytes = padded_frame.tobytes() + transformation
 
         # send image to socket
         conn.send_bytes(to_send_bytes, (HOST,PORT))

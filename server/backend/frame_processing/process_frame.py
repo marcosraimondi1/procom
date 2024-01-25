@@ -1,51 +1,48 @@
 import numpy as np
-import cv2
+from frame_processing.tool._fixedInt import *
 
 def convolve_frame_manual(frame, kernel):
     """Convolves a frame with a kernel using zero padding, returns result of same size as input frame"""
     # Get kernel size
     kernel_size = 3
-
+    
     # Get frame size
-    frame_size = frame.shape[0]
+    frame_width  = frame.shape[0]
+    frame_height = frame.shape[1]
 
-    # Add zero padding to the frame
-    padded = np.pad(frame, pad_width=1, constant_values=0)
+    # Agrego padding al frame y normalizo los valores
+    padded_frame = np.pad(frame, pad_width=1, constant_values=0)
+    padded_frame = padded_frame/256
 
-    # Create a new frame for the result
-    result = np.zeros_like(frame, dtype=np.uint8)
-
-    product = np.zeros_like(kernel, dtype=np.uint8)
-
-    # Iterate over the frame
-    for i in range(frame_size):
-        for j in range(frame_size):
+    subframe = np.zeros_like(kernel)
+    #Creo una matriz (punto fijo) del tamaño del kernel para los productos parciales 
+    product = arrayFixedInt(16, 14, np.zeros(kernel_size**2), signedMode='S', roundMode='round', saturateMode='saturate')
+    #Reacomodo el kernel para iterarlo mas facil
+    kernel = kernel.reshape((kernel_size**2))
+    #Variable de punto fijo para guardar los resultados de las operaciones
+    result = DeFixedInt(20,14,'S','round','saturate')
+    #NDarray para guardar la imagen final
+    convolution = np.zeros_like(frame, dtype=np.uint8)
+        
+    for i in range(frame_height):
+        for j in range(frame_width):
             # Get the subframe of the kernel size
-            subframe = padded[i:i+kernel_size, j:j+kernel_size] # es un shift register de kernel size
-
-            # Multiply element wise the subframe with the kernel
-            product[0,0] = subframe[0,0] * kernel[0,0]
-            product[0,1] = subframe[0,1] * kernel[0,1]
-            product[0,2] = subframe[0,2] * kernel[0,2]
-
-            product[1,0] = subframe[1,0] * kernel[1,0]
-            product[1,1] = subframe[1,1] * kernel[1,1]
-            product[1,2] = subframe[1,2] * kernel[1,2]
-
-            product[2,0] = subframe[2,0] * kernel[2,0]
-            product[2,1] = subframe[2,1] * kernel[2,1]
-            product[2,2] = subframe[2,2] * kernel[2,2]
-
+            subframe = padded_frame[i:i+kernel_size, j:j+kernel_size] # es un shift register de kernel size
+            subframe = subframe.reshape((kernel_size**2))
             
-            # Add all the elements of the product
-            result[i, j] = np.sum(product)
-
-    return result
+            for k in range(kernel_size**2):
+                product[k].value = subframe[k] * kernel[k]
+                result.value = result.fValue + product[k].fValue
+            
+            convolution[i, j] = result.fValue * 256
+            result.value = 0
+            
+    return convolution
 
 # KERNELS
-edges = np.array([[-1,-1,-1], [-1,8,-1], [-1,-1,-1]])
-gaussian_blur = np.array([[1,2,1], [2,4,2], [1,2,1]]) / 16
-sharpen = np.array([[0,-1,0], [-1,5,-1], [0,-1,0]])
+edges = np.array([[-1,-1,-1], [-1,8,-1], [-1,-1,-1]]) /8
+gaussian_blur = np.array([[1,2,1], [2,4,2], [1,2,1]]) /16
+sharpen = np.array([[0,-1,0], [-1,5,-1], [0,-1,0]])   /5
 identity = np.array([[0,0,0], [0,1,0], [0,0,0]])
 
 KERNELS = {

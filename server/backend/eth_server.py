@@ -1,3 +1,4 @@
+import time
 import numpy as np
 
 from frame_processing.process_frame import process_frame
@@ -27,16 +28,18 @@ def listen():
 
         while True:
             # receive image
-            data, address = conn.receive_bytes(FRAME_SIZE)
+            time.sleep(1)
+            data, address = conn.receive_bytes(UDP_DATAGRAM_TO_PROCESS_SIZE)
 
-            if (len(data) != FRAME_SIZE):
+            if (len(data) != UDP_DATAGRAM_TO_PROCESS_SIZE):
                 continue
 
             img_bytes, transformation = process_data(data)
 
             # process image
-            img = np.frombuffer(img_bytes, dtype=np.uint8).reshape(ETH_RESOLUTION)
-
+            img = np.frombuffer(img_bytes, dtype=np.uint8).reshape(ETH_RESOLUTION_PADDED)
+            print(f"received: {img.shape}")
+            
             if (transformation == TRANSFORMATION_OPTIONS["edges"]):
                 kernel = "edges"
             elif (transformation == TRANSFORMATION_OPTIONS["gaussian_blur"]):
@@ -47,6 +50,7 @@ def listen():
                 kernel = "identity"
         
             new_img = process_frame(img, kernel)
+            print(f"processed_frame: {new_img.shape}")
 
             data = new_img.tobytes() + transformation
             
