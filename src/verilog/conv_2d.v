@@ -9,26 +9,17 @@ module conv_2d(
     output reg signed [20:0] o_pixel            //Resultado de la convolución
     );
 
-    localparam NB_COEFF = 8;
+    localparam NB_COEFF = 8;               //Numero de bits de los coeficientes 
     localparam NB_PROD  = NB_COEFF*2;
     localparam NB_SUM   = NB_PROD+4;
     localparam KERNEL_SIZE = 9;
 
-    reg signed  [7:0]          subframe [KERNEL_SIZE:1];   //Sector de la imagen a convolucionar
-    wire signed [NB_COEFF-1:0] kernel   [KERNEL_SIZE:1];    //Matriz de coeficientes del kernel 
-    wire signed [NB_PROD-1:0]  prod     [KERNEL_SIZE:1]; //! Partial Products
+    reg signed  [7:0]         subframe [KERNEL_SIZE:1];   //Sector de la imagen a convolucionar
+    reg signed [NB_COEFF-1:0] kernel   [KERNEL_SIZE:1];    //Matriz de coeficientes del kernel 
+    wire signed [NB_PROD-1:0] prod     [KERNEL_SIZE:1]; //! Partial Products
 
+    reg [1:0] load_count;
     //Kernel identidad --> despues hay que hacerlo reg para poder cambiarlo durante la ejecucion
-
-    assign kernel[1] = 8'b1;    
-    assign kernel[2] = 8'b1;
-    assign kernel[3] = 8'b1;
-    assign kernel[4] = 8'b1;
-    assign kernel[5] = 8'b1;
-    assign kernel[6] = 8'b1;
-    assign kernel[7] = 8'b1;
-    assign kernel[8] = 8'b1;
-    assign kernel[9] = 8'b1;
 
     // integer ptr1;
     // integer ptr2;
@@ -54,6 +45,7 @@ module conv_2d(
     integer ptr1;
     always @(posedge clk) begin
         if (!i_nrst) begin
+            load_count <= 2'b0;
             for(ptr1=1; ptr1<=9; ptr1=ptr1+1) 
                 subframe[ptr1] <= {NB_COEFF{1'b0}};
         end else begin
@@ -67,6 +59,16 @@ module conv_2d(
                 subframe[7] <= i_data3;
                 subframe[8] <= subframe[7];
                 subframe[9] <= subframe[8];
+            end 
+            else if(i_load_knl) begin
+                if(load_count == 2'd3) 
+                    load_count <= 2'b0;
+                else begin
+                    kernel[1+load_count] = i_data1;
+                    kernel[4+load_count] = i_data2;
+                    kernel[7+load_count] = i_data3;
+                    load_count <= load_count+2'b1;
+                end
             end
         end
     end
