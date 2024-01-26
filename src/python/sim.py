@@ -32,6 +32,15 @@ def convolve_frame_manual(frame, kernel):
     # Agrego padding al frame y normalizo los valores
     padded_frame = np.pad(frame, pad_width=1, constant_values=0)
     padded_frame = padded_frame/256
+    
+    # Convierto los valores a punto fijo
+    temp = DeFixedInt(8,7,'S','round','saturate')
+    for i in range(frame_height):
+        for j in range(frame_width):
+            temp.value = padded_frame[i,j]
+            padded_frame[i,j] = temp.fValue
+    
+    # np.savetxt('preprocessed.txt', padded_frame, fmt='%1.7f', delimiter=' ')
 
     subframe = np.zeros_like(kernel)
     #Creo una matriz (punto fijo) del tamaño del kernel para los productos parciales 
@@ -65,13 +74,15 @@ def main():
 
     processed_manual = convolve_frame_manual(pre_processed, kernel)
     processed = convolve_frame(pre_processed, kernel)
-    post_processed = post_process_frame(processed_manual, original.shape[:2])
+    post_processed = post_process_frame(processed, original.shape[:2])
+    post_processed_manual = post_process_frame(processed_manual, original.shape[:2])
     
-    display_frame(original, "Original")
+    # display_frame(original, "Original")
     display_frame(pre_processed, "Pre-processed")
     display_frame(processed, "Processed")
     display_frame(processed_manual, "Processed Manual")
     display_frame(post_processed, "Post-processed")
+    display_frame(post_processed_manual, "Post-processed Manual")
     
     assert(np.array_equal(processed_manual, processed))
 
