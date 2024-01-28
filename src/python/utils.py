@@ -21,10 +21,8 @@ def load_frame(path):
     image = cv2.imread(path)
     return image
 
-def pre_process_frame(image):
+def pre_process_frame(image, frame_size=(200,200)):
     """Pre-processes a frame, change resolution, greyscale"""
-    frame_width  = 200
-    frame_height = 200
 
     # Convert the image to grayscale
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -33,7 +31,7 @@ def pre_process_frame(image):
     arr = np.array(gray_image)
 
     # Resize the frame
-    resized = cv2.resize(arr, (frame_width, frame_height))
+    resized = cv2.resize(arr, frame_size)
     
     return resized
 
