@@ -46,24 +46,24 @@ initial begin
     //                    {CMD  , ENABLE, DATA                    };
     
     // prueba de seleccion de kernels
-    #2 i_cmd_from_micro = {1'b0, KERNEL_SEL,  {(NB_DATA-3){1'b0}},1'b1,1'b1};
-    #2 i_cmd_from_micro = {1'b1, KERNEL_SEL,  {(NB_DATA-3){1'b0}},1'b1,1'b1};
-    #2 i_cmd_from_micro = {1'b0, KERNEL_SEL,  {(NB_DATA-3){1'b0}},1'b1,1'b1};
+    #2 i_cmd_from_micro = {1'b0, KERNEL_SEL,  {(NB_DATA-2){1'b0}},1'b1,1'b1};
+    #2 i_cmd_from_micro = {1'b1, KERNEL_SEL,  {(NB_DATA-2){1'b0}},1'b1,1'b1};
+    #2 i_cmd_from_micro = {1'b0, KERNEL_SEL,  {(NB_DATA-2){1'b0}},1'b1,1'b1};
 
-    #2 i_cmd_from_micro = {1'b0, KERNEL_SEL,  {(NB_DATA-3){1'b0}},1'b1,1'b0};
-    #2 i_cmd_from_micro = {1'b1, KERNEL_SEL,  {(NB_DATA-3){1'b0}},1'b1,1'b0};
-    #2 i_cmd_from_micro = {1'b0, KERNEL_SEL,  {(NB_DATA-3){1'b0}},1'b1,1'b0};
+    #2 i_cmd_from_micro = {1'b0, KERNEL_SEL,  {(NB_DATA-2){1'b0}},1'b1,1'b0};
+    #2 i_cmd_from_micro = {1'b1, KERNEL_SEL,  {(NB_DATA-2){1'b0}},1'b1,1'b0};
+    #2 i_cmd_from_micro = {1'b0, KERNEL_SEL,  {(NB_DATA-2){1'b0}},1'b1,1'b0};
 
     // prueba de frame ready
     #2 i_frame_ready = 1'b1;
-    #2 i_cmd_from_micro = {1'b0, IS_FRAME_READY, {(NB_DATA-1){1'b0}}}; 
-    #2 i_cmd_from_micro = {1'b1, IS_FRAME_READY, {(NB_DATA-1){1'b0}}}; 
-    #2 i_cmd_from_micro = {1'b0, IS_FRAME_READY, {(NB_DATA-1){1'b0}}}; 
+    #2 i_cmd_from_micro = {1'b0, IS_FRAME_READY, {(NB_DATA){1'b0}}}; 
+    #2 i_cmd_from_micro = {1'b1, IS_FRAME_READY, {(NB_DATA){1'b0}}}; 
+    #2 i_cmd_from_micro = {1'b0, IS_FRAME_READY, {(NB_DATA){1'b0}}}; 
 
     #2 i_frame_ready = 1'b0;
-    #2 i_cmd_from_micro = {1'b0, IS_FRAME_READY, {(NB_DATA-1){1'b0}}}; 
-    #2 i_cmd_from_micro = {1'b1, IS_FRAME_READY, {(NB_DATA-1){1'b0}}}; 
-    #2 i_cmd_from_micro = {1'b0, IS_FRAME_READY, {(NB_DATA-1){1'b0}}}; 
+    #2 i_cmd_from_micro = {1'b0, IS_FRAME_READY, {(NB_DATA){1'b0}}}; 
+    #2 i_cmd_from_micro = {1'b1, IS_FRAME_READY, {(NB_DATA){1'b0}}}; 
+    #2 i_cmd_from_micro = {1'b0, IS_FRAME_READY, {(NB_DATA){1'b0}}}; 
 
     // prueba de carga de frame
     #2 i_cmd_from_micro = {1'b0, LOAD_FRAME  , 24'b001010111111111100011101}; 
@@ -80,21 +80,25 @@ initial begin
     
     // prueba de get frame
     #2 i_frame_ready = 1'b1;
-    #2 i_cmd_from_micro = {1'b0, IS_FRAME_READY , {(NB_DATA-1){1'b0}}}; 
-    #2 i_cmd_from_micro = {1'b1, IS_FRAME_READY , {(NB_DATA-1){1'b0}}}; 
-    #2 i_cmd_from_micro = {1'b0, IS_FRAME_READY , {(NB_DATA-1){1'b0}}}; 
+    #2 i_cmd_from_micro = {1'b0, IS_FRAME_READY , {(NB_DATA){1'b0}}}; 
+    #2 i_cmd_from_micro = {1'b1, IS_FRAME_READY , {(NB_DATA){1'b0}}}; 
+    #2 i_cmd_from_micro = {1'b0, IS_FRAME_READY , {(NB_DATA){1'b0}}}; 
     
-    #2 i_cmd_from_micro = {1'b0,  GET_FRAME      , {(NB_DATA-1){1'b0}}}; 
-    #2 i_cmd_from_micro = {1'b1,  GET_FRAME      , {(NB_DATA-1){1'b0}}}; 
-    #2 i_cmd_from_micro = {1'b0,  GET_FRAME      , {(NB_DATA-1){1'b0}}}; 
+    #2 i_cmd_from_micro = {1'b0,  GET_FRAME      , {(NB_DATA){1'b0}}}; 
+    #2 i_cmd_from_micro = {1'b1,  GET_FRAME      , {(NB_DATA){1'b0}}}; 
+    #2 i_cmd_from_micro = {1'b0,  GET_FRAME      , {(NB_DATA){1'b0}}}; 
     
-    #2 i_cmd_from_micro = {1'b0,  GET_FRAME      , {(NB_DATA-1){1'b0}}}; 
-    #2 i_cmd_from_micro = {1'b1,  GET_FRAME      , {(NB_DATA-1){1'b0}}}; 
-    #2 i_cmd_from_micro = {1'b0,  GET_FRAME      , {(NB_DATA-1){1'b0}}}; 
+    #2 i_cmd_from_micro = {1'b0,  GET_FRAME      , {(NB_DATA){1'b0}}}; 
+    #2 i_cmd_from_micro = {1'b1,  GET_FRAME      , {(NB_DATA){1'b0}}}; 
+    #2 i_cmd_from_micro = {1'b0,  GET_FRAME      , {(NB_DATA){1'b0}}}; 
     
-    #2 i_cmd_from_micro = {1'b0,  GET_FRAME      , {(NB_DATA-1){1'b0}}}; 
-    #2 i_cmd_from_micro = {1'b1,  GET_FRAME      , {(NB_DATA-1){1'b0}}}; 
-    #2 i_cmd_from_micro = {1'b0,  GET_FRAME      , {(NB_DATA-1){1'b0}}}; 
+    #2 i_cmd_from_micro = {1'b0,  GET_FRAME      , {(NB_DATA){1'b0}}}; 
+    #2 i_cmd_from_micro = {1'b1,  GET_FRAME      , {(NB_DATA){1'b0}}}; 
+    #2 i_cmd_from_micro = {1'b0,  GET_FRAME      , {(NB_DATA){1'b0}}}; 
+    
+    #2 i_cmd_from_micro = {1'b0,  GET_FRAME      , {(NB_DATA){1'b0}}}; 
+    #2 i_cmd_from_micro = {1'b1,  GET_FRAME      , {(NB_DATA){1'b0}}}; 
+    #2 i_cmd_from_micro = {1'b0,  GET_FRAME      , {(NB_DATA){1'b0}}}; 
     
 
     #40;
@@ -119,11 +123,13 @@ end
 reg [2:0] j;
 always @(posedge clk) begin
     if (reset)
+    begin
         j <= 0;
+    end
     else
         if (o_get_pixels)
         begin
-            i_pixels_from_mem = bram[j];
+            i_pixels_from_mem <= bram[j];
             j <= j+ 1;
         end
 end
