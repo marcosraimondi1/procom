@@ -2,48 +2,61 @@ module bram_control #(
     parameter RAM_WIDTH    = 8,          // Specify RAM data width
     parameter RAM_DEPTH    = (2 ** 16),  // 65536 Specify RAM depth (number of entries)
     parameter IMAGE_WIDTH  = 10,
-    parameter IMAGE_HEIGHT = 10
+    parameter IMAGE_HEIGHT = 10,
+    parameter INIT_FILE    = "",
+    parameter KERNEL_WIDTH = 3
 ) (
-    input                           clk,                //! Clock
-    input                           reset,              //! Reset
-    input                           i_start_loading,    //! Start saving input data from ublaze
-    input                           i_valid_get_frame,  //! Valid data from from file_register
-    input                           i_read_log,         //! 
-    input [          RAM_WIDTH-1:0] i_data_to_mem,      //! data in [7:0]        
-    input [clogb2(RAM_DEPTH-1)-1:0] i_addr_log_to_mem,  //! read address [15:0]
+    input                 clk,                    //! Clock
+    input                 reset,                  //! Reset
+    input                 i_start_loading,        //! Start saving input data from ublaze
+    input                 i_valid_get_frame,      //! Valid data from from file_register
+    input                 i_read_for_processing,  //! Valid to read for processing
+    input [RAM_WIDTH-1:0] i_data_to_mem,          //! data in [7:0]        
 
-    output [RAM_WIDTH-1:0] o_data_from_mem,  //! data out [31:0]
-    output                 o_is_frame_ready  //! frame ya procesado y listo para leer
+    output [RAM_WIDTH-1:0] o_data_from_mem,       //! data out [7:0]
+    output                 o_is_frame_ready,      //! frame ya procesado y listo para leer
+    output                 o_valid_data_to_conv,  //! valid data to conv
+    output [RAM_WIDTH-1:0] o_to_conv0,
+    output [RAM_WIDTH-1:0] o_to_conv1,
+    output [RAM_WIDTH-1:0] o_to_conv2             //! data to conv (3 pixeles)
 );
 
   // Local Parameters
   localparam RAM_PERFORMANCE = "LOW_LATENCY";
-  localparam INIT_FILE = "";
   localparam [1:0] IDLE = 2'b00;
   localparam [1:0] LOAD_FRAME = 2'b01;
   localparam [1:0] PROCESS_FRAME = 2'b10;
   localparam [1:0] GET_FRAME = 2'b11;
-  //localparam [1:0] stop  = 2'b11;
+
+  localparam [clogb2(IMAGE_HEIGHT*IMAGE_WIDTH - 1) - 1:0] RESOLUTION = IMAGE_HEIGHT * IMAGE_WIDTH;
 
   // Inputs
-  reg                            wea;
-  reg                            ena;
-  reg                            regcea;
-  reg  [          RAM_WIDTH-1:0] dina;
-  reg  [clogb2(RAM_DEPTH-1)-1:0] addra;  // direccion de memoria
-  reg  [                    2:0] state_reg;
+  reg                               wea;
+  reg                               ena;
+  reg                               regcea;
+  reg  [             RAM_WIDTH-1:0] dina;
+  reg  [   clogb2(RAM_DEPTH-1)-1:0] addra;  // direccion de memoria
+  reg  [   clogb2(RAM_DEPTH-1)-1:0] proc_state_addra;
+  reg  [   clogb2(RAM_DEPTH-1)-1:0] proc_state_current_addra;
+  reg  [                       2:0] state_reg;
+  reg  [             RAM_WIDTH-1:0] pixels_to_conv                 [KERNEL_WIDTH-1:0];
 
   // Outputs
-  wire [          RAM_WIDTH-1:0] douta;
+  wire [             RAM_WIDTH-1:0] douta;
+
+  reg  [clogb2(KERNEL_WIDTH-1)-1:0] pixels_read_counter;
 
   always @(posedge clk) begin
     if (reset) begin
-      addra     <= 0;
-      dina      <= 0;
-      wea       <= 1'b0;
-      ena       <= 1'b0;
-      regcea    <= 1'b1;
-      state_reg <= 2'b00;
+      addra                    <= 8'b0;
+      proc_state_addra         <= 0;
+      proc_state_current_addra <= 0;
+      dina                     <= 0;
+      wea                      <= 1'b0;
+      ena                      <= 1'b0;
+      regcea                   <= 1'b1;
+      state_reg                <= 2'b00;
+      pixels_read_counter      <= 2'b0;
     end else begin
       case (state_reg)
 
@@ -51,7 +64,6 @@ module bram_control #(
         if (i_start_loading) begin
           ena       <= 1'b1;
           addra     <= 0;  // posicion inicial
-          //wea       <= 1'b1;
           state_reg <= LOAD_FRAME;
         end
 
@@ -60,35 +72,61 @@ module bram_control #(
           dina <= i_data_to_mem;
           if (wea) addra <= addra + 1;
 
-          if (addra == (IMAGE_HEIGHT * IMAGE_WIDTH - 1)) begin
+          if (addra == RESOLUTION - 1) begin
             // frame complete in memory
-            wea       <= 1'b0;
-            state_reg <= PROCESS_FRAME;
+            wea                      <= 1'b0;
+            state_reg                <= PROCESS_FRAME;
+            addra                    <= 0;
+            proc_state_addra         <= 0;
+            proc_state_current_addra <= 0;
           end
         end
 
         PROCESS_FRAME: begin
+          regcea <= 1'b1;
+          if (i_read_for_processing) begin
+
+            if (proc_state_current_addra >= (RESOLUTION - IMAGE_WIDTH + proc_state_addra + KERNEL_WIDTH - 1)) begin
+
+              if (proc_state_addra >= IMAGE_WIDTH - 3) begin
+                // frame read complete
+                regcea    <= 1'b0;
+                state_reg <= GET_FRAME;
+              end else begin
+                // column read complete
+                proc_state_addra = proc_state_addra + 1;
+                proc_state_current_addra = proc_state_addra;
+              end
+
+            end
+
+            if (pixels_read_counter == KERNEL_WIDTH - 1) begin
+              // finished reading 3 pixels, advance to next 3 pixels
+              pixels_read_counter <= 0;
+              proc_state_current_addra <= proc_state_current_addra + IMAGE_WIDTH;
+
+            end else begin
+              // get next contiguous pixel
+              pixels_read_counter <= pixels_read_counter + 1;
+            end
+
+            addra <= proc_state_current_addra + pixels_read_counter;
+            pixels_to_conv[pixels_read_counter] <= douta;  
+            // TODO: check output data when process state
+            // TODO: i_read_for_processing should be a pulse signal (only get next 3 pixels when pulse is received)
+            // TODO: check o_valid_data_to_conv when process state
+            // TODO: maybe a valid singal is needed to know when the to load pixels in LOAD STATE
+
+          end
         end
-        /*
-          begin
-          if (i_read_log) begin
-            regcea    <= 1'b1;
-            addra     <= i_addr_log_to_mem; // direccion a leer
-          end
-          else if(i_start_loading) begin
-            regcea    <= 1'b0;
-            addra     <= 0    ;
-            state_reg <= start;
-          end
-          end
-*/
+
         GET_FRAME: begin
           if (i_valid_get_frame) begin
             regcea <= 1'b1;
 
             if (regcea) addra <= addra + 1;
 
-            if (addra == (IMAGE_HEIGHT * IMAGE_WIDTH - 1)) begin
+            if (addra == RESOLUTION - 1) begin
               // frame read complete
               regcea    <= 1'b0;
               state_reg <= IDLE;
@@ -103,7 +141,11 @@ module bram_control #(
   end
 
   assign o_is_frame_ready = (state_reg == GET_FRAME) ? 1'b1 : 1'b0;
-  assign o_data_from_mem  = douta;
+  assign o_data_from_mem = douta;
+  assign o_valid_data_to_conv = (pixels_read_counter == KERNEL_WIDTH - 1) ? 1'b1 : 1'b0;
+  assign o_to_conv0 = pixels_to_conv[0];
+  assign o_to_conv1 = pixels_to_conv[1];
+  assign o_to_conv2 = pixels_to_conv[2];
 
   // Instantiate RAM
   xilinx_single_port_ram_no_change #(
@@ -134,8 +176,8 @@ endmodule
   IMAGEN DE 10x10:
   [
     [0  1  2  3  4  5  6  7  8  9 ]
-    [10 11 12 13 14 15 16 17 18 19]
-    [20 21 22 23 24 25 26 27 28 29]
+    [10 11 12 13 14 15 16 17 18 19]   
+    [20 21 22 23 24 25 26 27 28 29]   
     [30 31 32 33 34 35 36 37 38 39]
     [40 41 42 43 44 45 46 47 48 49]
     [50 51 52 53 54 55 56 57 58 59]
@@ -227,8 +269,6 @@ WORKFLOW DE LECTURA DURANTE EL PROCESAMIENTO:
 
 }
       
-
-
 ESTADO DE CARGA: // LOAD_FRAME 01
 - Para cargar el frame, se carga un pixel atras de otro aumentando en uno la direccion de memoria
 - Necesitamos que nos de algun bit que nos de datos nuevos para cargar(valid/enable)
