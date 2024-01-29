@@ -1,78 +1,75 @@
 module bram_control #(
-    parameter RAM_WIDTH =       8,    // Specify RAM data width
-    parameter RAM_DEPTH = (2**16),   // 65536 Specify RAM depth (number of entries)
-    parameter IMAGE_WIDTH  = 10, 
+    parameter RAM_WIDTH    = 8,          // Specify RAM data width
+    parameter RAM_DEPTH    = (2 ** 16),  // 65536 Specify RAM depth (number of entries)
+    parameter IMAGE_WIDTH  = 10,
     parameter IMAGE_HEIGHT = 10
-)
-(
-    input                                                 clk,    //! Clock
-    input                                               reset,    //! Reset
-    input                                     i_start_loading,    //! Start saving input data from ublaze
-    input                                   i_valid_get_frame,    //! Valid data from from file_register
-    input                                    i_read_log,    //! 
-    input  [RAM_WIDTH-1:0]                i_data_to_mem,    //! data in [7:0]        
-    input  [clogb2(RAM_DEPTH-1)-1:0]  i_addr_log_to_mem,    //! read address [15:0]
-    
-    output [RAM_WIDTH-1:0]              o_data_from_mem,    //! data out [31:0]
-    output                                   o_is_frame_ready     //! frame ya procesado y listo para leer
+) (
+    input                           clk,                //! Clock
+    input                           reset,              //! Reset
+    input                           i_start_loading,    //! Start saving input data from ublaze
+    input                           i_valid_get_frame,  //! Valid data from from file_register
+    input                           i_read_log,         //! 
+    input [          RAM_WIDTH-1:0] i_data_to_mem,      //! data in [7:0]        
+    input [clogb2(RAM_DEPTH-1)-1:0] i_addr_log_to_mem,  //! read address [15:0]
+
+    output [RAM_WIDTH-1:0] o_data_from_mem,  //! data out [31:0]
+    output                 o_is_frame_ready  //! frame ya procesado y listo para leer
 );
 
   // Local Parameters
   localparam RAM_PERFORMANCE = "LOW_LATENCY";
   localparam INIT_FILE = "";
-  localparam [1:0] IDLE           = 2'b00;
-  localparam [1:0] LOAD_FRAME     = 2'b01;
-  localparam [1:0] PROCESS_FRAME  = 2'b10;
-  localparam [1:0] GET_FRAME      = 2'b11;
+  localparam [1:0] IDLE = 2'b00;
+  localparam [1:0] LOAD_FRAME = 2'b01;
+  localparam [1:0] PROCESS_FRAME = 2'b10;
+  localparam [1:0] GET_FRAME = 2'b11;
   //localparam [1:0] stop  = 2'b11;
 
   // Inputs
-  reg wea;
-  reg ena;
-  reg regcea;
-  reg [RAM_WIDTH-1:0] dina;
-  reg [clogb2(RAM_DEPTH-1)-1:0] addra;       // direccion de memoria
-  reg   [2:0]                state_reg;
-  
+  reg                            wea;
+  reg                            ena;
+  reg                            regcea;
+  reg  [          RAM_WIDTH-1:0] dina;
+  reg  [clogb2(RAM_DEPTH-1)-1:0] addra;  // direccion de memoria
+  reg  [                    2:0] state_reg;
+
   // Outputs
-  wire [RAM_WIDTH-1:0] douta;
-  
+  wire [          RAM_WIDTH-1:0] douta;
+
   always @(posedge clk) begin
     if (reset) begin
-        addra     <= 0;
-        dina      <= 0;
-        wea       <= 1'b0;
-        ena       <= 1'b0;
-        regcea    <= 1'b1;
-        state_reg <=  2'b00;
-    end
-    else begin
-        case (state_reg)
+      addra     <= 0;
+      dina      <= 0;
+      wea       <= 1'b0;
+      ena       <= 1'b0;
+      regcea    <= 1'b1;
+      state_reg <= 2'b00;
+    end else begin
+      case (state_reg)
 
         IDLE:
-            if(i_start_loading) begin
-                ena       <= 1'b1 ;
-                addra     <= 0    ;   // posicion inicial
-                //wea       <= 1'b1;
-                state_reg <= LOAD_FRAME;
-            end
+        if (i_start_loading) begin
+          ena       <= 1'b1;
+          addra     <= 0;  // posicion inicial
+          //wea       <= 1'b1;
+          state_reg <= LOAD_FRAME;
+        end
 
-        LOAD_FRAME:
-            begin
-            wea       <= 1'b1;
-            dina      <= i_data_to_mem;
-            if(wea)
-                addra     <= addra + 1;
-            
-            if(addra == (IMAGE_HEIGHT*IMAGE_WIDTH - 1)) begin
-                // frame complete in memory
-                wea       <= 1'b0;
-                state_reg <= PROCESS_FRAME;
-            end
-            end
+        LOAD_FRAME: begin
+          wea  <= 1'b1;
+          dina <= i_data_to_mem;
+          if (wea) addra <= addra + 1;
 
-        PROCESS_FRAME: // TODO:
-/*
+          if (addra == (IMAGE_HEIGHT * IMAGE_WIDTH - 1)) begin
+            // frame complete in memory
+            wea       <= 1'b0;
+            state_reg <= PROCESS_FRAME;
+          end
+        end
+
+        PROCESS_FRAME: begin
+        end
+        /*
           begin
           if (i_read_log) begin
             regcea    <= 1'b1;
@@ -85,59 +82,55 @@ module bram_control #(
           end
           end
 */
-        GET_FRAME: 
-            begin
-            if (i_valid_get_frame) begin
-              regcea    <= 1'b1;
+        GET_FRAME: begin
+          if (i_valid_get_frame) begin
+            regcea <= 1'b1;
 
-              if(regcea)
-                  addra     <= addra + 1;
-              
-              if(addra == (IMAGE_HEIGHT*IMAGE_WIDTH - 1)) begin
-                  // frame read complete
-                  regcea    <= 1'b0;
-                  state_reg <= IDLE;
-              end
+            if (regcea) addra <= addra + 1;
+
+            if (addra == (IMAGE_HEIGHT * IMAGE_WIDTH - 1)) begin
+              // frame read complete
+              regcea    <= 1'b0;
+              state_reg <= IDLE;
             end
-            end
-            
-        default: 
-          state_reg <= IDLE;
-          
-        endcase
+          end
+        end
+
+        default: state_reg <= IDLE;
+
+      endcase
     end
   end
 
-assign o_is_frame_ready = (state_reg == GET_FRAME) ? 1'b1 : 1'b0;
-assign o_data_from_mem = douta;
+  assign o_is_frame_ready = (state_reg == GET_FRAME) ? 1'b1 : 1'b0;
+  assign o_data_from_mem  = douta;
 
   // Instantiate RAM
   xilinx_single_port_ram_no_change #(
-    .RAM_WIDTH(RAM_WIDTH),
-    .RAM_DEPTH(RAM_DEPTH),
-    .RAM_PERFORMANCE(RAM_PERFORMANCE),
-    .INIT_FILE(INIT_FILE)
+      .RAM_WIDTH(RAM_WIDTH),
+      .RAM_DEPTH(RAM_DEPTH),
+      .RAM_PERFORMANCE(RAM_PERFORMANCE),
+      .INIT_FILE(INIT_FILE)
   ) ram (
-    .clka(clk),
-    .wea(wea),
-    .ena(ena),
-    .rsta(reset),
-    .regcea(regcea),
-    .dina(dina),
-    .addra(addra),
-    .douta(douta)
+      .clka(clk),
+      .wea(wea),
+      .ena(ena),
+      .rsta(reset),
+      .regcea(regcea),
+      .dina(dina),
+      .addra(addra),
+      .douta(douta)
   );
 
   // calcula cuantos bits de direccion hacen falta para direccionar la memoria
   function integer clogb2;
     input integer depth;
-      for (clogb2=0; depth>0; clogb2=clogb2+1)
-        depth = depth >> 1;
+    for (clogb2 = 0; depth > 0; clogb2 = clogb2 + 1) depth = depth >> 1;
   endfunction
-    
+
 endmodule
 
-  /*
+/*
   IMAGEN DE 10x10:
   [
     [0  1  2  3  4  5  6  7  8  9 ]
@@ -258,5 +251,5 @@ ESTADO DE LECTURA DEL FRAME COMPLETO (YA PROCESADO) para enviarlo al ublaze: // 
 
 
 */
-    
-    
+
+
