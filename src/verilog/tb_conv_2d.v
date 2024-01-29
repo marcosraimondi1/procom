@@ -1,5 +1,5 @@
-`define INPUT_FILE_PATH "C:/Users/agusb/OneDrive/Escritorio/PROCOM/tpfinal/procom/src/verilog/test1_input.txt"
-`define RESULT_FILE_PATH "C:/Users/agusb/OneDrive/Escritorio/PROCOM/tpfinal/procom/src/verilog/test1.txt"
+`define INPUT_FILE_PATH "/home/manu/repos/procom/src/python/test1_input.txt"
+`define RESULT_FILE_PATH "/home/manu/repos/procom/src/python/test1_output.txt"
 `timescale 1ns/100ps
 
 module tb_conv_2d();
@@ -15,7 +15,7 @@ module tb_conv_2d();
     reg signed [7:0] i_data1;
     reg signed [7:0] i_data2;
     reg signed [7:0] i_data3;
-    wire signed [20:0] o_pixel;
+    wire signed [7:0] o_pixel;
 
     reg [7:0] kernel [9:1];
     reg [7:0] padded_frame [IMAGE_HEIGHT-1:0][IMAGE_WIDTH-1:0];
@@ -50,7 +50,7 @@ module tb_conv_2d();
         kernel[2] = 8'b0;
         kernel[3] = 8'b0;
         kernel[4] = 8'b0;
-        kernel[5] = 8'b1;
+        kernel[5] = 8'b10000000;
         kernel[6] = 8'b0;
         kernel[7] = 8'b0;
         kernel[8] = 8'b0;
