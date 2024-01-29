@@ -1,4 +1,5 @@
-module conv_2d(
+module conv_2d
+    (
     input clk,       //! Clock 100 MHz
     input i_nrst,   
     input i_en_conv,         // Habilita la operación de convolución
@@ -6,13 +7,25 @@ module conv_2d(
     input      signed [7:0] i_data1,    //Recibo de a 3 pixeles/coeficientes (9x3)
     input      signed [7:0] i_data2,    //Recibo de a 3 pixeles/coeficientes (9x3)
     input      signed [7:0] i_data3,    //Recibo de a 3 pixeles/coeficientes (9x3)
-    output reg signed [19:0] o_pixel            //Resultado de la convolución
+    output     signed [7:0] o_pixel            //Resultado de la convolución
+    // output reg signed [19:0] o_pixel            //Resultado de la convolución
     );
 
-    localparam NB_COEFF = 8;               //Numero de bits de los coeficientes 
-    localparam NB_PROD  = NB_COEFF*2;
-    localparam NB_SUM   = NB_PROD+4;
+    localparam NB_COEFF    = 8;               //Numero de bits de los coeficientes 
+    localparam NBF_COEFF   = 7;                
+    localparam NB_PROD     = NB_COEFF*2;
+    localparam NBF_PROD    = NBF_COEFF*2;
+    localparam NB_ADD      = NB_PROD+4;
     localparam KERNEL_SIZE = 9;
+
+    localparam NBF_ADD    = NBF_PROD;
+    localparam NBI_ADD    = NB_ADD - NBF_ADD;
+
+
+    localparam NB_OUTPUT  = 8;
+    localparam NBF_OUTPUT = 7;
+    localparam NBI_OUTPUT = NB_OUTPUT - NBF_OUTPUT;
+    localparam NB_SAT     = (NBI_ADD) - (NBI_OUTPUT);
 
     reg signed  [7:0]         subframe [KERNEL_SIZE:1];   //Sector de la imagen a convolucionar
     reg signed [NB_COEFF-1:0] kernel   [KERNEL_SIZE:1];    //Matriz de coeficientes del kernel 
@@ -85,19 +98,19 @@ module conv_2d(
     assign prod[8] = subframe[8] * kernel[8];
     assign prod[9] = subframe[9] * kernel[9];
 
+    reg signed [NB_ADD-1:0] sum;
     always @ (posedge clk) begin
         if( !i_nrst ) 
-            o_pixel <= {NB_SUM{1'b0}};
+            sum <= {NB_ADD{1'b0}};
         else begin 
             if ( i_en_conv )
-                o_pixel <= prod[1]+prod[2]+prod[3]+prod[4]+prod[5]+prod[6]+prod[7]+prod[8]+prod[9];
+                sum <= prod[1]+prod[2]+prod[3]+prod[4]+prod[5]+prod[6]+prod[7]+prod[8]+prod[9];
             else 
-                o_pixel <= {NB_SUM{1'b0}};
+                sum <= {NB_ADD{1'b0}};
         end            
     end
 
-    // assign o_data = ( ~|y_I[phase_sel][NB_ADD-1 -: NB_SAT+1] || &y_I[phase_sel][NB_ADD-1 -: NB_SAT+1]) ? y_I[phase_sel][NB_ADD-(NBI_ADD-NBI_OUTPUT) - 1 -: NB_OUTPUT] :
-    // (y_I[phase_sel][NB_ADD-1]) ? {{1'b1},{NB_OUTPUT-1{1'b0}}} : {{1'b0},{NB_OUTPUT-1{1'b1}}};
-
+    assign o_pixel = ( ~|sum[NB_ADD-1 -: NB_SAT+1] || &sum[NB_ADD-1 -: NB_SAT+1]) ? sum[NB_ADD-(NB_SAT) - 1 -: NB_OUTPUT] :
+                      (sum[NB_ADD-1]) ? {{1'b1},{NB_OUTPUT-1{1'b0}}} : {{1'b0},{NB_OUTPUT-1{1'b1}}};
 
 endmodule
