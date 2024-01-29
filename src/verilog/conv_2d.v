@@ -6,7 +6,7 @@ module conv_2d(
     input      signed [7:0] i_data1,    //Recibo de a 3 pixeles/coeficientes (9x3)
     input      signed [7:0] i_data2,    //Recibo de a 3 pixeles/coeficientes (9x3)
     input      signed [7:0] i_data3,    //Recibo de a 3 pixeles/coeficientes (9x3)
-    output reg signed [20:0] o_pixel            //Resultado de la convolución
+    output reg signed [19:0] o_pixel            //Resultado de la convolución
     );
 
     localparam NB_COEFF = 8;               //Numero de bits de los coeficientes 

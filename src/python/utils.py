@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+from tool._fixedInt import *
 
 # KERNELS
 edges = np.array([[-1,-1,-1], [-1,8,-1], [-1,-1,-1]]) /8
@@ -20,8 +21,9 @@ def load_frame(path):
     image = cv2.imread(path)
     return image
 
-def pre_process_frame(image):
+def pre_process_frame(image, frame_size=(200,200)):
     """Pre-processes a frame, change resolution, greyscale"""
+
     # Convert the image to grayscale
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
@@ -29,7 +31,7 @@ def pre_process_frame(image):
     arr = np.array(gray_image)
 
     # Resize the frame
-    resized = cv2.resize(arr, (200, 200))
+    resized = cv2.resize(arr, frame_size)
     
     return resized
 
