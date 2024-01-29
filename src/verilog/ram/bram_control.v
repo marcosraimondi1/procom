@@ -10,15 +10,17 @@ module bram_control #(
     input                 reset,                  //! Reset
     input                 i_start_loading,        //! Start saving input data from ublaze
     input                 i_valid_get_frame,      //! Valid data from from file_register
-    input                 i_read_for_processing,  //! Valid to read for processing
     input [RAM_WIDTH-1:0] i_data_to_mem,          //! data in [7:0]        
-
-    output [RAM_WIDTH-1:0] o_data_from_mem,       //! data out [7:0]
+    
+    output [RAM_WIDTH-1:0] o_data_from_mem,       //! data out to bram [7:0]
     output                 o_is_frame_ready,      //! frame ya procesado y listo para leer
-    output                 o_valid_data_to_conv,  //! valid data to conv
-    output [RAM_WIDTH-1:0] o_to_conv0,
+    
+    // SEÑALES UTILES PARA EL CONVOLUCIONADOR
+    input                  i_read_for_processing,  //! Valid to read for processing (un pulso por cada 3 pixeles)
+    output                 o_valid_data_to_conv,  //! valid data to convolver (cuando esta en 1, el dato en los 3 puertos de salida es valido)    
+    output [RAM_WIDTH-1:0] o_to_conv0,            //! data to convolver (3 pixeles)
     output [RAM_WIDTH-1:0] o_to_conv1,
-    output [RAM_WIDTH-1:0] o_to_conv2             //! data to conv (3 pixeles)
+    output [RAM_WIDTH-1:0] o_to_conv2
 );
 
   // Local Parameters
@@ -53,10 +55,15 @@ module bram_control #(
       proc_state_current_addra <= 0;
       dina                     <= 0;
       wea                      <= 1'b0;
-      ena                      <= 1'b0;
+      ena                      <= 1'b1;
       regcea                   <= 1'b1;
       state_reg                <= 2'b00;
       pixels_read_counter      <= 2'b0;
+
+      pixels_to_conv[0] <= 0;
+      pixels_to_conv[1] <= 0;
+      pixels_to_conv[2] <= 0;
+      
     end else begin
       case (state_reg)
 
@@ -67,7 +74,7 @@ module bram_control #(
           state_reg <= LOAD_FRAME;
         end
 
-        LOAD_FRAME: begin
+        LOAD_FRAME: begin //Carga de 1 pixel en la memoria
           wea  <= 1'b1;
           dina <= i_data_to_mem;
           if (wea) addra <= addra + 1;
@@ -82,10 +89,9 @@ module bram_control #(
           end
         end
 
-        PROCESS_FRAME: begin
+        PROCESS_FRAME: begin //Envio de 3 pixel al convolver
           regcea <= 1'b1;
           if (i_read_for_processing) begin
-
             if (proc_state_current_addra >= (RESOLUTION - IMAGE_WIDTH + proc_state_addra + KERNEL_WIDTH - 1)) begin
 
               if (proc_state_addra >= IMAGE_WIDTH - 3) begin
@@ -94,7 +100,7 @@ module bram_control #(
                 state_reg <= GET_FRAME;
               end else begin
                 // column read complete
-                proc_state_addra = proc_state_addra + 1;
+                proc_state_addra = proc_state_addra + 1'b1;
                 proc_state_current_addra = proc_state_addra;
               end
 
@@ -107,11 +113,13 @@ module bram_control #(
 
             end else begin
               // get next contiguous pixel
-              pixels_read_counter <= pixels_read_counter + 1;
+              pixels_read_counter <= pixels_read_counter + 1'b1;
             end
 
-            addra <= proc_state_current_addra + pixels_read_counter;
+            addra <= proc_state_current_addra + pixels_read_counter; 
+            
             pixels_to_conv[pixels_read_counter] <= douta;  
+
             // TODO: check output data when process state
             // TODO: i_read_for_processing should be a pulse signal (only get next 3 pixels when pulse is received)
             // TODO: check o_valid_data_to_conv when process state
@@ -124,7 +132,7 @@ module bram_control #(
           if (i_valid_get_frame) begin
             regcea <= 1'b1;
 
-            if (regcea) addra <= addra + 1;
+            if (regcea) addra <= addra + 1'b1;
 
             if (addra == RESOLUTION - 1) begin
               // frame read complete
@@ -142,7 +150,7 @@ module bram_control #(
 
   assign o_is_frame_ready = (state_reg == GET_FRAME) ? 1'b1 : 1'b0;
   assign o_data_from_mem = douta;
-  assign o_valid_data_to_conv = (pixels_read_counter == KERNEL_WIDTH - 1) ? 1'b1 : 1'b0;
+  assign o_valid_data_to_conv = (pixels_read_counter == KERNEL_WIDTH - 1) ? 1'b1 : 1'b0; //TODO MAL
   assign o_to_conv0 = pixels_to_conv[0];
   assign o_to_conv1 = pixels_to_conv[1];
   assign o_to_conv2 = pixels_to_conv[2];
