@@ -50,7 +50,7 @@ module tb_bram_control;
 
     #2 i_read_for_processing = 1'b1;
 
-    #1500;
+    #600;
 
 
     $finish;
