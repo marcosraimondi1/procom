@@ -4,11 +4,12 @@ module conv_2d
     input i_nrst,   
     input i_en_conv,         // Habilita la operación de convolución
     input i_load_knl,   // Indica si se van a cargar los coeficientes del kernel
-    input      signed [7:0] i_data1,    //Recibo de a 3 pixeles/coeficientes (9x3)
-    input      signed [7:0] i_data2,    //Recibo de a 3 pixeles/coeficientes (9x3)
-    input      signed [7:0] i_data3,    //Recibo de a 3 pixeles/coeficientes (9x3)
-    output     signed [7:0] o_pixel            //Resultado de la convolución
-    // output reg signed [19:0] o_pixel            //Resultado de la convolución
+    output     o_read_for_processing        //Le indica a la bram que tiene que cargar los 3 pixeles
+
+    input      signed [7:0] i_data1,    
+    input      signed [7:0] i_data2,    
+    input      signed [7:0] i_data3,    
+    output     signed [7:0] o_pixel,            //Resultado de la convolución
     );
 
     localparam NB_COEFF    = 8;               //Numero de bits de los coeficientes 
@@ -21,7 +22,6 @@ module conv_2d
     localparam NBF_ADD    = NBF_PROD;
     localparam NBI_ADD    = NB_ADD - NBF_ADD;
 
-
     localparam NB_OUTPUT  = 8;
     localparam NBF_OUTPUT = 7;
     localparam NBI_OUTPUT = NB_OUTPUT - NBF_OUTPUT;
@@ -32,46 +32,25 @@ module conv_2d
     wire signed [NB_PROD-1:0] prod     [KERNEL_SIZE:1]; //! Partial Products
 
     reg [1:0] load_count;
-    //Kernel identidad --> despues hay que hacerlo reg para poder cambiarlo durante la ejecucion
 
-    // integer ptr1;
-    // integer ptr2;
-    // always @(posedge clk) begin
-    //   if (i_nrst == 1'b1) begin
-    //     for(ptr1=1; ptr1<=9; ptr1=ptr1+1) 
-    //         subframe[ptr1] <= 8'b0;
-    //   end else begin
-    //     if (i_en_conv == 1'b1) begin
-    //       for(ptr2=1; ptr2<9; ptr2=ptr2+1) begin
-    //         if(ptr2 == 1)
-    //             subframe[ptr2] <= i_row1;
-    //         else if(ptr2 == 1)
-    //             subframe[ptr2] <= i_row2;
-    //         else if(ptr2 == 1)
-    //             subframe[ptr2] <= i_row3;
-    //         else
-    //             subframe[ptr2] <= subframe[ptr2-1];
-    //        end   
-    //     end
-    //   end
-    // end
     integer ptr1;
     always @(posedge clk) begin
         if (!i_nrst) begin
             load_count <= 2'b0;
+            o_read_for_processing <= 1'b0;
             for(ptr1=1; ptr1<=9; ptr1=ptr1+1) 
                 subframe[ptr1] <= {NB_COEFF{1'b0}};
         end else begin
             if (i_en_conv == 1'b1) begin
-                subframe[1] <= i_data1;
-                subframe[2] <= subframe[1];
-                subframe[3] <= subframe[2];
-                subframe[4] <= i_data2;
-                subframe[5] <= subframe[4];
-                subframe[6] <= subframe[5];
-                subframe[7] <= i_data3;
-                subframe[8] <= subframe[7];
-                subframe[9] <= subframe[8];
+                subframe[1] <= subframe[4];
+                subframe[2] <= subframe[5];
+                subframe[3] <= subframe[6];
+                subframe[4] <= subframe[7];
+                subframe[5] <= subframe[8];
+                subframe[6] <= subframe[9];
+                subframe[7] <= i_data1;
+                subframe[8] <= i_data2;
+                subframe[9] <= i_data3;
             end 
             else if(i_load_knl) begin
                 if(load_count == 2'd3) 
@@ -86,7 +65,6 @@ module conv_2d
         end
     end
 
-    // y[n] = x_I * h[n]
     // pasar a un for
     assign prod[1] = subframe[1] * kernel[1];
     assign prod[2] = subframe[2] * kernel[2];
