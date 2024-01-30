@@ -1,17 +1,20 @@
-`define INPUT_FILE_PATH "/home/manu/repos/procom/src/python/test1_input.txt"
-`define RESULT_FILE_PATH "/home/manu/repos/procom/src/python/test1_output.txt"
+//`define INPUT_FILE_PATH "/home/manu/repos/procom/src/python/test1_input.txt"
+//`define RESULT_FILE_PATH "/home/manu/repos/procom/src/python/test1_output.txt"
+`define INPUT_FILE_PATH "C:/Users/agusb/OneDrive/Escritorio/PROCOM/tpfinal/procom/src/verilog/py_input.txt"
+`define RESULT_FILE_PATH "C:/Users/agusb/OneDrive/Escritorio/PROCOM/tpfinal/procom/src/verilog/py_output.txt"
 `timescale 1ns/100ps
 
 module tb_conv_2d();
 
-    localparam IMAGE_HEIGHT = 1+2;  //Alto de la imagen 
-    localparam IMAGE_WIDTH  = 10+2;  //Ancho de la imagen 
+    localparam IMAGE_HEIGHT = 10+2;  //Alto de la imagen 
+    localparam IMAGE_WIDTH  = 1+2;  //Ancho de la imagen 
 
     reg clk;
     reg i_en_conv;
     reg i_nrst;
     reg i_load_knl;
-    // reg signed [23:0] i_pixels;
+    reg i_data_valid;
+    
     reg signed [7:0] i_data1;
     reg signed [7:0] i_data2;
     reg signed [7:0] i_data3;
@@ -19,6 +22,8 @@ module tb_conv_2d();
 
     reg [7:0] kernel [9:1];
     reg [7:0] padded_frame [IMAGE_HEIGHT-1:0][IMAGE_WIDTH-1:0];
+    reg [7:0] conv_image   [(IMAGE_HEIGHT-2)*(IMAGE_WIDTH-2) - 1:0]; //imagen convolucionada (sin padding)
+    reg [31:0] addr;
 
     integer fd_input, fd_result;
     integer i, j;   
@@ -37,9 +42,8 @@ module tb_conv_2d();
         $display("");
         $display("Simulation Started");
 
-        // $readmemb("preprocessed.txt", padded_frame);
-       for (i=0;i<IMAGE_HEIGHT;i=i+1) begin
-           for (j=0;j<IMAGE_WIDTH;j=j+1) begin
+        for (j=0;j<IMAGE_WIDTH;j=j+1) begin
+           for (i=0;i<IMAGE_HEIGHT;i=i+1) begin
                $fscanf(fd_input,"%b\n", padded_frame[i][j]);
                 $display("%d %d: %b ",i,j, padded_frame[i][j]);
            end
@@ -50,7 +54,7 @@ module tb_conv_2d();
         kernel[2] = 8'b0;
         kernel[3] = 8'b0;
         kernel[4] = 8'b0;
-        kernel[5] = 8'b10000000;
+        kernel[5] = 8'b1111111;
         kernel[6] = 8'b0;
         kernel[7] = 8'b0;
         kernel[8] = 8'b0;
@@ -60,27 +64,30 @@ module tb_conv_2d();
                 i_nrst = 0;
                 i_en_conv = 0;
                 i_load_knl = 0;
-                i_data1 = kernel[1];
-                i_data2 = kernel[4];
+                i_data_valid = 0;
+                i_data1 = kernel[9];
+                i_data2 = kernel[8];
                 i_data3 = kernel[7];
         //Cargo el kernel
         #50     i_nrst = 1;
                 i_load_knl = 1;
-        #10     i_data1 = kernel[2];   
+        #10     i_data1 = kernel[6];   
                 i_data2 = kernel[5];  
-                i_data3 = kernel[8];  
+                i_data3 = kernel[4];  
         #10     i_data1 = kernel[3];         
-                i_data2 = kernel[6];  
-                i_data3 = kernel[9];   
+                i_data2 = kernel[2];  
+                i_data3 = kernel[1];   
         //Cargo los primeros valores del subframe      
         #10     i_load_knl = 0;
-                i_en_conv = 1;
-		//Cargo los pixeles de a columnas
-				for (i=0;i<IMAGE_HEIGHT-2;i=i+1) begin
-					for (j=0;j<IMAGE_WIDTH;j=j+1) begin
+                
+		//Cargo los pixeles de a filas
+				for (j=0;j<IMAGE_WIDTH-2;j=j+1) begin
+					for (i=0;i<IMAGE_HEIGHT-2;i=i+1) begin
 					    i_data1 = padded_frame[i][j];   
-						i_data2 = padded_frame[i+1][j];  
-						i_data3 = padded_frame[i+2][j];  
+						i_data2 = padded_frame[i][j+1];  
+						i_data3 = padded_frame[i][j+2];  
+                        if( i > 2 )
+                            i_data_valid = 1;   //se cargaron las 3 filas
 						#10;
                 	end
                 end
@@ -97,11 +104,22 @@ module tb_conv_2d();
         .i_en_conv(i_en_conv),
         .i_nrst(i_nrst),
         .i_load_knl(i_load_knl),
+        .i_data_valid(i_data_valid),
         .i_data1(i_data1),
         .i_data2(i_data2),
         .i_data3(i_data3),
-        // .i_pixels(i_pixels),
         .o_pixel(o_pixel)
     );
+
+    // always @ (posedge clk) begin
+    //     if (!i_nrst)
+    //         addr <= 32'b0;
+    //     else begin
+    //         if(i_en_conv) begin
+    //             conv_image[addr] <= o_pixel;
+    //             addr <= addr + 1;
+    //         end
+    //     end 
+    // end
 
 endmodule

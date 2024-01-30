@@ -3,13 +3,14 @@ module conv_2d
     input clk,       //! Clock 100 MHz
     input i_nrst,   
     input i_en_conv,         // Habilita la operación de convolución
+    input i_data_valid,     //El subframe está completo
     input i_load_knl,   // Indica si se van a cargar los coeficientes del kernel
-    output     o_read_for_processing        //Le indica a la bram que tiene que cargar los 3 pixeles
+    output     o_read_for_processing,        //Le indica a la bram que tiene que cargar los 3 pixeles
 
     input      signed [7:0] i_data1,    
     input      signed [7:0] i_data2,    
     input      signed [7:0] i_data3,    
-    output     signed [7:0] o_pixel,            //Resultado de la convolución
+    output     signed [7:0] o_pixel            //Resultado de la convolución
     );
 
     localparam NB_COEFF    = 8;               //Numero de bits de los coeficientes 
@@ -37,11 +38,19 @@ module conv_2d
     always @(posedge clk) begin
         if (!i_nrst) begin
             load_count <= 2'b0;
-            o_read_for_processing <= 1'b0;
             for(ptr1=1; ptr1<=9; ptr1=ptr1+1) 
-                subframe[ptr1] <= {NB_COEFF{1'b0}};
+                subframe[ptr1] <= {NB_COEFF{1'bZ}};
         end else begin
-            if (i_en_conv == 1'b1) begin
+            if(i_load_knl) begin    //Carga del kernel
+                if(load_count == 2'd3) 
+                   load_count <= 2'b0;
+                else begin
+                    kernel[1+load_count] = i_data1;
+                    kernel[4+load_count] = i_data2;
+                    kernel[7+load_count] = i_data3;
+                    load_count <= load_count+2'b1;
+                end
+            end else begin      //Desplazamiento del SR del subframe
                 subframe[1] <= subframe[4];
                 subframe[2] <= subframe[5];
                 subframe[3] <= subframe[6];
@@ -51,16 +60,6 @@ module conv_2d
                 subframe[7] <= i_data1;
                 subframe[8] <= i_data2;
                 subframe[9] <= i_data3;
-            end 
-            else if(i_load_knl) begin
-                if(load_count == 2'd3) 
-                    load_count <= 2'b0;
-                else begin
-                    kernel[1+load_count] = i_data1;
-                    kernel[4+load_count] = i_data2;
-                    kernel[7+load_count] = i_data3;
-                    load_count <= load_count+2'b1;
-                end
             end
         end
     end
@@ -81,7 +80,7 @@ module conv_2d
         if( !i_nrst ) 
             sum <= {NB_ADD{1'b0}};
         else begin 
-            if ( i_en_conv )
+            if ( i_data_valid )
                 sum <= prod[1]+prod[2]+prod[3]+prod[4]+prod[5]+prod[6]+prod[7]+prod[8]+prod[9];
             else 
                 sum <= {NB_ADD{1'b0}};
