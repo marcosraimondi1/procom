@@ -19,14 +19,14 @@ module tb_bram_control;
   reg [RAM_WIDTH-1:0] i_data_to_mem;
   reg i_read_valid;
   wire [RAM_WIDTH-1:0] o_data_from_mem;
+  wire [RAM_WIDTH-1:0] o_to_conv [KERNEL_WIDTH-1:0];
+  wire o_valid_data_to_conv;
+  wire o_frame_ready;
 
   reg i_load_valid_2;
   reg [RAM_WIDTH-1:0] i_data_to_mem_2;
   reg i_read_valid_2;
   wire [RAM_WIDTH-1:0] o_data_from_mem_2;
-
-  wire [RAM_WIDTH-1:0] o_to_conv [KERNEL_WIDTH-1:0];
-  wire o_valid_data_to_conv;
 
   integer i;
 
@@ -90,6 +90,7 @@ module tb_bram_control;
       .i_data_to_mem    (i_data_to_mem),
       .i_read_valid     (i_read_valid),
       .o_data_from_mem  (o_data_from_mem),
+      .o_frame_ready    (o_frame_ready),
       .o_valid_data_to_conv(o_valid_data_to_conv),
       .o_to_conv0       (o_to_conv[0]),
       .o_to_conv1       (o_to_conv[1]),

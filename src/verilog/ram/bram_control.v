@@ -13,6 +13,8 @@ module bram_control #(
     input [RAM_WIDTH-1:0] i_data_to_mem,  //! data in [7:0]
     input                 i_read_valid,   //! Valid to read
 
+    output                o_frame_ready,  //! frame ready to be read by micro or to process by convolver
+
     output                 o_valid_data_to_conv, //! valid data to convolver (cuando esta en 1, el dato en los 3 puertos de salida es valido)
     output [RAM_WIDTH-1:0] o_data_from_mem,    //! data out to bram [7:0]
     output [RAM_WIDTH-1:0] o_to_conv0,            //! data to convolver (3 pixeles)
@@ -124,6 +126,7 @@ module bram_control #(
 
         GET_FRAME: begin
           regcea <= 1'b1;
+          // frame ready to be read
           if (read_rising_edge) begin
             addra <= addra + 1'b1;
 
@@ -158,6 +161,7 @@ module bram_control #(
   end
 
   assign o_data_from_mem = douta;
+  assign o_frame_ready = (state_reg == GET_FRAME || state_reg == LOAD_FRAME) ? 1'b1 : 1'b0; // ready to process or to read from micro
   assign o_valid_data_to_conv = (pixels_read_counter == KERNEL_WIDTH - 1) ? 1'b1 : 1'b0; //TODO MAL
   assign o_to_conv1 = pixels_to_conv[0];
   assign o_to_conv2 = pixels_to_conv[1];
