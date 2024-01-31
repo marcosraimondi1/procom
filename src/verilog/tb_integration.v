@@ -76,8 +76,7 @@ module tb_integration;
         .NB_INST(32)     ,
         .IMAGE_WIDTH(10) ,
         .IMAGE_HEIGHT(10),
-        .KERNEL_WIDTH(3) ,
-        .DEBUG(1)
+        .KERNEL_WIDTH(3)
     ) u_integration (
         .reset(reset)     ,
         .clock(clock)     ,
