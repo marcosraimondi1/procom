@@ -25,6 +25,9 @@ module tb_bram_control;
   reg i_read_valid_2;
   wire [RAM_WIDTH-1:0] o_data_from_mem_2;
 
+  wire [RAM_WIDTH-1:0] o_to_conv [KERNEL_WIDTH-1:0];
+  wire o_valid_data_to_conv;
+
   integer i;
 
   // Clock generation
@@ -46,9 +49,9 @@ module tb_bram_control;
     // Write data to memory
 
     for (i = 0; i < 100; i = i + 1) begin
-      #2 i_load_valid_2 = 1'b1;
-      #2 i_load_valid_2 = 1'b0;
-      #2 i_data_to_mem_2 = i_data_to_mem_2 + 1;
+      // #2 i_load_valid_2 = 1'b1;
+      // #2 i_load_valid_2 = 1'b0;
+      // #2 i_data_to_mem_2 = i_data_to_mem_2 + 1;
       
       #2 i_load_valid = 1'b1;
       #2 i_load_valid = 1'b0;
@@ -56,33 +59,20 @@ module tb_bram_control;
     end
 
     // Request data for processing
-
-    // discard first read value (repeated 0)
     #2 i_read_valid = 1'b1;
-    #2 i_read_valid = 1'b0;
 
-    for (i = 0; i < 300-60; i = i + 1) begin
-      #2 i_read_valid = 1'b1;
-      #2 i_read_valid = 1'b0;
-      // $display("Data read from memory: %d", o_data_from_mem);
-    end
-
-     // Get processed frame
-     for (i = 0; i < 100; i = i + 1) begin
-      #2 i_read_valid_2 = 1'b1;
-      #2 i_read_valid_2 = 1'b0;
-      $display("Data read from memory: %d", o_data_from_mem_2);
-    end
-
-    #100;
+    //  // Get processed frame
+    //  for (i = 0; i < 100; i = i + 1) begin
+    //   #2 i_read_valid_2 = 1'b1;
+    //   #2 i_read_valid_2 = 1'b0;
+    //   $display("Data read from memory: %d", o_data_from_mem_2);
+    // end
+    #1000;
 
 
     $finish;
   end
 
-  while (@posedge clk) begin
-  
-  end
 
   // Instantiate BRAM for frame to process
   bram_control #(
@@ -99,26 +89,33 @@ module tb_bram_control;
       .i_load_valid     (i_load_valid),
       .i_data_to_mem    (i_data_to_mem),
       .i_read_valid     (i_read_valid),
-      .o_data_from_mem  (o_data_from_mem)
+      .o_data_from_mem  (o_data_from_mem),
+      .o_valid_data_to_conv(o_valid_data_to_conv),
+      .o_to_conv0       (o_to_conv[0]),
+      .o_to_conv1       (o_to_conv[1]),
+      .o_to_conv2       (o_to_conv[2])
   );
 
   // Instantiate BRAM for processed frame
- bram_control #(
-     .RAM_WIDTH(RAM_WIDTH),
-     .RAM_DEPTH(RAM_DEPTH),
-     .INIT_FILE(INIT_FILE),
-     .KERNEL_WIDTH(KERNEL_WIDTH),
-     .IMAGE_WIDTH(IMAGE_WIDTH),
-     .IMAGE_HEIGHT(IMAGE_HEIGHT),
-     .TO_PROCESS(0)
- ) u_bram_control_2 (
-     .clk              (clk),
-     .reset            (reset),
-     .i_load_valid     (i_load_valid_2),
-     .i_data_to_mem    (i_data_to_mem_2),
-     .i_read_valid     (i_read_valid_2),
-     .o_data_from_mem  (o_data_from_mem_2)
- );
+//  bram_control #(
+//      .RAM_WIDTH(RAM_WIDTH),
+//      .RAM_DEPTH(RAM_DEPTH),
+//      .INIT_FILE(INIT_FILE),
+//      .KERNEL_WIDTH(KERNEL_WIDTH),
+//      .IMAGE_WIDTH(IMAGE_WIDTH),
+//      .IMAGE_HEIGHT(IMAGE_HEIGHT),
+//      .TO_PROCESS(0)
+//  ) u_bram_control_2 (
+//      .clk              (clk),
+//      .reset            (reset),
+//      .i_load_valid     (i_load_valid_2),
+//      .i_data_to_mem    (i_data_to_mem_2),
+//      .i_read_valid     (i_read_valid_2),
+//      .o_data_from_mem  (o_data_from_mem_2),
+//      .o_to_conv0           (o_to_conv[1]),
+//      .o_to_conv1           (o_to_conv[2]),
+//       .o_to_conv2           (o_to_conv[0])
+//  );
 
   //  The following function calculates the address width based on specified RAM depth
   // calcula cuantos bits de direccion hacen falta para direccionar la memoria

@@ -13,7 +13,11 @@ module bram_control #(
     input [RAM_WIDTH-1:0] i_data_to_mem,  //! data in [7:0]
     input                 i_read_valid,   //! Valid to read
 
-    output [RAM_WIDTH-1:0] o_data_from_mem    //! data out to bram [7:0]
+    output                 o_valid_data_to_conv, //! valid data to convolver (cuando esta en 1, el dato en los 3 puertos de salida es valido)
+    output [RAM_WIDTH-1:0] o_data_from_mem,    //! data out to bram [7:0]
+    output [RAM_WIDTH-1:0] o_to_conv0,            //! data to convolver (3 pixeles)
+    output [RAM_WIDTH-1:0] o_to_conv1,
+    output [RAM_WIDTH-1:0] o_to_conv2
 );
 
   // Local Parameters
@@ -40,6 +44,7 @@ module bram_control #(
   reg  [   clogb2(RAM_DEPTH-1)-1:0] current_row_addra;
   reg  [clogb2(KERNEL_WIDTH-1)-1:0] pixels_read_counter;
   reg                               read_rising_edge;
+  reg  [             RAM_WIDTH-1:0] pixels_to_conv       [KERNEL_WIDTH-1:0];
 
   always @(posedge clk) begin
     if (reset) begin
@@ -51,8 +56,11 @@ module bram_control #(
       ena                 <= 1'b1;
       regcea              <= 1'b1;
       state_reg           <= LOAD_FRAME;
+      
       pixels_read_counter <= 2'b0;
-
+      pixels_to_conv[0] <= 0;
+      pixels_to_conv[1] <= 0;
+      pixels_to_conv[2] <= 0;
     end else begin
       case (state_reg)
 
@@ -71,19 +79,19 @@ module bram_control #(
             addra             <= 0;
             current_col_addra <= 0;
             current_row_addra <= 0;
+            regcea <= 1'b1;
           end
         end
 
         PROCESS_FRAME: begin  // Lee de 1 pixel en memoria en el orden de procesamiento del kernel
-          regcea <= 1'b1;
-          if (read_rising_edge) begin
+          
+          if (i_read_valid) begin
 
             if (current_row_addra >= (RESOLUTION - IMAGE_WIDTH + current_col_addra + KERNEL_WIDTH - 1)) begin
 
               if (current_col_addra >= IMAGE_WIDTH - 3) begin
                 // frame read complete
-                state_reg = LOAD_FRAME;
-                addra <= 0;
+                regcea    <= 1'b0;
               end else begin
                 // column read complete
                 current_col_addra = current_col_addra + 1'b1;
@@ -101,7 +109,16 @@ module bram_control #(
               pixels_read_counter <= pixels_read_counter + 1'b1;
             end
 
-            if (state_reg == PROCESS_FRAME) addra <= current_row_addra + pixels_read_counter;
+            addra <= current_row_addra + pixels_read_counter;
+            
+            pixels_to_conv[pixels_read_counter] <= douta;
+
+
+          end
+
+          if (regcea == 1'b0) begin
+            state_reg <= LOAD_FRAME;
+            addra <= 0;
           end
         end
 
@@ -141,6 +158,10 @@ module bram_control #(
   end
 
   assign o_data_from_mem = douta;
+  assign o_valid_data_to_conv = (pixels_read_counter == KERNEL_WIDTH - 1) ? 1'b1 : 1'b0; //TODO MAL
+  assign o_to_conv1 = pixels_to_conv[0];
+  assign o_to_conv2 = pixels_to_conv[1];
+  assign o_to_conv0 = pixels_to_conv[2];
 
   // Instantiate RAM
   xilinx_single_port_ram_no_change #(
