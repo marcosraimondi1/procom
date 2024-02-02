@@ -2,12 +2,13 @@
 //`define RESULT_FILE_PATH "/home/manu/repos/procom/src/python/test1_output.txt"
 `define INPUT_FILE_PATH "C:/Users/agusb/OneDrive/Escritorio/PROCOM/tpfinal/procom/src/verilog/py_input.txt"
 `define RESULT_FILE_PATH "C:/Users/agusb/OneDrive/Escritorio/PROCOM/tpfinal/procom/src/verilog/py_output.txt"
+`define OUTPUT_FILE_PATH "C:/Users/agusb/OneDrive/Escritorio/PROCOM/tpfinal/procom/src/verilog/verilog_output.txt"
 `timescale 1ns/100ps
 
 module tb_conv_2d();
 
-    localparam IMAGE_HEIGHT = 10+2;  //Alto de la imagen 
-    localparam IMAGE_WIDTH  = 1+2;  //Ancho de la imagen 
+    localparam IMAGE_HEIGHT = 10+2;  //Alto de la imagen + padding
+    localparam IMAGE_WIDTH  = 1+2;  //Ancho de la imagen + padding
 
     reg clk;
     reg i_en_conv;
@@ -25,7 +26,7 @@ module tb_conv_2d();
     reg [7:0] conv_image   [(IMAGE_HEIGHT-2)*(IMAGE_WIDTH-2) - 1:0]; //imagen convolucionada (sin padding)
     reg [31:0] addr;
 
-    integer fd_input, fd_result;
+    integer fd_input, fd_result, fd_output;
     integer i, j;   
 
 	always #5 clk = ~clk;
@@ -33,10 +34,11 @@ module tb_conv_2d();
     initial begin
        fd_input  = $fopen(`INPUT_FILE_PATH,"r");
        fd_result  = $fopen(`RESULT_FILE_PATH,"r");
+       fd_output  = $fopen(`OUTPUT_FILE_PATH,"w");
        if (fd_input && fd_result)
-           $display("Files were opened successfully : %0d %0d",fd_input, fd_result);
+           $display("Files were opened successfully : %0d %0d %0d",fd_input, fd_result, fd_output);
        else begin
-           $display("Could not open files successfully : %0d %0d",fd_input, fd_result);
+           $display("Could not open files successfully : %0d %0d %0d",fd_input, fd_result, fd_output);
            $finish;
        end
         $display("");
@@ -45,7 +47,7 @@ module tb_conv_2d();
         for (j=0;j<IMAGE_WIDTH;j=j+1) begin
            for (i=0;i<IMAGE_HEIGHT;i=i+1) begin
                $fscanf(fd_input,"%b\n", padded_frame[i][j]);
-                $display("%d %d: %b ",i,j, padded_frame[i][j]);
+                // $display("%d %d: %b ",i,j, padded_frame[i][j]);
            end
        end
 
@@ -82,22 +84,36 @@ module tb_conv_2d();
                 
 		//Cargo los pixeles de a filas
 				for (j=0;j<IMAGE_WIDTH-2;j=j+1) begin
-					for (i=0;i<IMAGE_HEIGHT-2;i=i+1) begin
+					for (i=0;i<IMAGE_HEIGHT;i=i+1) begin
 					    i_data1 = padded_frame[i][j];   
 						i_data2 = padded_frame[i][j+1];  
 						i_data3 = padded_frame[i][j+2];  
-                        if( i > 2 )
+                        if(i > 2)
                             i_data_valid = 1;   //se cargaron las 3 filas
-						#10;
+                        else i_data_valid = 0;
+                        // if(i_data_valid) begin
+                        //     $fdisplay(fd_output, "%b\n", o_pixel);
+                        //     $display("%b\n", o_pixel);
+                        // end
+                        #10;
                 	end
                 end
 				i_data1 = 8'b0; 
 				i_data2 = 8'b0;
 				i_data3 = 8'b0;
 
-        #40    $finish;
+        #60     $fclose(fd_input);
+                $fclose(fd_result);
+                $fclose(fd_output);
+                $finish;
     end
-
+    
+    always @ (posedge clk) begin
+        if(i_data_valid) begin
+            $fdisplay(fd_output, "%b", o_pixel);
+            $display("%b", o_pixel);
+        end
+    end
 
     conv_2d u_conv(
         .clk(clk),
@@ -111,15 +127,5 @@ module tb_conv_2d();
         .o_pixel(o_pixel)
     );
 
-    // always @ (posedge clk) begin
-    //     if (!i_nrst)
-    //         addr <= 32'b0;
-    //     else begin
-    //         if(i_en_conv) begin
-    //             conv_image[addr] <= o_pixel;
-    //             addr <= addr + 1;
-    //         end
-    //     end 
-    // end
 
 endmodule
