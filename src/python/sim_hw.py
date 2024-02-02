@@ -117,7 +117,17 @@ def convolve_like_hw(frame, kernel):
     #NDarray para guardar la imagen final
     convolution = np.zeros_like(frame)
 
-    
+    ##############################################
+    # MAQUINA DE ESTADOS
+    # INIT_FIRST_COL -> Espera a que lleguen 3 paquetes de 4 pixeles (transicion)
+    #                   Solo son validos 2 pixeles de salida
+    # CONV_FIRST_COL -> Recibe de a un paquete mientras hace la convolucion
+    #                   Solo son validos 2 pixeles de salida
+    # INIT_ANY_COL   -> Espera a que lleguen 3 paquetes de 4 pixeles (transicion)
+    #                   Son validos los 4 pixeles de salida
+    # CONV_ANY_COL   -> Recibe de a un paquete mientras hace la convolucion
+    #                   Son validos los 4 pixeles de salida
+    ###############################################
 
     padded_frame = np.arange(36)
     padded_frame.reshape(padded_frame)
@@ -139,10 +149,6 @@ def convolve_like_hw(frame, kernel):
             # [ 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23] 
             # [ 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35] 
             # [ 36, 37, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47] 
-
-
-
-
 
 
             # subframe4
