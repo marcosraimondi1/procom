@@ -62,13 +62,14 @@ class UdpSocketClient:
         frame_size = size 
 
         try:
-            data_bytes, address = self.client.recvfrom(frame_size-len(frame))
-            frame += data_bytes
+            frame, address = self.client.recvfrom(frame_size)
         except TimeoutError:
             pass
-
         except Exception as e:
             print("Failed receiving")
             print(e)
+
+        if len(frame) != frame_size:
+            frame = b''
 
         return frame, address

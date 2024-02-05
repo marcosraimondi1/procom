@@ -34,8 +34,26 @@ def wait_new_frame():
         time.sleep(0.01)
     NEW_FRAME.write_bytes(b'0')
 
-def isValidData(data):
-    return (len(data) == UDP_DATAGRAM_TO_PROCESS_SIZE)
+def postprocess(img_bytes:bytes)->np.ndarray:
+    # reorder bytes
+    
+    reordered_bytes = bytes()
+
+    for i in range(0, ETH_RESOLUTION_PADDED[1]):
+        for j in range(i*4, len(img_bytes), 4*ETH_RESOLUTION_PADDED[1]):
+            reordered_bytes += img_bytes[j:j+4]
+
+    img = np.frombuffer(reordered_bytes, dtype=np.uint8).reshape(ETH_RESOLUTION_PADDED)
+
+    new_img = cv2.resize(img, (CUT_SIZE, CUT_SIZE))
+
+    start_x = RESOLUTION[0]//2 - CUT_SIZE//2
+    start_y = RESOLUTION[1]//2 - CUT_SIZE//2
+
+    uncut = np.zeros((RESOLUTION[0], RESOLUTION[1]), dtype=np.uint8)
+    uncut[start_x:start_x+CUT_SIZE, start_y:start_y+CUT_SIZE] = new_img
+
+    return uncut
 
 def receive_frames(conn):
     print("Receive process started ...")
@@ -43,28 +61,40 @@ def receive_frames(conn):
         # get image from socket
         data, _ = conn.receive_bytes(UDP_DATAGRAM_TO_PROCESS_SIZE)
 
-        if not isValidData(data):
+        if len(data) == 0:
             continue
 
         img_bytes, transformation = process_data(data)
 
-        # resize image
-        img = np.frombuffer(img_bytes, dtype=np.uint8).reshape(ETH_RESOLUTION_PADDED)
 
-        new_img = cv2.resize(img, (CUT_SIZE, CUT_SIZE))
-
-        zeros = np.zeros((RESOLUTION[0], RESOLUTION[1]), dtype=np.uint8)
+        new_img = postprocess(img_bytes)
 
         if (transformation == TRANSFORMATION_OPTIONS["identity"]):
             new_img = addTimeStamp("2. recv ", new_img, (20,75), 0.5)
-            
-        start_x = RESOLUTION[0]//2 - CUT_SIZE//2
-        start_y = RESOLUTION[1]//2 - CUT_SIZE//2
-        zeros[start_x:start_x+CUT_SIZE, start_y:start_y+CUT_SIZE] = new_img
-        new_img = zeros
 
         # send processed image
         PROCESSED_BUFFER.write_array(new_img)
+
+def preprocess(img:np.ndarray)->bytes:
+    # cut image
+    start_x = RESOLUTION[0]//2 - CUT_SIZE//2
+    start_y = RESOLUTION[1]//2 - CUT_SIZE//2
+    img = img[start_x:start_x+CUT_SIZE, start_y:start_y+CUT_SIZE]
+
+    # resize img
+    resized_img = cv2.resize(img, (ETH_RESOLUTION[1], ETH_RESOLUTION[0]))
+
+    # pad image
+    padded_frame = np.pad(resized_img, pad_width=1, constant_values=0)
+    padded_frame.astype(np.uint8)
+                
+    #  reorder pixels
+    reordered_bytes = bytes()
+    
+    for i in range(0, padded_frame.shape[0], 4):
+        reordered_bytes += padded_frame[:,i:i+4].tobytes()
+
+    return reordered_bytes
 
 def send_frames(conn):
     NEW_FRAME.write_bytes(b'0')
@@ -78,24 +108,13 @@ def send_frames(conn):
         # get type of transformation
         transformation = TRANSFORMATION.read_bytes()
 
-        # cut image
-        start_x = RESOLUTION[0]//2 - CUT_SIZE//2
-        start_y = RESOLUTION[1]//2 - CUT_SIZE//2
-        img = img[start_x:start_x+CUT_SIZE, start_y:start_y+CUT_SIZE]
-
         if (transformation == TRANSFORMATION_OPTIONS["identity"]):
             img = addTimeStamp("1. send ", img, (20,50), 0.5)
 
-        # resize img
-        resized_img = cv2.resize(img, (ETH_RESOLUTION[1], ETH_RESOLUTION[0]))
-
         # pre process frame
-        
-        # pad image
-        padded_frame = np.pad(resized_img, pad_width=1, constant_values=0)
-        padded_frame.astype(np.uint8)
-                
-        to_send_bytes = padded_frame.tobytes() + transformation
+        preprocessed_bytes = preprocess(img)
+
+        to_send_bytes = preprocessed_bytes + transformation
 
         # send image to socket
         conn.send_bytes(to_send_bytes, (HOST,PORT))
