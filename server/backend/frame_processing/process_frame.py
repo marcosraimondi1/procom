@@ -1,5 +1,13 @@
 import numpy as np
 from frame_processing.tool._fixedInt import *
+from scipy import signal
+
+def convolve_frame(frame, kernel):
+    """Convolves a frame with a kernel using zero padding, returns result of same size as input frame"""
+    result = signal.convolve2d(frame, kernel, mode='same', boundary='fill', fillvalue=0)
+
+    return np.array(result, dtype=np.uint8)
+
 
 def convolve_frame_manual(frame, kernel):
     """Convolves a frame with a kernel using zero padding, returns result of same size as input frame"""
@@ -59,5 +67,5 @@ def process_frame(frame, transformation):
     # ---------------------------------------------------------------------------------
     # cambiar esta linea llamando a la funcion que haga falta para hacer la convolucion
     # ---------------------------------------------------------------------------------
-    processed = convolve_frame_manual(frame, kernel) 
+    processed = convolve_frame(frame, kernel) 
     return processed
