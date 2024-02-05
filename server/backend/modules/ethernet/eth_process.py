@@ -1,8 +1,7 @@
-from datetime import datetime
+import struct
 import numpy as np
-from frame_processing.tool._fixedInt import *
 import time
-from typing import Tuple
+from typing import Text, Tuple
 
 # multiprocessing
 import multiprocessing as mp
@@ -11,9 +10,9 @@ from multiprocessing import Process
 # custom modules
 from modules.globals import *
 from modules.transformations import *
-from modules.ethernet.sockets import UdpSocketClient, TcpSocketClient
+from modules.ethernet.sockets import SocketClient, UdpSocketClient, TcpSocketClient
 
-def startEthInterface():
+def startEthInterface()->None:
     """Starts the ethernet daemon processes (send and receive frames)"""
     conn = get_connection(USE_TCP)
     
@@ -27,7 +26,7 @@ def startEthInterface():
     send_process.start()
 
 
-def get_connection(use_tcp):
+def get_connection(use_tcp:bool)->SocketClient:
     if (use_tcp):
         print("using TCP")
         conn = TcpSocketClient((HOST,PORT))
@@ -38,7 +37,9 @@ def get_connection(use_tcp):
 
     return conn
 
-def send_frames(conn):
+prep_image_bytes = bytes()
+
+def send_frames(conn:SocketClient)->None:
     NEW_FRAME.write_bytes(b'0')
     print("Send process started ...")
 
@@ -50,18 +51,18 @@ def send_frames(conn):
         # get type of transformation
         transformation = TRANSFORMATION.read_bytes()
 
-        if (transformation == TRANSFORMATION_OPTIONS["identity"]):
-            img = addTimeStamp("1. send ", img, (20,50), 0.5)
-
         # pre process frame
         preprocessed_bytes = preprocess(img)
 
-        to_send_bytes = preprocessed_bytes + transformation
+        timestamp = int(time.time() * 1000)
+        timestamp_bytes = struct.pack('Q', timestamp)
+
+        to_send_bytes =  transformation + timestamp_bytes + preprocessed_bytes
 
         # send image to socket
         conn.send_bytes(to_send_bytes, (HOST,PORT))
 
-def wait_new_frame():
+def wait_new_frame()->None:
     while(NEW_FRAME.read_bytes() == b'0'):
         time.sleep(0.01)
     NEW_FRAME.write_bytes(b'0')
@@ -87,34 +88,35 @@ def preprocess(img:np.ndarray)->bytes:
 
     return reordered_bytes
 
-def receive_frames(conn):
+def receive_frames(conn:SocketClient)->None:
     print("Receive process started ...")
     while (True):
         # get image from socket
         data, _ = conn.receive_bytes(UDP_DATAGRAM_TO_PROCESS_SIZE)
 
-        if len(data) == 0:
+        if len(data) != UDP_DATAGRAM_TO_PROCESS_SIZE:
             continue
 
-        img_bytes, transformation = process_data(data)
+        img_bytes, _, timestamp_bytes = process_data(data)
 
+        sent_timestamp = struct.unpack('Q', timestamp_bytes)[0]
 
         new_img = postprocess(img_bytes)
 
-        if (transformation == TRANSFORMATION_OPTIONS["identity"]):
-            new_img = addTimeStamp("2. recv ", new_img, (20,75), 0.5)
+        recv_timestamp = int(time.time() * 1000)
+        new_img = addText(new_img, f"processing time: {recv_timestamp-sent_timestamp} ms", (20,75), 1)
 
         # send processed image
         PROCESSED_BUFFER.write_array(new_img)
 
 def process_data(data:bytes)->Tuple:
-    transformation = data[-len(TRANSFORMATION_OPTIONS["identity"]):]
-    image = data[:-len(TRANSFORMATION_OPTIONS["identity"])]
-    return image,transformation
+    idx = len(TRANSFORMATION_OPTIONS["identity"])
+    transformation = data[0:idx]
+    timestamp = data[idx:idx+TIMESTAMP_SIZE]
+    image = data[idx+TIMESTAMP_SIZE:]
+    return image,transformation,timestamp
 
 def postprocess(img_bytes:bytes)->np.ndarray:
-    # reorder bytes
-    
     reordered_bytes = bytes()
 
     for i in range(0, ETH_RESOLUTION_PADDED[1]):
@@ -133,19 +135,9 @@ def postprocess(img_bytes:bytes)->np.ndarray:
 
     return uncut
 
-def getTimeStamp():
-    current_datetime = datetime.now()
-    timestamp = current_datetime.strftime("%H:%M:%S.%f")
-    return timestamp
-
-def addText(img, text, position, scale):
+def addText(img:np.ndarray, text:Text, position:Tuple, scale:float)->np.ndarray:
     font = cv2.FONT_HERSHEY_SIMPLEX
     font_thickness = 2
     font_color = (255, 255, 255)
     cv2.putText(img, text, position, font, scale, font_color, font_thickness)
     return img
-
-def addTimeStamp(title, img, position, scale):
-    timestamp = getTimeStamp()
-    return addText(img, title+timestamp, position, scale)
-
