@@ -20,7 +20,7 @@ def display_frame(frame, title="Frame"):
     cv2.waitKey(0)
 
 print("Loading image...")
-img = load_frame("/mnt/c/Users/marco/OneDrive/Escritorio/procom/program_logic/src/python/pencil.jpg")
+img = load_frame("")
 print("preprocessing")
 preprocessed = preprocess(img)
 print("postprocessing")

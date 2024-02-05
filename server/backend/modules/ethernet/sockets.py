@@ -1,6 +1,17 @@
 import socket
+from typing import Tuple
 
-class TcpSocketClient:
+class SocketClient:
+    def __init__(self):
+        pass
+
+    def send_bytes(self, data:bytes, address:Tuple)->None:
+        return
+
+    def receive_bytes(self, size:int)->Tuple:
+        return tuple()
+
+class TcpSocketClient(SocketClient):
     def __init__(self, address):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.address = address
@@ -39,7 +50,7 @@ class TcpSocketClient:
         return data, self.address
 
 
-class UdpSocketClient:
+class UdpSocketClient(SocketClient):
     MAX_PACKET_SIZE = 61444
     RECEIVE_TIMEOUT_S = 0.1
 

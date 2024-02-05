@@ -1,28 +1,8 @@
-from datetime import datetime
-import cv2
-
-# import time
 from aiortc import MediaStreamTrack
 from av import VideoFrame
 
 # custom modules
 from modules.globals import *
-
-def getTimeStamp():
-    current_datetime = datetime.now()
-    timestamp = current_datetime.strftime("%H:%M:%S.%f")
-    return timestamp
-
-def addText(img, text, position, scale):
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    font_thickness = 2
-    font_color = (255, 255, 255)
-    cv2.putText(img, text, position, font, scale, font_color, font_thickness)
-    return img
-
-def addTimeStamp(title, img, position, scale):
-    timestamp = getTimeStamp()
-    return addText(img, title+timestamp, position, scale)
 
 class VideoTransformTrack(MediaStreamTrack):
     """
