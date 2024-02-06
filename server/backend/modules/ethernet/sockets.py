@@ -70,17 +70,16 @@ class UdpSocketClient(SocketClient):
     def receive_bytes(self, size):
         address = ('', 0)
         frame = b''
-        frame_size = size 
 
         try:
-            frame, address = self.client.recvfrom(frame_size)
+            frame, address = self.client.recvfrom(size)
         except TimeoutError:
             pass
         except Exception as e:
             print("Failed receiving")
             print(e)
 
-        if len(frame) != frame_size:
+        if len(frame) != size:
             frame = b''
 
         return frame, address
