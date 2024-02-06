@@ -129,7 +129,7 @@ def convolve_like_hw(frame, kernel):
     #                   Son validos los 4 pixeles de salida
     ###############################################
 
-    fifo_2px = np.zeros((frame_height,2))
+    fifo_2px = np.zeros((frame_height+2,2))
 
 
     # padded_frame
@@ -161,14 +161,16 @@ def convolve_like_hw(frame, kernel):
     #                   Son validos los 4 pixeles de salida
     state = INIT_FIRST_COL
     next_state = state
-    for col in range(int(frame_width/4)):
-        for row in range(frame_width):
+    for col in range(int((frame_width+2)/4)):
+        for row in range(frame_height+2):
 
             #########################################################
             ### Tiempo t
             #########################################################
 
-            subframe4 = padded_frame[row , col:col+4]
+            subframe4 = padded_frame[row , col*4:col*4+4]
+            # print("subframe4: ")
+            # print(subframe4*256)
             # subframe18 (wire)
             # [  0,  1,  2,  3,  4,  5]
             # [  6,  7,  8,  9, 10, 11]
@@ -194,7 +196,8 @@ def convolve_like_hw(frame, kernel):
             # [ 12, 13,  -,  -,  -,  -]
             for x in range(2):
                 subframe18[2 , x] = fifo_2px[2][x]
-            
+            print("subframe18")
+            print(subframe18*256)
             #########################################################
             # Convolutor 1
             sum.value = 0
@@ -203,7 +206,8 @@ def convolve_like_hw(frame, kernel):
                 sum.value = sum.fValue + product[k].fValue
                     
             result.value = sum.fValue   # El resultado tiene resolucion S(20,14), lo trunco para pasar a S(8,7)
-            convolutor1 = result.value
+            convolutor1 = sum.fValue
+            # convolutor1 = result.fValue
             #########################################################
 
             #########################################################
@@ -214,18 +218,23 @@ def convolve_like_hw(frame, kernel):
                 sum.value = sum.fValue + product[k].fValue
             
             result.value = sum.fValue   # El resultado tiene resolucion S(20,14), lo trunco para pasar a S(8,7)
-            convolutor2 = result.value
+            convolutor2 = sum.fValue
+            # convolutor2 = result.fValue
             #########################################################
 
             #########################################################
             # Convolutor 3
             sum.value = 0
+            # print(kernel)
             for k in range(kernel_size**2):
+                # print("k: " + str(k) + "subframe18: " + str(256*subframe18[int(k/3) , k%3 + 2]))
                 product[k].value = subframe18[int(k/3) , k%3 + 2] * kernel[k]
                 sum.value = sum.fValue + product[k].fValue
             
+
             result.value = sum.fValue   # El resultado tiene resolucion S(20,14), lo trunco para pasar a S(8,7)
-            convolutor3 = result.value
+            convolutor3 = sum.fValue
+            # convolutor3 = result.fValue
             #########################################################
 
             #########################################################
@@ -237,9 +246,12 @@ def convolve_like_hw(frame, kernel):
                 sum.value = sum.fValue + product[k].fValue
             
             result.value = sum.fValue   # El resultado tiene resolucion S(20,14), lo trunco para pasar a S(8,7)
-            convolutor4 = result.value
+            convolutor4 = sum.fValue
+            # convolutor4 = result.fValue
             #########################################################
-
+            print("STATE: " + str(state))
+            print("cont_row:" + str(cont_row))
+            print("cont_col:" + str(cont_col))
             # salidas
             if state == INIT_FIRST_COL:
                 pass
@@ -257,9 +269,41 @@ def convolve_like_hw(frame, kernel):
                 convolution[cont_row - 3, cont_col - 2 + 2] = convolutor3   
                 convolution[cont_row - 3, cont_col - 2 + 3] = convolutor4
 
+            print("convolution:")
+            print(convolution*256)
+            # print("convolutor1 = " + str(convolutor1*256))
+            # print("convolutor2 = " + str(convolutor2*256))
+            # print("convolutor3 = " + str(convolutor3*256))
+            # print("convolutor4 = " + str(convolutor4*256))
             #########################################################
             ### Tiempo t+1
             #########################################################
+
+            # fifo_2px
+            # [ 0,  1]    0
+            # [ 2,  3]    1
+            # [ 4,  5]    2
+            # [ 6,  7]    3
+            # [ 8,  9]    4
+            # [ 10, 11]   5
+            # [ 12, 13]   6
+            # [ 14, 15]   7
+            # [ 16, 17]   8
+            # [ 18, 19]   9
+            # [ 20, 21]  10
+            # [ 22, 23]  11
+
+            # subframe4
+            # [  0,  1,  2,  3] 
+
+            # print("fifo_2px:")
+            # print(fifo_2px*256)
+            for x in range(frame_height+2):
+                if x<(frame_height+2-1):
+                    fifo_2px[x] = fifo_2px[x+1]
+                else:
+                    fifo_2px[x] = subframe12[0][2:4]
+
 
             # subframe12
             # [  0,  1,  2,  3] 
@@ -282,30 +326,6 @@ def convolve_like_hw(frame, kernel):
             # for x in range(4):
                 # subframe12[2 , x] = subframe4[x] 
 
-            # fifo_2px
-            # [ 0,  1]    0
-            # [ 2,  3]    1
-            # [ 4,  5]    2
-            # [ 6,  7]    3
-            # [ 8,  9]    4
-            # [ 10, 11]   5
-            # [ 12, 13]   6
-            # [ 14, 15]   7
-            # [ 16, 17]   8
-            # [ 18, 19]   9
-            # [ 20, 21]  10
-            # [ 22, 23]  11
-
-            # subframe4
-            # [  0,  1,  2,  3] 
-
-            for x in range(frame_height):
-                if x<(frame_height-1):
-                    fifo_2px[x] = fifo_2px[x+1]
-                else:
-                    fifo_2px[x] = subframe4[2:3]
-
-
 
             # INIT_FIRST_COL -> Espera a que lleguen 3 paquetes de 4 pixeles (transicion)
             #                   Solo son validos 2 pixeles de salida
@@ -324,7 +344,7 @@ def convolve_like_hw(frame, kernel):
                     next_state = CONV_FIRST_COL
 
             elif state == CONV_FIRST_COL:
-                if cont_row == frame_height-1:
+                if cont_row == frame_height+2:
                     next_state = INIT_ANY_COL
 
             elif state == INIT_ANY_COL:
@@ -332,50 +352,171 @@ def convolve_like_hw(frame, kernel):
                     next_state = CONV_ANY_COL
 
             elif CONV_ANY_COL:
-                if cont_row == frame_height-1:
-                    next_state = INIT_FIRST_COL
+                if cont_row == frame_height+2:
+                    if cont_col == frame_width + 2 - 4:
+                        next_state = INIT_FIRST_COL
+                    else:
+                        next_state = INIT_ANY_COL
 
             ## contadores
-            # contador fila
-            if state == INIT_FIRST_COL:
-                cont_row = cont_row + 1
-
-            elif state == CONV_FIRST_COL:
-                if cont_row == frame_height-1:
-                    cont_row = 0
-                else:
-                    cont_row = cont_row + 1
-
-            elif state == INIT_ANY_COL:
-                cont_row = cont_row + 1
-
-            elif state == CONV_ANY_COL:
-                if cont_row == frame_height-1:
-                    cont_row = 0
-                else:
-                    cont_row = cont_row + 1
-
             # contador columna
             if state == INIT_FIRST_COL:
                 cont_col = 0
 
             elif state == CONV_FIRST_COL:
-                if cont_row == frame_height-1:
+                if cont_row == frame_height+2:
                     cont_col = cont_col + 4
 
             elif state == INIT_ANY_COL:
                 cont_col = cont_col
 
             elif state == CONV_ANY_COL:
-                if cont_row == frame_height-1:
-                    if cont_col == frame_width - 4:
+                if cont_row == frame_height+2:
+                    if cont_col == frame_width + 2 - 4:
                         cont_col = 0
                     else:
                         cont_col = cont_col + 4
 
+            # contador fila
+            if state == INIT_FIRST_COL:
+                cont_row = cont_row + 1
 
+            elif state == CONV_FIRST_COL:
+                if cont_row == frame_height+2:
+                    cont_row = 1 #SI TENEMOS UN VALID, SINO VALDRIA 0
+                else:
+                    cont_row = cont_row + 1
+
+            elif state == INIT_ANY_COL:
+                cont_row = cont_row + 1
+
+            elif state == CONV_ANY_COL:
+                if cont_row == frame_height+2:
+                    cont_row = 1 #SI TENEMOS UN VALID, SINO VALDRIA 0
+                else:
+                    cont_row = cont_row + 1
+
+
+
+            print(" ")
             state = next_state
             
+
+
+    ### REPITO UN CICLO MAS
+    #########################################################
+    ### Tiempo t
+    #########################################################
+
+    subframe4 = padded_frame[row , col*4:col*4+4]
+    # print("subframe4: ")
+    # print(subframe4*256)
+    # subframe18 (wire)
+    # [  0,  1,  2,  3,  4,  5]
+    # [  6,  7,  8,  9, 10, 11]
+    # [ 12, 13, 14, 15, 16, 17]
+
+    # [  -,  -,  2,  3,  4,  5]
+    for x in range(4):
+        subframe18[0 , x+2] = subframe12[0][x] 
+    # [  -,  -,  8,  9, 10, 11]
+    for x in range(4):
+        subframe18[1 , x+2] = subframe12[1][x] 
+    # [  -,  -, 14, 15, 16, 17]
+    for x in range(4):
+        subframe18[2 , x+2] = subframe12[2][x] 
+
+
+    # [  0,  1,  -,  -,  -,  -]
+    for x in range(2):
+        subframe18[0 , x] = fifo_2px[0][x]
+    # [  6,  7,  -,  -,  -,  -]
+    for x in range(2):
+        subframe18[1 , x] = fifo_2px[1][x]
+    # [ 12, 13,  -,  -,  -,  -]
+    for x in range(2):
+        subframe18[2 , x] = fifo_2px[2][x]
+    print("subframe18")
+    print(subframe18*256)
+    #########################################################
+    # Convolutor 1
+    sum.value = 0
+    for k in range(kernel_size**2):
+        product[k].value = subframe18[int(k/3) , k%3] * kernel[k]
+        sum.value = sum.fValue + product[k].fValue
+            
+    result.value = sum.fValue   # El resultado tiene resolucion S(20,14), lo trunco para pasar a S(8,7)
+    convolutor1 = sum.fValue
+    # convolutor1 = result.fValue
+    #########################################################
+
+    #########################################################
+    # Convolutor 2
+    sum.value = 0
+    for k in range(kernel_size**2):
+        product[k].value = subframe18[int(k/3) , k%3 + 1] * kernel[k]
+        sum.value = sum.fValue + product[k].fValue
+    
+    result.value = sum.fValue   # El resultado tiene resolucion S(20,14), lo trunco para pasar a S(8,7)
+    convolutor2 = sum.fValue
+    # convolutor2 = result.fValue
+    #########################################################
+
+    #########################################################
+    # Convolutor 3
+    sum.value = 0
+    # print(kernel)
+    for k in range(kernel_size**2):
+        # print("k: " + str(k) + "subframe18: " + str(256*subframe18[int(k/3) , k%3 + 2]))
+        product[k].value = subframe18[int(k/3) , k%3 + 2] * kernel[k]
+        sum.value = sum.fValue + product[k].fValue
+    
+
+    result.value = sum.fValue   # El resultado tiene resolucion S(20,14), lo trunco para pasar a S(8,7)
+    convolutor3 = sum.fValue
+    # convolutor3 = result.fValue
+    #########################################################
+
+    #########################################################
+    # Convolutor 4
+    # subframe = padded_frame[row:row+kernel_size , col:col+kernel_size] # es un shift register de kernel size
+    sum.value = 0
+    for k in range(kernel_size**2):
+        product[k].value = subframe18[int(k/3) , k%3 + 3] * kernel[k]
+        sum.value = sum.fValue + product[k].fValue
+    
+    result.value = sum.fValue   # El resultado tiene resolucion S(20,14), lo trunco para pasar a S(8,7)
+    convolutor4 = sum.fValue
+    # convolutor4 = result.fValue
+    #########################################################
+    print("STATE: " + str(state))
+    print("cont_row:" + str(cont_row))
+    print("cont_col:" + str(cont_col))
+    # salidas
+    if state == INIT_FIRST_COL:
+        pass
+    elif state == CONV_FIRST_COL:
+        convolution[cont_row - 3, cont_col - 2 + 2] = convolutor3   
+        convolution[cont_row - 3, cont_col - 2 + 3] = convolutor4
+    elif state == INIT_ANY_COL:
+        convolution[cont_row - 3, cont_col - 2    ] = convolutor1   
+        convolution[cont_row - 3, cont_col - 2 + 1] = convolutor2   
+        convolution[cont_row - 3, cont_col - 2 + 2] = convolutor3   
+        convolution[cont_row - 3, cont_col - 2 + 3] = convolutor4
+    elif state == CONV_ANY_COL:
+        convolution[cont_row - 3, cont_col - 2    ] = convolutor1   
+        convolution[cont_row - 3, cont_col - 2 + 1] = convolutor2   
+        convolution[cont_row - 3, cont_col - 2 + 2] = convolutor3   
+        convolution[cont_row - 3, cont_col - 2 + 3] = convolutor4
+
+    print("convolution:")
+    print(convolution*256)
+    # print("convolutor1 = " + str(convolutor1*256))
+    # print("convolutor2 = " + str(convolutor2*256))
+    # print("convolutor3 = " + str(convolutor3*256))
+    # print("convolutor4 = " + str(convolutor4*256))
+
+
     return convolution
 
 def main():
@@ -408,7 +549,7 @@ def main():
     # display_frame(post_processed, "Post-processed")
     # display_frame(post_processed_manual, "Post-processed Manual")
     
-    assert(np.array_equal(processed_hw*256, processed))
+    assert(np.array_equal(processed_hw*256, pre_processed))
 
 if __name__ == "__main__":
     main()
