@@ -17,7 +17,8 @@ def convolve_frame(frame, kernel):
     """Convolves a frame with a kernel using zero padding, returns result of same size as input frame"""
     result = signal.convolve2d(frame, kernel, mode='same', boundary='fill', fillvalue=0)
 
-    return np.array(result, dtype=np.uint8)
+    # return np.array(result, dtype=np.uint8)
+    return np.array(result)
 
 
 def convolve_frame_manual(frame, kernel):
@@ -85,8 +86,8 @@ def convolve_like_hw(frame, kernel):
     # Get kernel size
     kernel_size = 3
 
-    # Get frame size
-    frame_height = frame.shape[0]
+    # Tamaño de la imagen SIN padding
+    frame_height = frame.shape[0]   
     frame_width  = frame.shape[1]
     
     #Normalizo los valores
@@ -94,71 +95,44 @@ def convolve_like_hw(frame, kernel):
     
     # Agrego padding al frame
     padded_frame = np.pad(frame, pad_width=1, constant_values=0)
-    aux = np.zeros_like(padded_frame)
-    temp = DeFixedInt(8,7,'S','round','saturate')
     
+    # aux = np.zeros_like(padded_frame)   # Para guardar el estimulo para el testbench
+    
+    # Convierto los valores cada pixel a punto fijo
+    temp = DeFixedInt(8,7,'S','round','saturate')
     for i in range(frame_height):
         for j in range(frame_width):
             temp.value = frame[i,j]
             frame[i,j] = temp.fValue
-            aux[i+1, j+1] = bin(temp.intvalue)[2:]
-    # print(frame)
+            # aux[i+1, j+1] = bin(temp.intvalue)[2:]
+    
     # Guardo la imagen con padding para el testbench
     # np.savetxt('test1_input.txt', aux, fmt='%08d', delimiter='\n')
 
-    subframe = np.zeros_like(kernel)
-    #Creo una matriz (punto fijo) del tamaño del kernel para los productos parciales 
+    # Creo una matriz (punto fijo) del tamaño del kernel para los productos parciales 
     product = arrayFixedInt(16, 14, np.zeros(kernel_size**2), signedMode='S', roundMode='round', saturateMode='saturate')
-    #Reacomodo el kernel para iterarlo mas facil
+    # Reacomodo el kernel para iterarlo mas facil
     kernel = kernel.reshape((kernel_size**2))
-    #Variable de punto fijo para guardar los resultados de las operaciones
+    # Variables de punto fijo para guardar los resultados de las operaciones
     sum    = DeFixedInt(20,14,'S','round','saturate')
     result = DeFixedInt(8, 7, 'S','round','saturate')
-    #NDarray para guardar la imagen final
-    convolution = np.zeros_like(frame)
-
-    ##############################################
-    # MAQUINA DE ESTADOS
-    # INIT_FIRST_COL -> Espera a que lleguen 3 paquetes de 4 pixeles (transicion)
-    #                   Solo son validos 2 pixeles de salida
-    # CONV_FIRST_COL -> Recibe de a un paquete mientras hace la convolucion
-    #                   Solo son validos 2 pixeles de salida
-    # INIT_ANY_COL   -> Espera a que lleguen 3 paquetes de 4 pixeles (transicion)
-    #                   Son validos los 4 pixeles de salida
-    # CONV_ANY_COL   -> Recibe de a un paquete mientras hace la convolucion
-    #                   Son validos los 4 pixeles de salida
-    ###############################################
 
     fifo_2px = np.zeros((frame_height+2,2))
-
-
-    # padded_frame
-    # [  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11] 
-    # [ 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23] 
-    # [ 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35] 
-    # [ 36, 37, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47] 
 
     subframe4 = np.zeros((4))
     subframe12 = np.zeros((3,4))
     subframe18 = np.zeros((3,6))
 
-    convolution = np.zeros_like(frame)
+    convolution = np.zeros_like(frame)    # NDarray para guardar la imagen final
 
-    cont_row = 0
+    cont_row = 0    # Contadores para la FSM
     cont_col = 0
 
     INIT_FIRST_COL = 0
     CONV_FIRST_COL = 1
     INIT_ANY_COL   = 2
     CONV_ANY_COL   = 3
-    # INIT_FIRST_COL -> Espera a que lleguen 3 paquetes de 4 pixeles (transicion)
-    #                   Solo son validos 2 pixeles de salida
-    # CONV_FIRST_COL -> Recibe de a un paquete mientras hace la convolucion
-    #                   Solo son validos 2 pixeles de salida
-    # INIT_ANY_COL   -> Espera a que lleguen 3 paquetes de 4 pixeles (transicion)
-    #                   Son validos los 4 pixeles de salida
-    # CONV_ANY_COL   -> Recibe de a un paquete mientras hace la convolucion
-    #                   Son validos los 4 pixeles de salida
+    
     state = INIT_FIRST_COL
     next_state = state
     for col in range(int((frame_width+2)/4)):
@@ -168,10 +142,18 @@ def convolve_like_hw(frame, kernel):
             ### Tiempo t
             #########################################################
 
-            subframe4 = padded_frame[row , col*4:col*4+4]
+            # padded_frame
+            # [  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11] 
+            # [ 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23] 
+            # [ 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35] 
+            # [ 36, 37, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47] 
+            
+            subframe4 = padded_frame[row , col*4:col*4+4]   # Paquete de 4 pixeles que llegan del AXI
             # print("subframe4: ")
             # print(subframe4*256)
-            # subframe18 (wire)
+
+            # subframe18 (wire) -> Contiene todos los pixeles involucrados en la convolución 
+            # de los 4 pixeles actuales (7, 8, 9, 10)
             # [  0,  1,  2,  3,  4,  5]
             # [  6,  7,  8,  9, 10, 11]
             # [ 12, 13, 14, 15, 16, 17]
@@ -196,6 +178,8 @@ def convolve_like_hw(frame, kernel):
             # [ 12, 13,  -,  -,  -,  -]
             for x in range(2):
                 subframe18[2 , x] = fifo_2px[2][x]
+
+            print("#########################################")
             print("subframe18")
             print(subframe18*256)
             #########################################################
@@ -249,21 +233,18 @@ def convolve_like_hw(frame, kernel):
             convolutor4 = sum.fValue
             # convolutor4 = result.fValue
             #########################################################
+
             print("STATE: " + str(state))
             print("cont_row:" + str(cont_row))
             print("cont_col:" + str(cont_col))
-            # salidas
+
+            # CONEXIONES DE LOS CONVOLVER CON LA SALIDA
             if state == INIT_FIRST_COL:
                 pass
             elif state == CONV_FIRST_COL:
                 convolution[cont_row - 3, cont_col - 2 + 2] = convolutor3   
                 convolution[cont_row - 3, cont_col - 2 + 3] = convolutor4
-            elif state == INIT_ANY_COL:
-                convolution[cont_row - 3, cont_col - 2    ] = convolutor1   
-                convolution[cont_row - 3, cont_col - 2 + 1] = convolutor2   
-                convolution[cont_row - 3, cont_col - 2 + 2] = convolutor3   
-                convolution[cont_row - 3, cont_col - 2 + 3] = convolutor4
-            elif state == CONV_ANY_COL:
+            elif ((state == INIT_ANY_COL) or (state == CONV_ANY_COL)):
                 convolution[cont_row - 3, cont_col - 2    ] = convolutor1   
                 convolution[cont_row - 3, cont_col - 2 + 1] = convolutor2   
                 convolution[cont_row - 3, cont_col - 2 + 2] = convolutor3   
@@ -271,10 +252,7 @@ def convolve_like_hw(frame, kernel):
 
             print("convolution:")
             print(convolution*256)
-            # print("convolutor1 = " + str(convolutor1*256))
-            # print("convolutor2 = " + str(convolutor2*256))
-            # print("convolutor3 = " + str(convolutor3*256))
-            # print("convolutor4 = " + str(convolutor4*256))
+            
             #########################################################
             ### Tiempo t+1
             #########################################################
@@ -296,14 +274,13 @@ def convolve_like_hw(frame, kernel):
             # subframe4
             # [  0,  1,  2,  3] 
 
-            # print("fifo_2px:")
-            # print(fifo_2px*256)
+            print("fifo_2px:")
+            print(fifo_2px*256)
             for x in range(frame_height+2):
                 if x<(frame_height+2-1):
                     fifo_2px[x] = fifo_2px[x+1]
                 else:
                     fifo_2px[x] = subframe12[0][2:4]
-
 
             # subframe12
             # [  0,  1,  2,  3] 
@@ -312,19 +289,12 @@ def convolve_like_hw(frame, kernel):
 
             # [  -,  -,  2,  3,  4,  5]
             subframe12[0] = subframe12[1] 
-            # for x in range(4):
-                # subframe12[0 , x] = subframe12[1 , x] 
-            
 
             # [  -,  -,  8,  9, 10, 11]
             subframe12[1] = subframe12[2] 
-            # for x in range(4):
-                # subframe12[1 , x] = subframe12[2 , x] 
 
             # [  -,  -, 14, 15, 16, 17]
             subframe12[2] = subframe4 
-            # for x in range(4):
-                # subframe12[2 , x] = subframe4[x] 
 
 
             # INIT_FIRST_COL -> Espera a que lleguen 3 paquetes de 4 pixeles (transicion)
@@ -335,8 +305,6 @@ def convolve_like_hw(frame, kernel):
             #                   Son validos los 4 pixeles de salida
             # CONV_ANY_COL   -> Recibe de a un paquete mientras hace la convolucion
             #                   Son validos los 4 pixeles de salida
-
-            
 
             # FSM
             if state == INIT_FIRST_COL:
@@ -358,7 +326,7 @@ def convolve_like_hw(frame, kernel):
                     else:
                         next_state = INIT_ANY_COL
 
-            ## contadores
+            ## CONTADORES
             # contador columna
             if state == INIT_FIRST_COL:
                 cont_col = 0
@@ -396,12 +364,8 @@ def convolve_like_hw(frame, kernel):
                 else:
                     cont_row = cont_row + 1
 
-
-
             print(" ")
             state = next_state
-            
-
 
     ### REPITO UN CICLO MAS
     #########################################################
@@ -492,7 +456,8 @@ def convolve_like_hw(frame, kernel):
     print("STATE: " + str(state))
     print("cont_row:" + str(cont_row))
     print("cont_col:" + str(cont_col))
-    # salidas
+    
+    # SALIDAS
     if state == INIT_FIRST_COL:
         pass
     elif state == CONV_FIRST_COL:
@@ -511,10 +476,6 @@ def convolve_like_hw(frame, kernel):
 
     print("convolution:")
     print(convolution*256)
-    # print("convolutor1 = " + str(convolutor1*256))
-    # print("convolutor2 = " + str(convolutor2*256))
-    # print("convolutor3 = " + str(convolutor3*256))
-    # print("convolutor4 = " + str(convolutor4*256))
 
 
     return convolution
@@ -524,21 +485,21 @@ def main():
     original = load_frame(path)
     # pre_processed = pre_process_frame(original, (200, 200))
     # pre_processed = np.ones((10,10)) * 100   # "Imagen" de prueba
-    pre_processed = np.arange(100)
-    pre_processed = pre_processed.reshape((10,10))
-
+    image_width  = 10   #Las dimensiones (+padding) deben ser múltiplos de 4
+    image_height = 10
+    pre_processed = np.arange(image_width*image_height) # IMAGEN SIN PADDING
+    pre_processed = pre_processed.reshape((image_height, image_width))
 
     processed_hw = convolve_like_hw(pre_processed, kernel)
     # processed_manual = convolve_frame_manual(pre_processed, kernel)
-    # processed = convolve_frame(pre_processed, kernel)
+    processed = convolve_frame(pre_processed, kernel)
+
     print("pre_processed")
     print(pre_processed)
-    # print("processed_manual")
-    # print(processed_manual)
     print("processed_hw")
     print(processed_hw*256)
-    # print("processed")
-    # print(processed)
+    print("processed")
+    print(processed)
     # post_processed = post_process_frame(processed, original.shape[:2])
     # post_processed_manual = post_process_frame(processed_manual, original.shape[:2])
     
@@ -549,7 +510,7 @@ def main():
     # display_frame(post_processed, "Post-processed")
     # display_frame(post_processed_manual, "Post-processed Manual")
     
-    assert(np.array_equal(processed_hw*256, pre_processed))
+    assert(np.array_equal(processed_hw*256, processed))
 
 if __name__ == "__main__":
     main()
