@@ -54,11 +54,8 @@ class UdpSocketClient(SocketClient):
     MAX_PACKET_SIZE = 61444
     RECEIVE_TIMEOUT_S = 0.1
 
-    def __init__(self, is_blocking):
+    def __init__(self):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) 
-
-        if not is_blocking:
-            self.client.settimeout(self.RECEIVE_TIMEOUT_S)
 
     def send_bytes(self, data, address):
         try:
@@ -78,8 +75,5 @@ class UdpSocketClient(SocketClient):
         except Exception as e:
             print("Failed receiving")
             print(e)
-
-        if len(frame) != size:
-            frame = b''
 
         return frame, address

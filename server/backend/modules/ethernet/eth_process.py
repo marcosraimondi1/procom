@@ -32,8 +32,9 @@ def get_connection(use_tcp:bool)->SocketClient:
         conn = TcpSocketClient((HOST,PORT))
     else:
         print("using UDP")
-        conn = UdpSocketClient(True)
-        #conn.client.bind(('',PORT)) # comment this line if running eth_process.py on the same machine as the server
+        conn = UdpSocketClient()
+        if HOST not in ['', '127.0.0.1', '0.0.0.0']:
+            conn.client.bind(('',PORT))
 
     return conn
 
@@ -63,9 +64,14 @@ def send_frames(conn:SocketClient)->None:
         conn.send_bytes(to_send_bytes, (HOST,PORT))
 
 def wait_new_frame()->None:
+    wait_start = time.time()
     while(NEW_FRAME.read_bytes() == b'0'):
         time.sleep(0.01)
     NEW_FRAME.write_bytes(b'0')
+
+    now = time.time()
+    while (now - wait_start) < SEND_DELAY_S:
+        now = time.time()
 
 def preprocess(img:np.ndarray)->bytes:
     # cut image
@@ -74,7 +80,7 @@ def preprocess(img:np.ndarray)->bytes:
     img = img[start_x:start_x+CUT_SIZE, start_y:start_y+CUT_SIZE]
 
     # resize img
-    resized_img = cv2.resize(img, (ETH_RESOLUTION[1], ETH_RESOLUTION[0]))
+    resized_img = cv2.resize(img, (ETH_RESOLUTION[1]-2, ETH_RESOLUTION[0]-2)) # -2 for padding
 
     # pad image
     padded_frame = np.pad(resized_img, pad_width=1, constant_values=0)
@@ -97,9 +103,9 @@ def receive_frames(conn:SocketClient)->None:
         if len(data) != UDP_DATAGRAM_TO_PROCESS_SIZE:
             continue
 
-        img_bytes, _, timestamp_bytes = process_data(data)
+        img_bytes, metadata = process_data(data)
 
-        sent_timestamp = struct.unpack('Q', timestamp_bytes)[0]
+        _, sent_timestamp = process_metadata(metadata)
 
         new_img = postprocess(img_bytes)
 
@@ -110,20 +116,30 @@ def receive_frames(conn:SocketClient)->None:
         PROCESSED_BUFFER.write_array(new_img)
 
 def process_data(data:bytes)->Tuple:
-    idx = len(TRANSFORMATION_OPTIONS["identity"])
-    transformation = data[0:idx]
-    timestamp = data[idx:idx+TIMESTAMP_SIZE]
-    image = data[idx+TIMESTAMP_SIZE:]
-    return image,transformation,timestamp
+    image_size = ETH_RESOLUTION[0]*ETH_RESOLUTION[1]
+    split_indx = len(data) - image_size
+    image = data[split_indx:]
+    metadata = data[:split_indx]
+
+    return image,metadata
+
+def process_metadata(metadata:bytes)->Tuple:
+
+    transformation = metadata[0:len(TRANSFORMATION_OPTIONS["identity"])]
+    timestamp_bytes = metadata[len(TRANSFORMATION_OPTIONS["identity"]):]
+
+    timestamp = struct.unpack('Q', timestamp_bytes)[0]
+
+    return transformation, timestamp
 
 def postprocess(img_bytes:bytes)->np.ndarray:
     reordered_bytes = bytes()
 
-    for i in range(0, ETH_RESOLUTION_PADDED[1]):
-        for j in range(i*4, len(img_bytes), 4*ETH_RESOLUTION_PADDED[1]):
+    for i in range(0, ETH_RESOLUTION[1]):
+        for j in range(i*4, len(img_bytes), 4*ETH_RESOLUTION[1]):
             reordered_bytes += img_bytes[j:j+4]
 
-    img = np.frombuffer(reordered_bytes, dtype=np.uint8).reshape(ETH_RESOLUTION_PADDED)
+    img = np.frombuffer(reordered_bytes, dtype=np.uint8).reshape(ETH_RESOLUTION)
 
     new_img = cv2.resize(img, (CUT_SIZE, CUT_SIZE))
 
