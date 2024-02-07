@@ -14,10 +14,10 @@ BUFFER_TO_PROCESS = SharedMemory(KEY2, IMG_SIZE)
 NEW_FRAME = SharedMemory(KEY4, 1) 
 TRANSFORMATION = SharedMemory(KEY3, 2) 
 TRANSFORMATION_OPTIONS = {
-    "identity": b'00',
-    "edges": b'01',
-    "gaussian_blur": b'10',
-    "sharpen": b'11',
+    "identity": bytearray([0,0]),
+    "edges": bytearray([0,1]),
+    "gaussian_blur": bytearray([1,0]),
+    "sharpen": bytearray([1,1]),
 }
 
 # socket connection to processing server (FPGA)

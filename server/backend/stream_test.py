@@ -9,7 +9,7 @@ ADDRESS=('172.16.0.236', PORT)
 
 data = np.ones(RESOLUTION, dtype=np.uint8)
 
-conn = UdpSocketClient(True)
+conn = UdpSocketClient()
 conn.client.bind(('',PORT))
 conn.client.settimeout(0.7)
 

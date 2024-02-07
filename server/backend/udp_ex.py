@@ -3,7 +3,7 @@ from modules.ethernet.sockets import UdpSocketClient
 PORT=3002
 ADDRESS=('172.16.0.236', PORT)
 
-conn = UdpSocketClient(True)
+conn = UdpSocketClient()
 conn.client.bind(('',PORT)) 
 
 while(True):
