@@ -489,6 +489,3 @@ source $origin_dir/src/bd/design_1.tcl
 set design_name [get_bd_designs]
 make_wrapper -files [get_files $design_name.bd] -top -import
 
-# run synth, impl and generate bitstream
-launch_runs impl_1 -to_step write_bitstream -jobs 2
-
