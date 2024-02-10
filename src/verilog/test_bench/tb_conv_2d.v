@@ -1,102 +1,102 @@
-`timescale 1ns/100ps
+`timescale 1ns / 100ps
 
 module tb_conv_2d #(
     parameter NB_COEFF    = 8,
     parameter NB_OUTPUT   = 8,
     parameter NB_DATA     = 8,
     parameter KERNEL_SIZE = 9
-)();
+) ();
 
-    reg clk;
-    reg i_rst;
-    
-    reg signed [NB_COEFF*3-1:0] kernel_fila2;
-    reg signed [NB_COEFF*3-1:0] kernel_fila1;
-    reg signed [NB_COEFF*3-1:0] kernel_fila0;
+  reg                          clk;
+  reg                          i_rst;
 
-    reg signed [NB_DATA*3-1:0] data_fila2;
-    reg signed [NB_DATA*3-1:0] data_fila1;
-    reg signed [NB_DATA*3-1:0] data_fila0;
-    
-    wire     signed [NB_OUTPUT-1:0] o_pixel;
+  reg signed  [NB_COEFF*3-1:0] kernel_fila2;
+  reg signed  [NB_COEFF*3-1:0] kernel_fila1;
+  reg signed  [NB_COEFF*3-1:0] kernel_fila0;
 
-	always #1 clk = ~clk;
+  reg signed  [ NB_DATA*3-1:0] data_fila2;
+  reg signed  [ NB_DATA*3-1:0] data_fila1;
+  reg signed  [ NB_DATA*3-1:0] data_fila0;
 
-    integer i;
+  wire signed [ NB_OUTPUT-1:0] o_pixel;
 
-    initial begin
-        clk = 0;
-        i_rst = 0;
+  always #1 clk = ~clk;
 
-        kernel_fila0 = {8'b0, 8'b0, 8'b0};
-        kernel_fila1 = {8'b0, 8'b1111111, 8'b0};
-        kernel_fila2 = {8'b0, 8'b0, 8'b0};
+  integer i;
 
-        data_fila0 = {8'b0, 8'b0, 8'b0};
-        data_fila1 = {8'b0, 8'b0, 8'b0};
-        data_fila2 = {8'b0, 8'b0, 8'b0};
+  initial begin
+    clk = 0;
+    i_rst = 0;
 
-        #2 i_rst          = 1;
-        #2 i_rst          = 0;
+    kernel_fila0 = {8'b0, 8'b0, 8'b0};
+    kernel_fila1 = {8'b0, 8'b01111111, 8'b0};
+    kernel_fila2 = {8'b0, 8'b0, 8'b0};
 
-        #3;
-        
-        #2 data_fila1 = {8'b0, 8'h1, 8'b0};
-        #2;
-        $display("expected = %d , out = %d", data_fila1[15:8], o_pixel); 
+    data_fila0 = {8'b0, 8'b0, 8'b0};
+    data_fila1 = {8'b0, 8'b0, 8'b0};
+    data_fila2 = {8'b0, 8'b0, 8'b0};
 
-        #2 data_fila1 = {8'b1, 8'h2, 8'b0};
-        #2;
-        $display("expected = %d , out = %d", data_fila1[15:8], o_pixel); 
+    #2 i_rst = 1;
+    #2 i_rst = 0;
 
-        #2 data_fila1 = {8'b0, 8'h3, 8'b0};
-        #2;
-        $display("expected = %d , out = %d", data_fila1[15:8], o_pixel); 
+    #3;
 
-        #2 data_fila1 = {8'b0, 8'h4, 8'b1};
-        #2;
-        $display("expected = %d , out = %d", data_fila1[15:8], o_pixel); 
+    #2 data_fila1 = {8'b0, 8'h1, 8'b0};
+    #2;
+    $display("expected = %d , out = %d", data_fila1[15:8], o_pixel);
 
-        #2 data_fila1 = {8'b0, 8'h5, 8'b0};
-        data_fila2 = {8'b0, 8'h6, 8'b0};
-        #2;
-        $display("expected = %d , out = %d", data_fila1[15:8], o_pixel); 
+    #2 data_fila1 = {8'b1, 8'h2, 8'b0};
+    #2;
+    $display("expected = %d , out = %d", data_fila1[15:8], o_pixel);
 
-        #2 data_fila1 = {8'b0, 8'h6, 8'b0};
-        data_fila2 = {8'b1, 8'h6, 8'b1};
-        #2;
-        $display("expected = %d , out = %d", data_fila1[15:8], o_pixel); 
+    #2 data_fila1 = {8'b0, 8'h3, 8'b0};
+    #2;
+    $display("expected = %d , out = %d", data_fila1[15:8], o_pixel);
 
-        #2 data_fila1 = {8'b0, 8'h7, 8'b0};
-        #2;
-        $display("expected = %d , out = %d", data_fila1[15:8], o_pixel); 
+    #2 data_fila1 = {8'b0, 8'h4, 8'b1};
+    #2;
+    $display("expected = %d , out = %d", data_fila1[15:8], o_pixel);
 
-        #20;
-        $finish;
-    end
+    #2 data_fila1 = {8'b0, 8'h5, 8'b0};
+    data_fila2 = {8'b0, 8'h6, 8'b0};
+    #2;
+    $display("expected = %d , out = %d", data_fila1[15:8], o_pixel);
 
-    
+    #2 data_fila1 = {8'b0, 8'h6, 8'b0};
+    data_fila2 = {8'b1, 8'h6, 8'b1};
+    #2;
+    $display("expected = %d , out = %d", data_fila1[15:8], o_pixel);
 
-    wire     signed [NB_COEFF*KERNEL_SIZE-1:0] i_kernel;    
-    wire     signed [NB_DATA*KERNEL_SIZE-1:0] i_data;    
+    #2 data_fila1 = {8'b0, 8'h7, 8'b0};
+    #2;
+    $display("expected = %d , out = %d", data_fila1[15:8], o_pixel);
 
-    
-    assign i_kernel = {kernel_fila2, kernel_fila1, kernel_fila0};
-    assign i_data = {data_fila2, data_fila1, data_fila0};
+    #20;
+    $finish;
+  end
 
-    conv_2d # (
-        .NB_COEFF    (NB_COEFF),
-        .NB_OUTPUT   (NB_OUTPUT),
-        .NB_DATA     (NB_DATA),
-        .KERNEL_SIZE (KERNEL_SIZE)
-    )
-    u_conv_2d (
-        .clk(clk), 
-        .i_rst(i_rst),   
-        .i_kernel(i_kernel),    
-        .i_data(i_data),    
-        .o_pixel(o_pixel)            
-        );
+
+
+  wire signed [NB_COEFF*KERNEL_SIZE-1:0] i_kernel;
+  wire signed [ NB_DATA*KERNEL_SIZE-1:0] i_data;
+
+
+  assign i_kernel = {kernel_fila2, kernel_fila1, kernel_fila0};
+  assign i_data   = {data_fila2, data_fila1, data_fila0};
+
+  conv_2d #(
+      .NB_COEFF   (NB_COEFF),
+      .NB_OUTPUT  (NB_OUTPUT),
+      .NB_DATA    (NB_DATA),
+      .KERNEL_SIZE(KERNEL_SIZE)
+  ) u_conv_2d (
+      .clk(clk),
+      .i_rst(i_rst),
+      .i_kernel(i_kernel),
+      .i_data(i_data),
+      .o_pixel(o_pixel)
+  );
 
 
 endmodule
+

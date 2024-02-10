@@ -16,7 +16,7 @@ module subframe #(
 );
 
 
-  reg [NB_PIXEL*2-1:0] fifo[IMAGE_HEIGHT-1:0];     
+  reg [NB_PIXEL*2-1:0] fifo[IMAGE_HEIGHT-1:0];
   reg [NB_DATA-1:0] subframe12[KERNEL_WIDTH-1:0];  //columnas a la izquierda, fila derecha
   wire [NB_PIXEL-1:0] subframe18[KERNEL_WIDTH-1:0][6-1:0];
 
@@ -43,8 +43,8 @@ module subframe #(
   // FIFO: height equal to image height
   always @(posedge i_clk) begin
     if (i_reset) begin
-       for (i = 0; i < IMAGE_HEIGHT; i = i + 1) begin
-           fifo[i] <= {NB_PIXEL * 2{1'b0}};
+      for (i = 0; i < IMAGE_HEIGHT; i = i + 1) begin
+        fifo[i] <= {NB_PIXEL * 2{1'b0}};
       end
     end else begin
       if (i_valid) begin
@@ -79,7 +79,7 @@ module subframe #(
     end
   endgenerate
 
-  
+
   // CONV0
   wire [NB_PIXEL*KERNEL_WIDTH-1:0] conv0_fila0;
   wire [NB_PIXEL*KERNEL_WIDTH-1:0] conv0_fila1;
@@ -123,6 +123,6 @@ module subframe #(
   assign conv3_fila2 = {subframe18[2][5], subframe18[2][4], subframe18[2][3]};
 
   assign o_conv3 = {conv3_fila2, conv3_fila1, conv3_fila0};
-  
+
 endmodule
 
