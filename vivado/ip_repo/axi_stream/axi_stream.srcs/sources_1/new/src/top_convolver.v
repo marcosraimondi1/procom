@@ -100,7 +100,7 @@ module top_convolver #(
 
   subframe #(
       .IMAGE_HEIGHT(IMAGE_HEIGHT),  // Image height with zero padding
-      .KERNEL_WIDTH(KERNEL_WIDTH),
+      .KERNEL_WITDH(KERNEL_WIDTH),
       .NB_PIXEL    (NB_PIXEL),
       .NB_DATA     (NB_DATA)
   ) u_subframe (
