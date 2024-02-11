@@ -11,27 +11,43 @@ module top_convolver #(
     input                i_reset,
     input  [NB_DATA-1:0] i_axi_data,
     input                i_valid,
-    // input  [1:0]         i_kernel_sel,
+    input  [1:0]         i_sw,
     output [NB_DATA-1:0] o_axi_data
 );
 
+  wire fromHard;
+  wire [1:0] swVio,kernel_sel;
+
+
+  assign  kernel_sel = (fromHard) ? swVio : i_sw;
 
   // KERNEL DEFINITION
   wire signed [NB_COEFF*3-1:0] kernel[KERNEL_WIDTH-1:0];
 
   wire signed [NB_COEFF*3-1:0] kernel_identidad[KERNEL_WIDTH-1:0];
+  wire signed [NB_COEFF*3-1:0] kernel_border[KERNEL_WIDTH-1:0];
+  wire signed [NB_COEFF*3-1:0] kernel_gaussian_blur[KERNEL_WIDTH-1:0];
+  wire signed [NB_COEFF*3-1:0] kernel_sharpen[KERNEL_WIDTH-1:0];
   assign kernel_identidad[0] = {8'b0, 8'b0, 8'b0};
   assign kernel_identidad[1] = {8'b0, 8'b01111111, 8'b0};
   assign kernel_identidad[2] = {8'b0, 8'b0, 8'b0};
+  assign kernel_border[0] = {8'b11111111, 8'b11111111, 8'b11111111};
+  assign kernel_border[1] = {8'b11111111, 8'b1000, 8'b11111111};
+  assign kernel_border[2] = {8'b11111111, 8'b11111111, 8'b11111111};
+  assign kernel_gaussian_blur[0] = {8'b1, 8'b10, 8'b1};
+  assign kernel_gaussian_blur[1] = {8'b10, 8'b100, 8'b10};
+  assign kernel_gaussian_blur[2] = {8'b1, 8'b10, 8'b1};
+  assign kernel_sharpen[0] = {8'b0, 8'b11111111, 8'b0};
+  assign kernel_sharpen[1] = {8'b11111111, 8'b00101, 8'b11111111};
+  assign kernel_sharpen[2] = {8'b0, 8'b11111111, 8'b0};
 
   genvar i;
   generate
       for (i = 0; i < KERNEL_WIDTH; i = i + 1) begin
-        assign kernel[i] = kernel_identidad[i];
-        // assign kernel[i] = i_kernel_sel == 2'b00 ? kernel_identidad[i] :
-        //    i_kernel_sel == 2'b01 ? kernel_edges[i] :
-        //   i_kernel_sel == 2'b10 ? kernel_gaussian_blur[i] :
-        //   kernel_sharpen[i];
+      assign kernel[i] = (kernel_sel == 2'b00) ? kernel_identidad[i] :
+            (kernel_sel == 2'b01) ? kernel_border[i] :
+            (kernel_sel == 2'b10) ? kernel_gaussian_blur[i] :
+            kernel_sharpen[i];
       end
   endgenerate
 
@@ -113,5 +129,11 @@ module top_convolver #(
       .o_conv2   (data_to_conv2),
       .o_conv3   (data_to_conv3)
   );
+   vio
+   u_vio
+   (.clk_0(i_clk),
+    .probe_out0_0(fromHard),
+    .probe_out1_0(swVio)
+    );
 
 endmodule
