@@ -10,7 +10,8 @@
 /* Private define ------------------------------------------------------------*/
 #define UDP_SERVER_PORT    3001   /* define the UDP local connection port */
 #define UDP_CLIENT_PORT    3001   /* define the UDP remote connection port */
-#define METADATA_SIZE	   10     /* define metadata size of each udp transfer in bytes */
+#define METADATA_SIZE	   16     /* define metadata size of each udp transfer in bytes, multiple of 4 */
+#define STREAM_FRAME_REG   1      /* define register where to find axi stream link interface */
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
@@ -27,65 +28,36 @@ void process_data(struct pbuf* p)
 {
 	register int a0;
 	register int a1;
+	int i, start_i;
 
-	int i, j, aux_i;
-	int metadata_bytes_left = METADATA_SIZE;
-
-	struct pbuf *prev_p = 0;
+	// extract metadata
 	u8 *payload = p->payload;
-	u8 *aux_payload = 0;
+    u8 kernel = payload[0];
 
-	u8 kernel = payload[0] | payload[1]<<1;
+    start_i = METADATA_SIZE;
 
-	u8 byte_count = 0;
-	u32 value = 0;
-
-	while (p!=NULL)
+	// process data
+	// PBUF MAX SIZE = 1480 bytes
+	u32 val;
+    while (p!=NULL)
 	{
 		payload = p->payload;
-		for (i=0; i < p->len; i+=1)
+		for (i=start_i; i < (p->len); i+=4)
 		{
-			if (metadata_bytes_left > 0)
-			{
-				metadata_bytes_left--;
-			}
-			else
-			{
-				// cada elemento de payload es un byte (1pixel)
-				// cuento 4 y los mando en un solo valor de 32 bits
-				// hay que tener en cuenta que el puntero de payload puede cambiar
-				// por eso almaceno el puntero al payload anterior
+			val = (payload[i]) | (payload[i+1] << 8) | (payload[i+2] << 16) | (payload[i+3] << 24);
 
-				value = value | (payload[i]<<(8*byte_count));
-				payload[i] = 0; // elimino para ver si realmente funciona
-				byte_count += 1;
+			a0 = val;
+			putfslx(a0,  STREAM_FRAME_REG, FSL_DEFAULT);
+			getfslx(a1,  STREAM_FRAME_REG, FSL_DEFAULT);
+			payload[i] = a1;
 
-				if (byte_count == 4){
-					a0 = value;
-					putfslx(a0,  0, FSL_DEFAULT);
-					getfslx(a1,  0, FSL_DEFAULT);
-
-					aux_payload = payload;
-					aux_i = i;
-					for (j=0; j<4; j+=1)
-					{
-						if ((aux_i-j) < 0)
-						{
-							// el indice corresponde al payload anterior
-							aux_payload = prev_p->payload;
-							aux_i = (prev_p->len - 1) + j;
-						}
-
-						// extraer pixeles y guardarlos en el payload
-						aux_payload[aux_i-j] = ( a1 >> (8*(3-j)) ) & 0xFF;
-					}
-
-					byte_count = 0;
-					value = 0;
-				}
-			}
+			payload[i]   = a1 & 0xFF;
+			payload[i+1] = (a1 >> 8) & 0xFF;
+			payload[i+2] = (a1 >> 16) & 0xFF;
+			payload[i+3] = (a1 >> 24) & 0xFF;
 		}
-		prev_p = p;
+
+		start_i = 0;
 		p = p->next;
 	}
 }
@@ -149,13 +121,15 @@ void udp_echoserver_receive_callback(void *arg, struct udp_pcb *upcb, struct pbu
 
 		/* PROCESS DATA */
 		process_data(p);
+
+
+
 		/* END PROCESS */
 
 		/* Tell the client that we have accepted it */
 		if (udp_send(upcb, original_ptr) == ERR_OK) {
 			/* free the UDP connection, so we can accept new clients */
 			udp_disconnect(upcb);
-			xil_printf("udp_disconnect   ");
 		} else {
 			xil_printf("udp_send failed   ");
 		}

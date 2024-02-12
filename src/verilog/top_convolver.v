@@ -11,15 +11,14 @@ module top_convolver #(
     input                i_reset,
     input  [NB_DATA-1:0] i_axi_data,
     input                i_valid,
-    input  [1:0]         i_sw,
+    input  [1:0]         i_kernel_sel,
     output [NB_DATA-1:0] o_axi_data
 );
 
   wire fromHard;
-  wire [1:0] swVio,kernel_sel;
+  wire [1:0] swVio, kernel_sel;
 
-
-  assign  kernel_sel = (fromHard) ? swVio : i_sw;
+  assign  kernel_sel = (fromHard) ? swVio : i_kernel_sel;
 
   // KERNEL DEFINITION
   wire signed [NB_COEFF*3-1:0] kernel[KERNEL_WIDTH-1:0];

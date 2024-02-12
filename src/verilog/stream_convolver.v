@@ -15,34 +15,46 @@ module axi_stream_convolver #(
     input axi_reset_n,
 
     // axi stream slav interface
-    input s_axis_valid,
-    input [DATA_WIDTH-1:0] s_axis_data,
-    output s_axis_ready,
+    input s0_axis_valid,
+    input [DATA_WIDTH-1:0] s0_axis_data,
+    output s0_axis_data,
+
+    input s1_axis_valid,
+    input [DATA_WIDTH-1:0] s1_axis_data,
+    output s1_axis_data,
 
     // axi stream master interface
-    output reg m_axis_valid,
-    output reg [DATA_WIDTH-1:0] m_axis_data,
-    input m_axis_ready
+    output reg m0_axis_valid,
+    output reg [DATA_WIDTH-1:0] m0_axis_data,
+    input m0_axis_ready
+
+    output reg m1_axis_valid,
+    output reg [DATA_WIDTH-1:0] m1_axis_data,
+    input m1_axis_ready
 );
 
-  assign s_axis_ready = m_axis_ready; // slave is ready to receive data when master can send data (loopback)
+  assign s0_axis_data = m0_axis_ready; // slave is ready to receive data when master can send data (loopback)
+  assign s1_axis_data = m1_axis_ready;
 
   wire i_rst;
   assign i_rst = ~axi_reset_n;
 
-  wire [DATA_WIDTH-1:0] data_from_convolver_to_master_out;
+  wire [1:0] kernel_sel_from_slave1;
+  assign kernel_sel_from_slave1 = s1_axis_data[1:0];
+
+  wire [DATA_WIDTH-1:0] data_from_convolver_to_master0_out;
 
   integer i;
   always @(posedge axi_clk) begin
-    if (s_axis_ready & s_axis_valid) begin
+    if (s0_axis_data & s0_axis_valid) begin
       for (i = 0; i < DATA_WIDTH / 8; i = i + 1) begin
-        m_axis_data[i*8+:8] <= data_from_convolver_to_master_out[i*8+:8];
+        m0_axis_data[i*8+:8] <= data_from_convolver_to_master0_out[i*8+:8];
       end
     end
   end
 
   always @(posedge axi_clk) begin
-    m_axis_valid <= s_axis_valid & s_axis_ready; // slave accepted data, so master has valid data to send in the next clock
+    m0_axis_valid <= s0_axis_valid & s0_axis_data; // slave accepted data, so master has valid data to send in the next clock
   end
 
 
@@ -57,9 +69,10 @@ module axi_stream_convolver #(
   ) u_top_convolver (
       .i_clk     (axi_clk),
       .i_reset   (i_rst),
-      .i_axi_data(s_axis_data),
-      .i_valid   (s_axis_valid),
-      .o_axi_data(data_from_convolver_to_master_out)
+      .i_axi_data(s0_axis_data),
+      .i_valid   (s0_axis_valid),
+      .i_kernel_sel(kernel_sel_from_slave1),
+      .o_axi_data(data_from_convolver_to_master0_out)
   );
 
 
