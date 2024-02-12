@@ -1,6 +1,6 @@
 from modules.ethernet.sockets import UdpSocketClient
 
-PORT=3002
+PORT=3001
 ADDRESS=('172.16.0.236', PORT)
 
 conn = UdpSocketClient()

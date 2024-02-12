@@ -49,16 +49,23 @@ def send_frames(conn:SocketClient)->None:
         # get image to process
         img = BUFFER_TO_PROCESS.read_array(RESOLUTION)
 
-        # get type of transformation
-        transformation = TRANSFORMATION.read_bytes()
 
         # pre process frame
         preprocessed_bytes = preprocess(img)
 
+        # metadata
+        # get type of transformation
+        transformation = TRANSFORMATION.read_bytes()
+
+        # add timestamp
         timestamp = int(time.time() * 1000)
         timestamp_bytes = struct.pack('Q', timestamp)
 
-        to_send_bytes =  transformation + timestamp_bytes + preprocessed_bytes
+        # make metadata multiple of 4
+        meta_size = len(timestamp_bytes)+len(transformation)
+        zeros = np.zeros(METADATA_SIZE-meta_size, dtype=np.uint8)
+        metadata_bytes = transformation + timestamp_bytes + zeros.tobytes();
+        to_send_bytes =  metadata_bytes + preprocessed_bytes
 
         # send image to socket
         conn.send_bytes(to_send_bytes, (HOST,PORT))
@@ -126,7 +133,7 @@ def process_data(data:bytes)->Tuple:
 def process_metadata(metadata:bytes)->Tuple:
 
     transformation = metadata[0:len(TRANSFORMATION_OPTIONS["identity"])]
-    timestamp_bytes = metadata[len(TRANSFORMATION_OPTIONS["identity"]):]
+    timestamp_bytes = metadata[len(TRANSFORMATION_OPTIONS["identity"]):len(TRANSFORMATION_OPTIONS["identity"])+TIMESTAMP_SIZE]
 
     timestamp = struct.unpack('Q', timestamp_bytes)[0]
 

@@ -12,16 +12,16 @@ KEY4 = "MEM4"
 PROCESSED_BUFFER = SharedMemory(KEY1, IMG_SIZE)
 BUFFER_TO_PROCESS = SharedMemory(KEY2, IMG_SIZE)
 NEW_FRAME = SharedMemory(KEY4, 1) 
-TRANSFORMATION = SharedMemory(KEY3, 2) 
+TRANSFORMATION = SharedMemory(KEY3, 1) 
 TRANSFORMATION_OPTIONS = {
-    "identity": bytearray([0,0]),
-    "edges": bytearray([0,1]),
-    "gaussian_blur": bytearray([1,0]),
-    "sharpen": bytearray([1,1]),
+    "identity": bytearray([0]),
+    "edges": bytearray([1]),
+    "gaussian_blur": bytearray([2]),
+    "sharpen": bytearray([3]),
 }
 
 # socket connection to processing server (FPGA)
-HOST = '127.0.0.1' # '172.16.0.231' # '192.168.100.64' #'0.0.0.0' # '192.168.100.35' ip of video processing server
+HOST = '172.16.0.236' # '192.168.100.64' #'0.0.0.0' # '192.168.100.35' ip of video processing server
 PORT = 3001
 USE_TCP = False
 
@@ -31,4 +31,6 @@ ETH_RESOLUTION = (200,200) # tiene que ser multiplo de 4
 CUT_SIZE = 480
 
 TIMESTAMP_SIZE = 8
-UDP_DATAGRAM_TO_PROCESS_SIZE = ETH_RESOLUTION[0]*ETH_RESOLUTION[1] +  len(TRANSFORMATION_OPTIONS["identity"]) + TIMESTAMP_SIZE
+METADATA_SIZE = 16
+
+UDP_DATAGRAM_TO_PROCESS_SIZE = ETH_RESOLUTION[0]*ETH_RESOLUTION[1] +  METADATA_SIZE
