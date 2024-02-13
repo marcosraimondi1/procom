@@ -45,13 +45,13 @@ def send_frames(conn:SocketClient)->None:
     print("Send process started ...")
 
     while (True):
-        wait_new_frame()
+        wait_new_frame(SEND_DELAY_S)
+
         # get image to process
         img = BUFFER_TO_PROCESS.read_array(RESOLUTION)
 
-
         # pre process frame
-        preprocessed_bytes = preprocess(img)
+        preprocessed_bytes = preprocess(img, RESOLUTION, CUT_SIZE, ETH_RESOLUTION)
 
         # metadata
         # get type of transformation
@@ -70,24 +70,24 @@ def send_frames(conn:SocketClient)->None:
         # send image to socket
         conn.send_bytes(to_send_bytes, (HOST,PORT))
 
-def wait_new_frame()->None:
+def wait_new_frame(delay_s:float)->None:
     wait_start = time.time()
     while(NEW_FRAME.read_bytes() == b'0'):
         time.sleep(0.01)
     NEW_FRAME.write_bytes(b'0')
 
     now = time.time()
-    while (now - wait_start) < SEND_DELAY_S:
+    while (now - wait_start) < delay_s:
         now = time.time()
 
-def preprocess(img:np.ndarray)->bytes:
+def preprocess(img:np.ndarray, full_resolution:Tuple, cut_size:int, send_resolution:Tuple)->bytes:
     # cut image
-    start_x = RESOLUTION[0]//2 - CUT_SIZE//2
-    start_y = RESOLUTION[1]//2 - CUT_SIZE//2
-    img = img[start_x:start_x+CUT_SIZE, start_y:start_y+CUT_SIZE]
+    start_x = full_resolution[0]//2 - cut_size//2
+    start_y = full_resolution[1]//2 - cut_size//2
+    img = img[start_x:start_x+cut_size, start_y:start_y+cut_size]
 
     # resize img
-    resized_img = cv2.resize(img, (ETH_RESOLUTION[1]-2, ETH_RESOLUTION[0]-2)) # -2 for padding
+    resized_img = cv2.resize(img, (send_resolution[1]-2, send_resolution[0]-2)) # -2 for padding
 
     # pad image
     padded_frame = np.pad(resized_img, pad_width=1, constant_values=0)
@@ -110,11 +110,11 @@ def receive_frames(conn:SocketClient)->None:
         if len(data) != UDP_DATAGRAM_TO_PROCESS_SIZE:
             continue
 
-        img_bytes, metadata = process_data(data)
+        img_bytes, metadata = process_data(data, ETH_RESOLUTION)
 
         _, sent_timestamp = process_metadata(metadata)
 
-        new_img = postprocess(img_bytes)
+        new_img = postprocess(img_bytes, RESOLUTION, CUT_SIZE, ETH_RESOLUTION)
 
         recv_timestamp = int(time.time() * 1000)
         new_img = addText(new_img, f"processing time: {recv_timestamp-sent_timestamp} ms", (20,75), 1)
@@ -122,8 +122,8 @@ def receive_frames(conn:SocketClient)->None:
         # send processed image
         PROCESSED_BUFFER.write_array(new_img)
 
-def process_data(data:bytes)->Tuple:
-    image_size = ETH_RESOLUTION[0]*ETH_RESOLUTION[1]
+def process_data(data:bytes, resolution:Tuple)->Tuple:
+    image_size = resolution[0]*resolution[1]
     split_indx = len(data) - image_size
     image = data[split_indx:]
     metadata = data[:split_indx]
@@ -139,24 +139,52 @@ def process_metadata(metadata:bytes)->Tuple:
 
     return transformation, timestamp
 
-def postprocess(img_bytes:bytes)->np.ndarray:
-    reordered_bytes = bytes()
+def postprocess(img_bytes:bytes, full_resolution:Tuple, cut_size:int, received_resolution:Tuple)->np.ndarray:
+    img = reorder_pixels(img_bytes, received_resolution)
 
-    for i in range(0, ETH_RESOLUTION[1]):
-        for j in range(i*4, len(img_bytes), 4*ETH_RESOLUTION[1]):
-            reordered_bytes += img_bytes[j:j+4]
+    cleaned_img = img[2:][2:] # remove invalid pixels from padded convolution
 
-    img = np.frombuffer(reordered_bytes, dtype=np.uint8).reshape(ETH_RESOLUTION)
+    # first resize with interpolation
+    new_img = cv2.resize(cleaned_img, (cut_size, cut_size))
 
-    new_img = cv2.resize(img, (CUT_SIZE, CUT_SIZE))
 
-    start_x = RESOLUTION[0]//2 - CUT_SIZE//2
-    start_y = RESOLUTION[1]//2 - CUT_SIZE//2
+    # now resize to resolution, centering the image and completing with zeros
+    start_x = full_resolution[0]//2 - cut_size//2
+    start_y = full_resolution[1]//2 - cut_size//2
 
-    uncut = np.zeros((RESOLUTION[0], RESOLUTION[1]), dtype=np.uint8)
-    uncut[start_x:start_x+CUT_SIZE, start_y:start_y+CUT_SIZE] = new_img
+    uncut = np.zeros((full_resolution[0], full_resolution[1]), dtype=np.uint8)
+    uncut[start_x:start_x+cut_size, start_y:start_y+cut_size] = new_img
 
     return uncut
+
+def reorder_pixels(img_bytes:bytes, resolution:Tuple)->np.ndarray:
+    """
+    UNORDERED:
+     0  1  2  3  8  9  10 11 16 17 18 19 24 25 26 27 32 33 34 35 40 41 42 43 48 49 50 51 56 57 58 59 4  5  6  7  12 13 14 15 20 21 22 23 28 29 30 31 36 37 38 39 44 45 46 47 52 53 54 55 60 61 62 63
+
+    ORDERED:
+     0  1  2  3  4  5  6  7
+     8  9  10 11 12 13 14 15
+     16 17 18 19 20 21 22 23
+     24 25 26 27 28 29 30 31
+     32 33 34 35 36 37 38 39
+     40 41 42 43 44 45 46 47
+     48 49 50 51 52 53 54 55
+     56 57 58 59 60 61 62 63
+    """
+    img = np.zeros(resolution, dtype=np.uint8)
+    row = 0
+    col = 0
+    for i in range(0, len(img_bytes), 4):
+        img[row][col:col+4] = img_bytes[i:i+4]
+        row += 1
+        if row == resolution[0]:
+            row = 0
+            col += 4
+            if col >= resolution[1]:
+                break
+
+    return img
 
 def addText(img:np.ndarray, text:Text, position:Tuple, scale:float)->np.ndarray:
     font = cv2.FONT_HERSHEY_SIMPLEX

@@ -28,7 +28,7 @@ USE_TCP = False
 # data flow control
 SEND_DELAY_S = 0.03
 ETH_RESOLUTION = (200,200) # tiene que ser multiplo de 4
-CUT_SIZE = 480
+CUT_SIZE = 400
 
 TIMESTAMP_SIZE = 8
 METADATA_SIZE = 16
