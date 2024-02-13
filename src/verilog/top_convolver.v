@@ -15,11 +15,6 @@ module top_convolver #(
     output [NB_DATA-1:0] o_axi_data
 );
 
-  wire fromHard;
-  wire [1:0] swVio, kernel_sel;
-
-  assign  kernel_sel = (fromHard) ? swVio : i_kernel_sel;
-
   // KERNEL DEFINITION
   wire signed [NB_COEFF*3-1:0] kernel[KERNEL_WIDTH-1:0];
 
@@ -43,9 +38,9 @@ module top_convolver #(
   genvar i;
   generate
       for (i = 0; i < KERNEL_WIDTH; i = i + 1) begin
-      assign kernel[i] = (kernel_sel == 2'b00) ? kernel_identidad[i] :
-            (kernel_sel == 2'b01) ? kernel_border[i] :
-            (kernel_sel == 2'b10) ? kernel_gaussian_blur[i] :
+      assign kernel[i] = (i_kernel_sel == 2'b00) ? kernel_identidad[i] :
+            (i_kernel_sel == 2'b01) ? kernel_border[i] :
+            (i_kernel_sel == 2'b10) ? kernel_gaussian_blur[i] :
             kernel_sharpen[i];
       end
   endgenerate
@@ -128,11 +123,5 @@ module top_convolver #(
       .o_conv2   (data_to_conv2),
       .o_conv3   (data_to_conv3)
   );
-   vio
-   u_vio
-   (.clk_0(i_clk),
-    .probe_out0_0(fromHard),
-    .probe_out1_0(swVio)
-    );
 
 endmodule

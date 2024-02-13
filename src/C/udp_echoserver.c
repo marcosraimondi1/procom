@@ -11,7 +11,6 @@
 #define UDP_SERVER_PORT    3001   /* define the UDP local connection port */
 #define UDP_CLIENT_PORT    3001   /* define the UDP remote connection port */
 #define METADATA_SIZE	   16     /* define metadata size of each udp transfer in bytes, multiple of 4 */
-#define STREAM_FRAME_REG   1      /* define register where to find axi stream link interface */
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
@@ -28,13 +27,17 @@ void process_data(struct pbuf* p)
 {
 	register int a0;
 	register int a1;
-	int i, start_i;
+	int i, j, start_i;
 
 	// extract metadata
 	u8 *payload = p->payload;
     u8 kernel = payload[0];
 
-    start_i = METADATA_SIZE;
+    register int b0;
+    b0 = kernel;
+	putfslx(b0,  1, FSL_DEFAULT);
+
+	start_i = METADATA_SIZE;
 
 	// process data
 	// PBUF MAX SIZE = 1480 bytes
@@ -47,10 +50,10 @@ void process_data(struct pbuf* p)
 			val = (payload[i]) | (payload[i+1] << 8) | (payload[i+2] << 16) | (payload[i+3] << 24);
 
 			a0 = val;
-			putfslx(a0,  STREAM_FRAME_REG, FSL_DEFAULT);
-			getfslx(a1,  STREAM_FRAME_REG, FSL_DEFAULT);
+			putfslx(a0,  0, FSL_DEFAULT);
+			for (j=0;j<2;j+=1){}
+			getfslx(a1,  0, FSL_DEFAULT);
 			payload[i] = a1;
-
 			payload[i]   = a1 & 0xFF;
 			payload[i+1] = (a1 >> 8) & 0xFF;
 			payload[i+2] = (a1 >> 16) & 0xFF;

@@ -135,7 +135,7 @@ xilinx.com:ip:axi_ethernetlite:3.0\
 xilinx.com:ip:axi_uartlite:2.0\
 xilinx.com:ip:axi_timer:2.0\
 xilinx.com:ip:util_vector_logic:2.0\
-xilinx.com:user:axi_stream_convolver:1.0\
+xilinx.com:user:axi_stream_loopback:1.0\
 xilinx.com:ip:lmb_v10:3.0\
 xilinx.com:ip:lmb_bram_if_cntlr:4.0\
 xilinx.com:ip:blk_mem_gen:8.4\
@@ -412,8 +412,8 @@ proc create_root_design { parentCell } {
   ] $util_vector_logic_0
 
 
-  # Create instance: axi_stream_convolver_0, and set properties
-  set axi_stream_convolver_0 [ create_bd_cell -type ip -vlnv xilinx.com:user:axi_stream_convolver:1.0 axi_stream_convolver_0 ]
+  # Create instance: axi_stream_loopback_0, and set properties
+  set axi_stream_loopback_0 [ create_bd_cell -type ip -vlnv xilinx.com:user:axi_stream_loopback:1.0 axi_stream_loopback_0 ]
 
   # Create interface connections
   connect_bd_intf_net -intf_net axi_ethernetlite_0_MDIO [get_bd_intf_ports eth_mdio_mdc] [get_bd_intf_pins axi_ethernetlite_0/MDIO]
@@ -435,25 +435,19 @@ proc create_root_design { parentCell } {
 
   # Create port connections
   connect_bd_net -net axi_ethernetlite_0_ip2intc_irpt [get_bd_pins axi_ethernetlite_0/ip2intc_irpt] [get_bd_pins microblaze_0_xlconcat/In0]
-  connect_bd_net -net axi_stream_convolver_0_m0_axis_data [get_bd_pins axi_stream_convolver_0/m0_axis_data] [get_bd_pins microblaze_0/S0_AXIS_TDATA]
-  connect_bd_net -net axi_stream_convolver_0_m0_axis_valid [get_bd_pins axi_stream_convolver_0/m0_axis_valid] [get_bd_pins microblaze_0/S0_AXIS_TVALID]
-  connect_bd_net -net axi_stream_convolver_0_m1_axis_data [get_bd_pins axi_stream_convolver_0/m1_axis_data] [get_bd_pins microblaze_0/S1_AXIS_TDATA]
-  connect_bd_net -net axi_stream_convolver_0_m1_axis_valid [get_bd_pins axi_stream_convolver_0/m1_axis_valid] [get_bd_pins microblaze_0/S1_AXIS_TVALID]
-  connect_bd_net -net axi_stream_convolver_0_s0_axis_ready [get_bd_pins axi_stream_convolver_0/s0_axis_ready] [get_bd_pins microblaze_0/M0_AXIS_TREADY]
-  connect_bd_net -net axi_stream_convolver_0_s1_axis_ready [get_bd_pins axi_stream_convolver_0/s1_axis_ready] [get_bd_pins microblaze_0/M1_AXIS_TREADY]
+  connect_bd_net -net axi_stream_loopback_0_m_axis_data [get_bd_pins axi_stream_loopback_0/m_axis_data] [get_bd_pins microblaze_0/S1_AXIS_TDATA]
+  connect_bd_net -net axi_stream_loopback_0_m_axis_valid [get_bd_pins axi_stream_loopback_0/m_axis_valid] [get_bd_pins microblaze_0/S1_AXIS_TVALID]
+  connect_bd_net -net axi_stream_loopback_0_s_axis_ready [get_bd_pins axi_stream_loopback_0/s_axis_ready] [get_bd_pins microblaze_0/M1_AXIS_TREADY]
   connect_bd_net -net axi_timer_0_interrupt [get_bd_pins axi_timer_0/interrupt] [get_bd_pins microblaze_0_xlconcat/In2]
   connect_bd_net -net axi_uartlite_0_interrupt [get_bd_pins axi_uartlite_0/interrupt] [get_bd_pins microblaze_0_xlconcat/In1]
   connect_bd_net -net clk_wiz_0_clk_out25 [get_bd_pins clk_wiz_0/clk_out25] [get_bd_ports eth_ref_clk]
-  connect_bd_net -net clk_wiz_0_clk_out166 [get_bd_pins clk_wiz_0/clk_out166] [get_bd_pins mig_7series_0/sys_clk_i] [get_bd_pins axi_stream_convolver_0/axi_clk]
+  connect_bd_net -net clk_wiz_0_clk_out166 [get_bd_pins clk_wiz_0/clk_out166] [get_bd_pins mig_7series_0/sys_clk_i] [get_bd_pins axi_stream_loopback_0/axi_clk]
   connect_bd_net -net clk_wiz_0_clk_out200 [get_bd_pins clk_wiz_0/clk_out200] [get_bd_pins mig_7series_0/clk_ref_i]
   connect_bd_net -net mdm_1_debug_sys_rst [get_bd_pins mdm_1/Debug_SYS_Rst] [get_bd_pins rst_mig_7series_0_83M/mb_debug_sys_rst]
   connect_bd_net -net microblaze_0_Clk [get_bd_pins mig_7series_0/ui_clk] [get_bd_pins microblaze_0/Clk] [get_bd_pins microblaze_0_axi_periph/ACLK] [get_bd_pins microblaze_0_axi_periph/S00_ACLK] [get_bd_pins microblaze_0_axi_periph/M00_ACLK] [get_bd_pins microblaze_0_axi_intc/s_axi_aclk] [get_bd_pins microblaze_0_axi_intc/processor_clk] [get_bd_pins microblaze_0_local_memory/LMB_Clk] [get_bd_pins rst_mig_7series_0_83M/slowest_sync_clk] [get_bd_pins microblaze_0_axi_periph/S01_ACLK] [get_bd_pins microblaze_0_axi_periph/S02_ACLK] [get_bd_pins microblaze_0_axi_periph/M01_ACLK] [get_bd_pins axi_ethernetlite_0/s_axi_aclk] [get_bd_pins microblaze_0_axi_periph/M02_ACLK] [get_bd_pins axi_timer_0/s_axi_aclk] [get_bd_pins microblaze_0_axi_periph/M03_ACLK] [get_bd_pins axi_uartlite_0/s_axi_aclk] [get_bd_pins microblaze_0_axi_periph/M04_ACLK] [get_bd_pins microblaze_0_axi_periph/M05_ACLK]
-  connect_bd_net -net microblaze_0_M0_AXIS_TDATA [get_bd_pins microblaze_0/M0_AXIS_TDATA] [get_bd_pins axi_stream_convolver_0/s0_axis_data]
-  connect_bd_net -net microblaze_0_M0_AXIS_TVALID [get_bd_pins microblaze_0/M0_AXIS_TVALID] [get_bd_pins axi_stream_convolver_0/s0_axis_valid]
-  connect_bd_net -net microblaze_0_M1_AXIS_TDATA [get_bd_pins microblaze_0/M1_AXIS_TDATA] [get_bd_pins axi_stream_convolver_0/s1_axis_data]
-  connect_bd_net -net microblaze_0_M1_AXIS_TVALID [get_bd_pins microblaze_0/M1_AXIS_TVALID] [get_bd_pins axi_stream_convolver_0/s1_axis_valid]
-  connect_bd_net -net microblaze_0_S0_AXIS_TREADY [get_bd_pins microblaze_0/S0_AXIS_TREADY] [get_bd_pins axi_stream_convolver_0/m0_axis_ready]
-  connect_bd_net -net microblaze_0_S1_AXIS_TREADY [get_bd_pins microblaze_0/S1_AXIS_TREADY] [get_bd_pins axi_stream_convolver_0/m1_axis_ready]
+  connect_bd_net -net microblaze_0_M1_AXIS_TDATA [get_bd_pins microblaze_0/M1_AXIS_TDATA] [get_bd_pins axi_stream_loopback_0/s_axis_data]
+  connect_bd_net -net microblaze_0_M1_AXIS_TVALID [get_bd_pins microblaze_0/M1_AXIS_TVALID] [get_bd_pins axi_stream_loopback_0/s_axis_valid]
+  connect_bd_net -net microblaze_0_S1_AXIS_TREADY [get_bd_pins microblaze_0/S1_AXIS_TREADY] [get_bd_pins axi_stream_loopback_0/m_axis_ready]
   connect_bd_net -net microblaze_0_intr [get_bd_pins microblaze_0_xlconcat/dout] [get_bd_pins microblaze_0_axi_intc/intr]
   connect_bd_net -net mig_7series_0_mmcm_locked [get_bd_pins mig_7series_0/mmcm_locked] [get_bd_pins rst_mig_7series_0_83M/dcm_locked]
   connect_bd_net -net mig_7series_0_ui_clk_sync_rst [get_bd_pins mig_7series_0/ui_clk_sync_rst] [get_bd_pins rst_mig_7series_0_83M/ext_reset_in]
@@ -462,7 +456,7 @@ proc create_root_design { parentCell } {
   connect_bd_net -net rst_mig_7series_0_83M_mb_reset [get_bd_pins rst_mig_7series_0_83M/mb_reset] [get_bd_pins microblaze_0/Reset] [get_bd_pins microblaze_0_axi_intc/processor_rst] [get_bd_pins util_vector_logic_0/Op1]
   connect_bd_net -net rst_mig_7series_0_83M_peripheral_aresetn [get_bd_pins rst_mig_7series_0_83M/peripheral_aresetn] [get_bd_pins microblaze_0_axi_periph/ARESETN] [get_bd_pins microblaze_0_axi_periph/S00_ARESETN] [get_bd_pins microblaze_0_axi_periph/M00_ARESETN] [get_bd_pins microblaze_0_axi_intc/s_axi_aresetn] [get_bd_pins microblaze_0_axi_periph/S01_ARESETN] [get_bd_pins microblaze_0_axi_periph/S02_ARESETN] [get_bd_pins mig_7series_0/aresetn] [get_bd_pins microblaze_0_axi_periph/M01_ARESETN] [get_bd_pins axi_ethernetlite_0/s_axi_aresetn] [get_bd_pins microblaze_0_axi_periph/M02_ARESETN] [get_bd_pins axi_timer_0/s_axi_aresetn] [get_bd_pins microblaze_0_axi_periph/M03_ARESETN] [get_bd_pins axi_uartlite_0/s_axi_aresetn] [get_bd_pins microblaze_0_axi_periph/M04_ARESETN] [get_bd_pins microblaze_0_axi_periph/M05_ARESETN]
   connect_bd_net -net sys_clock_1 [get_bd_ports sys_clock] [get_bd_pins clk_wiz_0/clk_in1]
-  connect_bd_net -net util_vector_logic_0_Res [get_bd_pins util_vector_logic_0/Res] [get_bd_pins axi_stream_convolver_0/axi_reset_n]
+  connect_bd_net -net util_vector_logic_0_Res [get_bd_pins util_vector_logic_0/Res] [get_bd_pins axi_stream_loopback_0/axi_reset_n]
 
   # Create address segments
   assign_bd_address -offset 0x40E00000 -range 0x00010000 -target_address_space [get_bd_addr_spaces microblaze_0/Data] [get_bd_addr_segs axi_ethernetlite_0/S_AXI/Reg] -force
