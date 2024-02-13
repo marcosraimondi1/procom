@@ -172,11 +172,12 @@ def reorder_pixels(img_bytes:bytes, resolution:Tuple)->np.ndarray:
      48 49 50 51 52 53 54 55
      56 57 58 59 60 61 62 63
     """
+    pixels = np.frombuffer(img_bytes, dtype=np.uint8)
     img = np.zeros(resolution, dtype=np.uint8)
     row = 0
     col = 0
     for i in range(0, len(img_bytes), 4):
-        img[row][col:col+4] = img_bytes[i:i+4]
+        img[row][col:col+4] = pixels[i:i+4]
         row += 1
         if row == resolution[0]:
             row = 0
