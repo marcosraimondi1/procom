@@ -7,8 +7,6 @@ module axi_stream_convolver #(
     parameter KERNEL_WIDTH = 3,
     parameter NB_PIXEL = 8,
     parameter NB_COEFF = 8,
-    parameter KERNEL_SIZE = KERNEL_WIDTH * KERNEL_WIDTH,
-    parameter NB_CONV = KERNEL_SIZE * NB_PIXEL,
     parameter DATA_WIDTH = 32
 ) (
     input axi_clk,
@@ -33,6 +31,9 @@ module axi_stream_convolver #(
     input m1_axis_ready
 );
 
+  localparam KERNEL_SIZE = KERNEL_WIDTH * KERNEL_WIDTH;
+  localparam NB_CONV = KERNEL_SIZE * NB_PIXEL;
+
   assign s0_axis_ready = m0_axis_ready; // slave is ready to receive data when master can send data (loopback)
   assign s1_axis_ready = 1'b1; // always ready to receive kernel
 
@@ -42,6 +43,7 @@ module axi_stream_convolver #(
   reg [1:0] kernel_sel_from_slave1;
 
   wire [DATA_WIDTH-1:0] data_from_convolver_to_master0_out;
+
 
   integer i;
   always @(posedge axi_clk) begin:send_frame_to_master0
@@ -69,6 +71,28 @@ module axi_stream_convolver #(
     end
   end
 
+reg valid_pulse;
+reg valor_anterior;
+wire valor_actual;
+assign valor_actual = (s0_axis_ready & s0_axis_valid);
+
+always @(posedge axi_clk) begin
+  valor_anterior <= valor_actual;
+
+  if(i_rst) 
+  begin
+    valid_pulse <= 1'b0;
+  end
+  else
+  begin
+      if(valor_anterior == 1'b0 && valor_actual == 1'b1)begin
+        valid_pulse <= 1'b1;  
+      end
+      else 
+        valid_pulse <= 1'b0;
+  end
+end  
+
   top_convolver #(
       .IMAGE_HEIGHT(IMAGE_HEIGHT),  // Image height with zero padding
       .KERNEL_WIDTH(KERNEL_WIDTH),
@@ -81,7 +105,7 @@ module axi_stream_convolver #(
       .i_clk     (axi_clk),
       .i_reset   (i_rst),
       .i_axi_data(s0_axis_data),
-      .i_valid   (s0_axis_valid),
+      .i_valid   (valid_pulse),
       .i_kernel_sel(kernel_sel_from_slave1),
       .o_axi_data(data_from_convolver_to_master0_out)
   );

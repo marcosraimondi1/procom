@@ -4,10 +4,10 @@
 <!-- Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.                   -->
 <!-- Copyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.   -->
 
-<Project Product="Vivado" Version="7" Minor="63" Path="c:/users/marco/onedrive/escritorio/vivado/vivado/ip_repo/tmp_edit_project.xpr">
+<Project Product="Vivado" Version="7" Minor="63" Path="c:/users/marco/onedrive/escritorio/vivado/vivado/ip_repo/stream_convolver_v3/tmp_edit_project.xpr">
   <DefaultLaunch Dir="$PRUNDIR"/>
   <Configuration>
-    <Option Name="Id" Val="636d02ed24b245c89682f05e70dddd55"/>
+    <Option Name="Id" Val="9035cf0660d04994b35f562377674566"/>
     <Option Name="Part" Val="xc7a35ticsg324-1L"/>
     <Option Name="CompiledLibDir" Val="$PCACHEDIR/compile_simlib"/>
     <Option Name="CompiledLibDirXSim" Val=""/>
@@ -47,7 +47,6 @@
     <Option Name="ActiveSimSet" Val="sim_1"/>
     <Option Name="DefaultLib" Val="xil_defaultlib"/>
     <Option Name="ProjectType" Val="Default"/>
-    <Option Name="IPRepoPath" Val="$PPRDIR/../../../../../../../Users/marco/OneDrive/Escritorio/vivado/vivado/ip_repo"/>
     <Option Name="IPOutputRepo" Val="$PCACHEDIR/ip"/>
     <Option Name="IPDefaultOutputPath" Val="$PGENDIR/sources_1"/>
     <Option Name="IPCachePermission" Val="read"/>
@@ -91,7 +90,7 @@
   <FileSets Version="1" Minor="31">
     <FileSet Name="sources_1" Type="DesignSrcs" RelSrcDir="$PSRCDIR/sources_1" RelGenDir="$PGENDIR/sources_1">
       <Filter Type="Srcs"/>
-      <File Path="$PPRDIR/../../../../../../../Users/marco/OneDrive/Escritorio/vivado/vivado/ip_repo/src/conv_2d.v">
+      <File Path="$PPRDIR/../../../../../../../../Users/marco/OneDrive/Escritorio/vivado/vivado/ip_repo/stream_convolver_v3/src/conv_2d.v">
         <FileInfo>
           <Attr Name="Library" Val=""/>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -99,7 +98,7 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../../../../../../Users/marco/OneDrive/Escritorio/vivado/vivado/ip_repo/src/subframe.v">
+      <File Path="$PPRDIR/../../../../../../../../Users/marco/OneDrive/Escritorio/vivado/vivado/ip_repo/stream_convolver_v3/src/subframe.v">
         <FileInfo>
           <Attr Name="Library" Val=""/>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -107,7 +106,7 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../../../../../../Users/marco/OneDrive/Escritorio/vivado/vivado/ip_repo/src/top_convolver.v">
+      <File Path="$PPRDIR/../../../../../../../../Users/marco/OneDrive/Escritorio/vivado/vivado/ip_repo/stream_convolver_v3/src/top_convolver.v">
         <FileInfo>
           <Attr Name="Library" Val=""/>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -115,7 +114,7 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../../../../../../Users/marco/OneDrive/Escritorio/vivado/vivado/ip_repo/src/axi_stream.v">
+      <File Path="$PPRDIR/../../../../../../../../Users/marco/OneDrive/Escritorio/vivado/vivado/ip_repo/stream_convolver_v3/src/stream_convolver.v">
         <FileInfo>
           <Attr Name="Library" Val=""/>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -123,13 +122,13 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../../../../../../Users/marco/OneDrive/Escritorio/vivado/vivado/ip_repo/component.xml">
+      <File Path="$PPRDIR/../../../../../../../../Users/marco/OneDrive/Escritorio/vivado/vivado/ip_repo/stream_convolver_v3/component.xml">
         <FileInfo SFType="IPXACT"/>
       </File>
       <Config>
         <Option Name="DesignMode" Val="RTL"/>
         <Option Name="TopModule" Val="axi_stream_convolver"/>
-        <Option Name="TopRTLFile" Val="$PPRDIR/../../../../../../../Users/marco/OneDrive/Escritorio/vivado/vivado/ip_repo/src/axi_stream.v"/>
+        <Option Name="TopRTLFile" Val="$PPRDIR/../../../../../../../../Users/marco/OneDrive/Escritorio/vivado/vivado/ip_repo/stream_convolver_v3/src/stream_convolver.v"/>
       </Config>
     </FileSet>
     <FileSet Name="constrs_1" Type="Constrs" RelSrcDir="$PSRCDIR/constrs_1" RelGenDir="$PGENDIR/constrs_1">
@@ -139,7 +138,7 @@
       </Config>
     </FileSet>
     <FileSet Name="sim_1" Type="SimulationSrcs" RelSrcDir="$PSRCDIR/sim_1" RelGenDir="$PGENDIR/sim_1">
-      <File Path="$PPRDIR/../../../../../../../Users/marco/OneDrive/Escritorio/vivado/vivado/ip_repo/src/tb_top_convolver.v">
+      <File Path="$PPRDIR/../../../../../../../../Users/marco/OneDrive/Escritorio/vivado/vivado/ip_repo/stream_convolver_v3/src/tb_stream_convolver.v">
         <FileInfo>
           <Attr Name="Library" Val=""/>
           <Attr Name="UsedIn" Val="simulation"/>
@@ -148,8 +147,8 @@
       </File>
       <Config>
         <Option Name="DesignMode" Val="RTL"/>
-        <Option Name="TopModule" Val="tb_top_convolver"/>
-        <Option Name="TopRTLFile" Val="$PPRDIR/../../../../../../../Users/marco/OneDrive/Escritorio/vivado/vivado/ip_repo/src/tb_top_convolver.v"/>
+        <Option Name="TopModule" Val="tb_stream_convolver"/>
+        <Option Name="TopRTLFile" Val="$PPRDIR/../../../../../../../../Users/marco/OneDrive/Escritorio/vivado/vivado/ip_repo/stream_convolver_v3/src/tb_stream_convolver.v"/>
         <Option Name="TransportPathDelay" Val="0"/>
         <Option Name="TransportIntDelay" Val="0"/>
         <Option Name="SelectedSimModel" Val="rtl"/>

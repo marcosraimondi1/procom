@@ -5,10 +5,8 @@ proc init_gui { IPINST } {
   set Page_0 [ipgui::add_page $IPINST -name "Page 0"]
   ipgui::add_param $IPINST -name "DATA_WIDTH" -parent ${Page_0}
   ipgui::add_param $IPINST -name "IMAGE_HEIGHT" -parent ${Page_0}
-  ipgui::add_param $IPINST -name "KERNEL_SIZE" -parent ${Page_0}
   ipgui::add_param $IPINST -name "KERNEL_WIDTH" -parent ${Page_0}
   ipgui::add_param $IPINST -name "NB_COEFF" -parent ${Page_0}
-  ipgui::add_param $IPINST -name "NB_CONV" -parent ${Page_0}
   ipgui::add_param $IPINST -name "NB_PIXEL" -parent ${Page_0}
 
 
@@ -32,15 +30,6 @@ proc validate_PARAM_VALUE.IMAGE_HEIGHT { PARAM_VALUE.IMAGE_HEIGHT } {
 	return true
 }
 
-proc update_PARAM_VALUE.KERNEL_SIZE { PARAM_VALUE.KERNEL_SIZE } {
-	# Procedure called to update KERNEL_SIZE when any of the dependent parameters in the arguments change
-}
-
-proc validate_PARAM_VALUE.KERNEL_SIZE { PARAM_VALUE.KERNEL_SIZE } {
-	# Procedure called to validate KERNEL_SIZE
-	return true
-}
-
 proc update_PARAM_VALUE.KERNEL_WIDTH { PARAM_VALUE.KERNEL_WIDTH } {
 	# Procedure called to update KERNEL_WIDTH when any of the dependent parameters in the arguments change
 }
@@ -56,15 +45,6 @@ proc update_PARAM_VALUE.NB_COEFF { PARAM_VALUE.NB_COEFF } {
 
 proc validate_PARAM_VALUE.NB_COEFF { PARAM_VALUE.NB_COEFF } {
 	# Procedure called to validate NB_COEFF
-	return true
-}
-
-proc update_PARAM_VALUE.NB_CONV { PARAM_VALUE.NB_CONV } {
-	# Procedure called to update NB_CONV when any of the dependent parameters in the arguments change
-}
-
-proc validate_PARAM_VALUE.NB_CONV { PARAM_VALUE.NB_CONV } {
-	# Procedure called to validate NB_CONV
 	return true
 }
 
@@ -96,16 +76,6 @@ proc update_MODELPARAM_VALUE.NB_PIXEL { MODELPARAM_VALUE.NB_PIXEL PARAM_VALUE.NB
 proc update_MODELPARAM_VALUE.NB_COEFF { MODELPARAM_VALUE.NB_COEFF PARAM_VALUE.NB_COEFF } {
 	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
 	set_property value [get_property value ${PARAM_VALUE.NB_COEFF}] ${MODELPARAM_VALUE.NB_COEFF}
-}
-
-proc update_MODELPARAM_VALUE.KERNEL_SIZE { MODELPARAM_VALUE.KERNEL_SIZE PARAM_VALUE.KERNEL_SIZE } {
-	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
-	set_property value [get_property value ${PARAM_VALUE.KERNEL_SIZE}] ${MODELPARAM_VALUE.KERNEL_SIZE}
-}
-
-proc update_MODELPARAM_VALUE.NB_CONV { MODELPARAM_VALUE.NB_CONV PARAM_VALUE.NB_CONV } {
-	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
-	set_property value [get_property value ${PARAM_VALUE.NB_CONV}] ${MODELPARAM_VALUE.NB_CONV}
 }
 
 proc update_MODELPARAM_VALUE.DATA_WIDTH { MODELPARAM_VALUE.DATA_WIDTH PARAM_VALUE.DATA_WIDTH } {

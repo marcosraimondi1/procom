@@ -27,16 +27,16 @@ void process_data(struct pbuf* p)
 {
 	register int a0;
 	register int a1;
-	int i, j, start_i;
+	int i, start_i;
 
-	// extract metadata
 	u8 *payload = p->payload;
-    u8 kernel = payload[0];
 
-    register int b0;
-    b0 = kernel;
-	putfslx(b0,  1, FSL_DEFAULT);
+    // get kernel and send it
+	u8 kernel = payload[0];
+    a0 = kernel;
+	putfslx(a0,  1, FSL_DEFAULT);
 
+	// do not send metadata to system convolver
 	start_i = METADATA_SIZE;
 
 	// process data
@@ -48,12 +48,10 @@ void process_data(struct pbuf* p)
 		for (i=start_i; i < (p->len); i+=4)
 		{
 			val = (payload[i]) | (payload[i+1] << 8) | (payload[i+2] << 16) | (payload[i+3] << 24);
-
 			a0 = val;
 			putfslx(a0,  0, FSL_DEFAULT);
-			for (j=0;j<2;j+=1){}
 			getfslx(a1,  0, FSL_DEFAULT);
-			payload[i] = a1;
+
 			payload[i]   = a1 & 0xFF;
 			payload[i+1] = (a1 >> 8) & 0xFF;
 			payload[i+2] = (a1 >> 16) & 0xFF;
