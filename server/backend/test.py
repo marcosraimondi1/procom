@@ -10,9 +10,10 @@ conn = UdpSocketClient()
 conn.client.bind(('',PORT)) 
 
 count = 129
-RESOLUTION = (198,14)
+RESOLUTION = (198,6)
 img = np.zeros(RESOLUTION, dtype=np.uint8)
-for i in range(img.shape[0]-8, img.shape[0]):
+test_range = range(img.shape[0]-10, img.shape[0])
+for i in test_range:
     for j in range(img.shape[1]):
         img[i][j] = count % 256
         if (count != 256):
@@ -35,9 +36,12 @@ received, _ = conn.receive_bytes(len(data_to_send))
 
 metadata_recv = received[0:16]
 img_recv = reorder_pixels(received[16:], (RESOLUTION[0]+2, RESOLUTION[1]+2))
+img_recv = img_recv[2:,2:]
 
-img_recv = img_recv[1:-1,2:]
+img_sent = reorder_pixels(reordered_bytes, (RESOLUTION[0]+2, RESOLUTION[1]+2))
+img_sent = img_sent[1:-1,1:-1]
 
-for i in range(img.shape[0]-10, img.shape[0]):
-    print(f"{i}. S: ", img[i])
+test_range = range(img_sent.shape[0]-10, img_sent.shape[0])
+for i in test_range:
+    print(f"{i}. S: ", img_sent[i])
     print(f"{i}. R: ", img_recv[i])

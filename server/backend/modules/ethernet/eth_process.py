@@ -117,7 +117,7 @@ def receive_frames(conn:SocketClient)->None:
         new_img = postprocess(img_bytes, RESOLUTION, CUT_SIZE, ETH_RESOLUTION)
 
         recv_timestamp = int(time.time() * 1000)
-        new_img = addText(new_img, f"processing time: {recv_timestamp-sent_timestamp} ms", (20,50), 1)
+        new_img = addText(new_img, f"processing time: {recv_timestamp-sent_timestamp} ms", (20,25), 1)
 
         # send processed image
         PROCESSED_BUFFER.write_array(new_img)
@@ -142,7 +142,7 @@ def process_metadata(metadata:bytes)->Tuple:
 def postprocess(img_bytes:bytes, full_resolution:Tuple, cut_size:int, received_resolution:Tuple)->np.ndarray:
     img = reorder_pixels(img_bytes, received_resolution)
 
-    cleaned_img = img[1:-1, 2:] # remove invalid pixels from padded convolution: first and last row and first 2 columns
+    cleaned_img = img[2:, 2:] # remove invalid pixels from padded convolution
 
     # first resize with interpolation
     new_img = cv2.resize(cleaned_img, (cut_size, cut_size))

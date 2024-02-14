@@ -26,9 +26,9 @@ PORT = 3001
 USE_TCP = False
 
 # data flow control
-SEND_DELAY_S = 0.03
+SEND_DELAY_S = 0.07
 ETH_RESOLUTION = (200,200) # tiene que ser multiplo de 4
-CUT_SIZE = 400
+CUT_SIZE = 380
 
 TIMESTAMP_SIZE = 8
 METADATA_SIZE = 16
