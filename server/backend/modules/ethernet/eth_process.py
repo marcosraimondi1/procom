@@ -117,7 +117,7 @@ def receive_frames(conn:SocketClient)->None:
         new_img = postprocess(img_bytes, RESOLUTION, CUT_SIZE, ETH_RESOLUTION)
 
         recv_timestamp = int(time.time() * 1000)
-        new_img = addText(new_img, f"processing time: {recv_timestamp-sent_timestamp} ms", (20,75), 1)
+        new_img = addText(new_img, f"processing time: {recv_timestamp-sent_timestamp} ms", (20,50), 1)
 
         # send processed image
         PROCESSED_BUFFER.write_array(new_img)
