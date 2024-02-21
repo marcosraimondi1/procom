@@ -15,6 +15,8 @@ let signalingLog       = document.getElementById('signaling-state');
 
 // peer connection
 var pc = null;
+// data channel
+var dc = null, dcInterval = null;
 
 function createPeerConnection() {
     const servers = {
@@ -99,10 +101,28 @@ function start() {
     media.style.display = 'block';
     stopButton.style.display = 'inline-block';
     resolutionInput.disabled = true;
-    transformInput.disabled = true;
+    // transformInput.disabled = true;
 
     pc = createPeerConnection();
+    
+    // data channel config
+    var parameters = {ordered: true}
 
+    dc = pc.createDataChannel('chat', parameters);
+    dc.addEventListener('close', () => {
+        clearInterval(dcInterval);
+    });
+    dc.addEventListener('open', () => {
+        dcInterval = setInterval(() => {
+            var message = transformInput.value
+            dc.send(message);
+        }, 1000);
+    });
+    dc.addEventListener('message', (evt) => {
+        var msg = evt.data
+    });
+
+    // video channel config
     var constraints = {
         audio: false,
         video: true
@@ -140,7 +160,7 @@ function stop() {
     startButton.style.display = 'block';
     media.style.display = 'none';
     resolutionInput.disabled = false;
-    transformInput.disabled = false;
+    // transformInput.disabled = false;
 
     // close transceivers
     if (pc.getTransceivers) {

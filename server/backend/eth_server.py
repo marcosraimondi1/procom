@@ -1,7 +1,3 @@
-import time
-import numpy as np
-
-from frame_processing.process_frame import process_frame
 from modules.ethernet.sockets import UdpSocketClient, TcpSocketClient
 from modules.globals import *
 

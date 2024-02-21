@@ -11,6 +11,7 @@ from aiortc.contrib.media import MediaRelay
 
 # custom modules
 from modules.video_proccessing import VideoTransformTrack
+from modules.data_channel import process_data_channel
 
 ROOT = os.path.dirname(__file__)
 FRONTEND_PATH = os.path.join(ROOT, "../../frontend/")
@@ -54,6 +55,13 @@ async def offer(request):
         if pc.connectionState == "failed":
             await pc.close()
             pcs.discard(pc)
+
+    @pc.on("datachannel")
+    def on_datachannel(channel):
+        @channel.on("message")
+        def on_message(message):
+            process_data_channel(message)
+            #channel.send("pong")
 
     @pc.on("track")
     def on_track(track):
