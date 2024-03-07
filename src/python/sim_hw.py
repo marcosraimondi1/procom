@@ -5,16 +5,17 @@ from tool._fixedInt import *
 
 from utils import KERNELS, load_frame, pre_process_frame, post_process_frame, display_frame
 
-kernel = KERNELS["identity"]
+kernel = KERNELS["edges"]
 
 # FRAME
-car = "./car.jpg"
-gioconda = "./gioconda.jpg"
-pencil = "./pencil.jpg"
+car = "C:/Users/agusb/OneDrive/Escritorio/PROCOM/tpfinal/procom/src/python/car.jpg"
+gioconda = "C:/Users/agusb/OneDrive/Escritorio/PROCOM/tpfinal/procom/src/python/gioconda.jpg"
+pencil = "C:/Users/agusb/OneDrive/Escritorio/PROCOM/tpfinal/procom/src/python/pencil.jpg"
 path = pencil
 
 def convolve_frame(frame, kernel):
     """Convolves a frame with a kernel using zero padding, returns result of same size as input frame"""
+    frame = frame/255
     result = signal.convolve2d(frame, kernel, mode='same', boundary='fill', fillvalue=0)
 
     # return np.array(result, dtype=np.uint8)
@@ -31,7 +32,7 @@ def convolve_frame_manual(frame, kernel):
     frame_width  = frame.shape[1]
     
     #Normalizo los valores
-    frame = frame/256
+    frame = frame/255
     
     # Agrego padding al frame
     padded_frame = np.pad(frame, pad_width=1, constant_values=0)
@@ -91,7 +92,7 @@ def convolve_like_hw(frame, kernel):
     frame_width  = frame.shape[1]
     
     #Normalizo los valores
-    frame = frame/256
+    frame = frame/255
     
     # Agrego padding al frame
     padded_frame = np.pad(frame, pad_width=1, constant_values=0)
@@ -150,7 +151,7 @@ def convolve_like_hw(frame, kernel):
             
             subframe4 = padded_frame[row , col*4:col*4+4]   # Paquete de 4 pixeles que llegan del AXI
             # print("subframe4: ")
-            # print(subframe4*256)
+            # print(subframe4*255)
 
             # subframe18 (wire) -> Contiene todos los pixeles involucrados en la convolución 
             # de los 4 pixeles actuales (7, 8, 9, 10)
@@ -179,9 +180,9 @@ def convolve_like_hw(frame, kernel):
             for x in range(2):
                 subframe18[2 , x] = fifo_2px[2][x]
 
-            print("#########################################")
-            print("subframe18")
-            print(subframe18*256)
+            # print("#########################################")
+            # print("subframe18")
+            # print(subframe18*256)
             #########################################################
             # Convolutor 1
             sum.value = 0
@@ -209,9 +210,7 @@ def convolve_like_hw(frame, kernel):
             #########################################################
             # Convolutor 3
             sum.value = 0
-            # print(kernel)
             for k in range(kernel_size**2):
-                # print("k: " + str(k) + "subframe18: " + str(256*subframe18[int(k/3) , k%3 + 2]))
                 product[k].value = subframe18[int(k/3) , k%3 + 2] * kernel[k]
                 sum.value = sum.fValue + product[k].fValue
             
@@ -234,9 +233,9 @@ def convolve_like_hw(frame, kernel):
             # convolutor4 = result.fValue
             #########################################################
 
-            print("STATE: " + str(state))
-            print("cont_row:" + str(cont_row))
-            print("cont_col:" + str(cont_col))
+            # print("STATE: " + str(state))
+            # print("cont_row:" + str(cont_row))
+            # print("cont_col:" + str(cont_col))
 
             # CONEXIONES DE LOS CONVOLVER CON LA SALIDA
             if state == INIT_FIRST_COL:
@@ -250,8 +249,8 @@ def convolve_like_hw(frame, kernel):
                 convolution[cont_row - 3, cont_col - 2 + 2] = convolutor3   
                 convolution[cont_row - 3, cont_col - 2 + 3] = convolutor4
 
-            print("convolution:")
-            print(convolution*256)
+            # print("convolution:")
+            # print(convolution*255)
             
             #########################################################
             ### Tiempo t+1
@@ -274,8 +273,8 @@ def convolve_like_hw(frame, kernel):
             # subframe4
             # [  0,  1,  2,  3] 
 
-            print("fifo_2px:")
-            print(fifo_2px*256)
+            # print("fifo_2px:")
+            # print(fifo_2px*255)
             for x in range(frame_height+2):
                 if x<(frame_height+2-1):
                     fifo_2px[x] = fifo_2px[x+1]
@@ -364,7 +363,7 @@ def convolve_like_hw(frame, kernel):
                 else:
                     cont_row = cont_row + 1
 
-            print(" ")
+            # print(" ")
             state = next_state
 
     ### REPITO UN CICLO MAS
@@ -374,7 +373,7 @@ def convolve_like_hw(frame, kernel):
 
     subframe4 = padded_frame[row , col*4:col*4+4]
     # print("subframe4: ")
-    # print(subframe4*256)
+    # print(subframe4*255)
     # subframe18 (wire)
     # [  0,  1,  2,  3,  4,  5]
     # [  6,  7,  8,  9, 10, 11]
@@ -400,8 +399,8 @@ def convolve_like_hw(frame, kernel):
     # [ 12, 13,  -,  -,  -,  -]
     for x in range(2):
         subframe18[2 , x] = fifo_2px[2][x]
-    print("subframe18")
-    print(subframe18*256)
+    # print("subframe18")
+    # print(subframe18*255)
     #########################################################
     # Convolutor 1
     sum.value = 0
@@ -431,7 +430,7 @@ def convolve_like_hw(frame, kernel):
     sum.value = 0
     # print(kernel)
     for k in range(kernel_size**2):
-        # print("k: " + str(k) + "subframe18: " + str(256*subframe18[int(k/3) , k%3 + 2]))
+        # print("k: " + str(k) + "subframe18: " + str(255*subframe18[int(k/3) , k%3 + 2]))
         product[k].value = subframe18[int(k/3) , k%3 + 2] * kernel[k]
         sum.value = sum.fValue + product[k].fValue
     
@@ -453,9 +452,9 @@ def convolve_like_hw(frame, kernel):
     convolutor4 = sum.fValue
     # convolutor4 = result.fValue
     #########################################################
-    print("STATE: " + str(state))
-    print("cont_row:" + str(cont_row))
-    print("cont_col:" + str(cont_col))
+    # print("STATE: " + str(state))
+    # print("cont_row:" + str(cont_row))
+    # print("cont_col:" + str(cont_col))
     
     # SALIDAS
     if state == INIT_FIRST_COL:
@@ -474,8 +473,8 @@ def convolve_like_hw(frame, kernel):
         convolution[cont_row - 3, cont_col - 2 + 2] = convolutor3   
         convolution[cont_row - 3, cont_col - 2 + 3] = convolutor4
 
-    print("convolution:")
-    print(convolution*256)
+    # print("convolution:")
+    # print(convolution*255)
 
 
     return convolution
@@ -483,34 +482,33 @@ def convolve_like_hw(frame, kernel):
 def main():
     """Main function"""
     original = load_frame(path)
-    # pre_processed = pre_process_frame(original, (200, 200))
-    # pre_processed = np.ones((10,10)) * 100   # "Imagen" de prueba
     image_width  = 10   #Las dimensiones (+padding) deben ser múltiplos de 4
     image_height = 10
-    pre_processed = np.arange(image_width*image_height) # IMAGEN SIN PADDING
-    pre_processed = pre_processed.reshape((image_height, image_width))
+    # pre_processed = np.arange(image_width*image_height) # IMAGEN SIN PADDING
+    # pre_processed = pre_processed.reshape((image_height, image_width))
+    pre_processed = pre_process_frame(original, (198, 198))
 
-    processed_hw = convolve_like_hw(pre_processed, kernel)
-    # processed_manual = convolve_frame_manual(pre_processed, kernel)
-    processed = convolve_frame(pre_processed, kernel)
+    processed_hw = convolve_like_hw(pre_processed, kernel)  #La imagen se normaliza dentro de la funcion
+    processed    = convolve_frame(pre_processed, kernel)
 
     print("pre_processed")
     print(pre_processed)
     print("processed_hw")
-    print(processed_hw*256)
+    print(processed_hw*255)
     print("processed")
-    print(processed)
+    print(processed*255)
     # post_processed = post_process_frame(processed, original.shape[:2])
     # post_processed_manual = post_process_frame(processed_manual, original.shape[:2])
     
-    # display_frame(original, "Original")
-    # display_frame(pre_processed, "Pre-processed")
-    # display_frame(processed, "Processed")
-    # display_frame(processed_manual, "Processed Manual")
+    display_frame(original, "Original")
+    display_frame(pre_processed, "Pre-processed")
+    display_frame(processed, "Processed")
+    display_frame(processed_hw, "Processed HW")
+    
     # display_frame(post_processed, "Post-processed")
     # display_frame(post_processed_manual, "Post-processed Manual")
     
-    assert(np.array_equal(processed_hw*256, processed))
+    assert(np.array_equal(processed_hw, processed))
 
 if __name__ == "__main__":
     main()
