@@ -2,15 +2,15 @@ import numpy as np
 import cv2 # opencv-python
 from scipy import signal
 from tool._fixedInt import *
-
+from getarr import get_arr
 from utils import KERNELS, load_frame, pre_process_frame, post_process_frame, display_frame
 
-kernel = KERNELS["edges"]
+kernel = KERNELS["sharpen"]
 
 # FRAME
 car = "C:/Users/agusb/OneDrive/Escritorio/PROCOM/tpfinal/procom/src/python/car.jpg"
 gioconda = "C:/Users/agusb/OneDrive/Escritorio/PROCOM/tpfinal/procom/src/python/gioconda.jpg"
-pencil = "C:/Users/agusb/OneDrive/Escritorio/PROCOM/tpfinal/procom/src/python/pencil.jpg"
+pencil = "./pencil.jpg"
 path = pencil
 
 def convolve_frame(frame, kernel):
@@ -88,14 +88,15 @@ def convolve_like_hw(frame, kernel):
     kernel_size = 3
 
     # Tamaño de la imagen SIN padding
-    frame_height = frame.shape[0]   
-    frame_width  = frame.shape[1]
+    frame_height = frame.shape[0]   - 2
+    frame_width  = frame.shape[1]   - 2
     
     #Normalizo los valores
     frame = frame/255
     
     # Agrego padding al frame
-    padded_frame = np.pad(frame, pad_width=1, constant_values=0)
+    padded_frame = frame
+    # padded_frame = np.pad(frame, pad_width=1, constant_values=0)
     
     # aux = np.zeros_like(padded_frame)   # Para guardar el estimulo para el testbench
     
@@ -481,34 +482,25 @@ def convolve_like_hw(frame, kernel):
 
 def main():
     """Main function"""
-    original = load_frame(path)
-    image_width  = 10   #Las dimensiones (+padding) deben ser múltiplos de 4
-    image_height = 10
-    # pre_processed = np.arange(image_width*image_height) # IMAGEN SIN PADDING
-    # pre_processed = pre_processed.reshape((image_height, image_width))
-    pre_processed = pre_process_frame(original, (198, 198))
+    pre_processed = get_arr()
+    processed_hw = convolve_like_hw(pre_processed, kernel)*255
+    processed_hw = processed_hw.astype(np.uint8)
 
-    processed_hw = convolve_like_hw(pre_processed, kernel)  #La imagen se normaliza dentro de la funcion
-    processed    = convolve_frame(pre_processed, kernel)
+    processed    = convolve_frame(pre_processed[1:-1,1:-1], kernel)*255
+    processed    = processed.astype(np.uint8)
 
-    print("pre_processed")
-    print(pre_processed)
     print("processed_hw")
-    print(processed_hw*255)
+    print(processed_hw)
+
     print("processed")
-    print(processed*255)
-    # post_processed = post_process_frame(processed, original.shape[:2])
-    # post_processed_manual = post_process_frame(processed_manual, original.shape[:2])
+    print(processed)
     
-    display_frame(original, "Original")
     display_frame(pre_processed, "Pre-processed")
-    display_frame(processed, "Processed")
-    display_frame(processed_hw, "Processed HW")
-    
-    # display_frame(post_processed, "Post-processed")
-    # display_frame(post_processed_manual, "Post-processed Manual")
-    
+    display_frame(processed, "SCIPY")
+    display_frame(processed_hw, "HW")
+        
     assert(np.array_equal(processed_hw, processed))
+
 
 if __name__ == "__main__":
     main()

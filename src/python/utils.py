@@ -32,6 +32,8 @@ def pre_process_frame(image, frame_size=(200,200)):
 
     # Resize the frame
     resized = cv2.resize(arr, frame_size)
+
+    resized = resized.astype(np.uint8)
     
     return resized
 
