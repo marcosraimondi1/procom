@@ -13,7 +13,7 @@ ethernet subprocess <--- UDP ---> frame processing server
 This project is part of an FPGA project, the FPGA will take part as the frame processing server.
 
 frame processing server:
-<--- UDP ---> microblaze <--- GPIO/DMA ---> program logic
+<--- UDP ---> microblaze <--- AXI Stream ---> program logic
 
 ## Requirements
 
