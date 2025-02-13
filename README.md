@@ -4,16 +4,25 @@
 
 This project implements a web server with python and uses webRTC to establish a real time communication with the client. The frontend captures video and streams it to the backend, where it is sent to a video processing server where it is filtered using different kernels. Then the server sends back the processed frame.
 
+- [FPGA Sources](https://github.com/marcosraimondi1/procom/tree/tpfinal_program_logic)
+
 ## Architecture
 
-web client <--- webRTC ---> web backend 
-web backend <---- shared memory ---> ethernet subprocess
-ethernet subprocess <--- UDP ---> frame processing server
+```mermaid
+graph TD
+    A[Web Client] <-->|WebRTC| B[Web Backend]
+    B <-->|Shared Memory| C[Ethernet Subprocess]
+    C <-->|UDP| D[Frame Processing FPGA, MicroBlaze]
+    D <-->|AXI Stream| F[Program Logic]
+```
 
 This project is part of an FPGA project, the FPGA will take part as the frame processing server.
 
-frame processing server:
-<--- UDP ---> microblaze <--- AXI Stream ---> program logic
+## Latency Screenshots
+
+![udp_localnetwork](./timing/udp_localnetwork.png)
+
+Several measurements where taken in different scenarios. Mainly if the processing server was in the same network or in a remote network. And if it was either via TCP or UDP protocol, proving that UDP is more suitable for streaming applications.
 
 ## Requirements
 
